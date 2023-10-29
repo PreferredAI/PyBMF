@@ -1,0 +1,131 @@
+{
+    "root": "D:\\Dropbox\\output",
+    "experiments": [
+        {
+            "name": "experiment-01",
+            "comment": "This is a demo experiment.",
+            "frames": 10,
+            "zoom": 1.0,
+            "matrices": [
+                {
+                    "name": "A",
+                    "comment": "The user-item matrix.",
+                    "numRow": 1000,
+                    "numCol": 500,
+                    "locRow": 2,
+                    "locCol": 2,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "B",
+                    "comment": "The user-rank matrix.",
+                    "numRow": 1000,
+                    "numCol": 50,
+                    "locRow": 2,
+                    "locCol": 1,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "C",
+                    "comment": "The rank-item matrix.",
+                    "numRow": 50,
+                    "numCol": 500,
+                    "locRow": 1,
+                    "locCol": 2,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                }
+            ]
+        },
+        {
+            "name": "experiment-02",
+            "comment": "This is another demo experiment.",
+            "frames": 20,
+            "zoom": 1.0,
+            "matrices": [
+                {
+                    "name": "X",
+                    "comment": "The user-item matrix.",
+                    "numRow": 1000,
+                    "numCol": 500,
+                    "locRow": 3,
+                    "locCol": 3,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "Y",
+                    "comment": "The itemFeat-item matrix.",
+                    "numRow": 30,
+                    "numCol": 500,
+                    "locRow": 1,
+                    "locCol": 3,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "Z",
+                    "comment": "The user-userFeat matrix.",
+                    "numRow": 1000,
+                    "numCol": 70,
+                    "locRow": 3,
+                    "locCol": 1,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "U",
+                    "comment": "The user-rank matrix.",
+                    "numRow": 1000,
+                    "numCol": 10,
+                    "locRow": 3,
+                    "locCol": 2,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "V",
+                    "comment": "The rank-item matrix.",
+                    "numRow": 10,
+                    "numCol": 500,
+                    "locRow": 2,
+                    "locCol": 3,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "W",
+                    "comment": "The itemFeat-rank matrix.",
+                    "numRow": 30,
+                    "numCol": 10,
+                    "locRow": 1,
+                    "locCol": 2,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                },
+                {
+                    "name": "T",
+                    "comment": "The rank-userFeat matrix.",
+                    "numRow": 10,
+                    "numCol": 70,
+                    "locRow": 2,
+                    "locCol": 1,
+                    "invRow": false,
+                    "invCol": false,
+                    "transpose": false
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>MatViz</title>
+	<style>
+
+		html,
+		body {
+			font-family: sans-serif;
+		}
+		canvas {
+			border: 1px solid black;
+		}
+		table {
+			border-collapse: collapse;
+			margin: auto;
+		}
+		td {
+			width: 25px;
+			height: 25px;
+			text-align: center;
+			vertical-align: top;
+			border: 1px solid black;
+		}
+		
+	</style>
+</head>
+
+<body>
+	<div>
+		<fieldset>
+			<legend>Choose JSON file, experiment and frame: </legend>
+			<input type="file" onchange="readFile()" />
+
+			<label for="expList">Experiment:</label>
+			<select id="expList" onchange = "setExp()" >
+				<option> ---Choose experiment--- </option>
+			</select>
+
+			<label for="frameList">&nbsp;Frame:</label>
+			<select id="frameList" onchange = "setFrame()" >
+				<option> ---Choose frame--- </option>
+			</select>
+
+			<button onclick="gotoFrame(0)">&lt; Prev</button>
+			<button onclick="gotoFrame(1)">Next &gt;</button>
+			<!-- <br/> -->
+		</fieldset>
+		<fieldset>
+			<legend>Experiment and frame comments: </legend>
+			<p class="comment" id="expComment">Experiment comment here.</p>
+			<p class="comment" id="frameComment">Frame comment here.</p>
+		</fieldset>
+		<fieldset>
+			<legend>Display settings: </legend>
+			<label for="checkboxVerbose">Verbose:</label><input type="checkbox" id="checkboxVerbose" checked>
+			<label for="inputZoom">&nbsp;Zoom:</label><input type="text" id="inputZoom" value="2.0">
+			<button onclick="clickRefresh()">Refresh</button>
+		</fieldset>
+	</div>
+	<br>
+	<table id="frameTable">
+		<tr>
+			<td></td>
+			<td>
+				<canvas id="canvas-C"></canvas>
+				C
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<canvas id="canvas-B"></canvas>
+				B
+			</td>
+			<td>
+				<canvas id="canvas-A"></canvas>
+				A
+			</td>
+		</tr>
+	</table>
+</body>
+
+<script src="main.js"></script>
+
+</html>

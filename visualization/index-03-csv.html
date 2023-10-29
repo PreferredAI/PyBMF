@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>MatViz 0621</title>
+	<style>
+		canvas {
+			border: 1px solid black;
+		}
+		table {
+			border-collapse: collapse;
+			margin: auto;
+		}
+		td {
+			width: 25px;
+			height: 25px;
+			text-align: center;
+			border: 1px solid black;
+		}
+	</style>
+</head>
+<body>
+	<div>
+		<label for="input-m">Rows:</label>
+		<input type="text" id="input-m" value="1000">
+		<label for="input-n">Columns:</label>
+		<input type="text" id="input-n" value="500">
+        <label for="input-k">Rank:</label>
+		<input type="text" id="input-k" value="50">
+        <label for="input-zoom">Zoom:</label>
+		<input type="text" id="input-zoom" value="3.0">
+		<button onclick="readCSV()">Apply</button>
+		<!-- <p class="comment" id="expComment">Experiment comment here.</p> -->
+	</div>
+	<br>
+	<table>
+		<tr>
+			<td></td>
+			<td>
+				<canvas id="matrix-C"></canvas>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<canvas id="matrix-B"></canvas>
+			</td>
+			<td>
+				<canvas id="matrix-A"></canvas>
+			</td>
+		</tr>
+	</table>
+</body>
+<script>
+	// var expComment = document.getElementById("expComment");
+
+	function applySize() {
+		var m = document.getElementById("input-m").value;
+		var n = document.getElementById("input-n").value;
+		var k = document.getElementById("input-k").value;
+        var zoom = document.getElementById("input-zoom").value;
+		generateMatrix('matrix-A', m, n, zoom);
+        generateMatrix('matrix-B', m, k, zoom);
+        generateMatrix('matrix-C', k, n, zoom);
+	}
+
+    function generateMatrix(id, m, n, zoom) {
+		var canvas = document.getElementById(id);
+        canvas.height = m * zoom;
+        canvas.width = n * zoom;
+		var ctx = canvas.getContext("2d");
+        ctx.scale(zoom, zoom);
+		// for (var i = 0; i < m; i++) {
+		// 	// expComment.innerText = "Current id: " + id + " Current line: " + i + "/" + m;
+		// 	for (var j = 0; j < n; j++) {
+		// 		// ctx.fillStyle = (Math.floor(Math.random() * 2) == 0) ? "black" : "red";
+        //         ctx.fillStyle = (Math.floor(Math.random() * 2) == 0) ? "rgba(225,225,225,0.5)" : "rgba(225,0,0,0.5)";
+		// 		ctx.fillRect(j, i, 1, 1);
+		// 	}
+		// }
+        
+	}
+
+
+    function readCSV() {
+		const csvPath = 'exp_folder/test.csv'; // 'D:\\Dropbox\\MatViz.js\\test.csv';
+
+		fetch(csvPath, {})
+			.then(response => response.text())
+			.then(csvData => {
+				const lines = csvData.trim().split('\n');
+				for (const line of lines) {
+					const values = line.trim().split(',').map(Number)
+					console.log(values);
+				}
+
+				
+			})
+			.catch(error => {
+				console.error('Error:', error);
+			});
+	}
+
+
+</script>
+</html>
