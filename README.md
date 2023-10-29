@@ -1,2 +1,5 @@
 # PyBMF
-A python library for Boolean Matrix Factorization.
+
+A Python library for Boolean Matrix Factorization.
+
+Under development.
