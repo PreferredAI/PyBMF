@@ -36,13 +36,14 @@ class MEBF(BaseModel):
 
     
 
-    def solve():
-        # initialize
-        pass
+    def solve(self):
+        self.bidirectional_growth()
 
-    @staticmethod
+
     def bidirectional_growth(self, X, t):
-        """
+        """Bi-directional growth algorithm
+
+        t: threshold
         """
         # build Upper Triangular-Like (UTL) matrix by sorting rows and columns by their sum
         U_sum = np.array(X.sum(axis=1)).squeeze()
@@ -57,8 +58,8 @@ class MEBF(BaseModel):
         U_mid = int((max(U_order)-min(U_order)) / 2)
         V_mid = int((max(V_order)-min(V_order)) / 2)
         # extract middle column and row vector
-        u = X[U_order.index(U_mid)]
-        v = X[V_order.index(V_mid)]
+        u = X[U_order.index(U_mid), :]
+        v = X[:, V_order.index(V_mid)]
         # find v_tmp
         corr = matmul(U=u, V=np.ones(1, self.n), sparse=True, boolean=True)
         corr = multiply(X, corr)

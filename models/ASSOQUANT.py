@@ -6,48 +6,24 @@ from tqdm import tqdm
 from typing import Union
 from multiprocessing import Pool, cpu_count
 from .ASSO import ASSO
+from scipy.stats import rankdata
 
 
 class ASSOQUANT(ASSO):
-    '''The ASSO algorithm
+    '''The quantified ASSO algorithm
     
-    From the paper 'The discrete basis problem'.
+    Modified from the paper 'The discrete basis problem'.
     '''
     def __init__(self, k, tau=None, w=None):
-        self.check_params(k=k, tau=tau, w=w)
-
-
-    def check_params(self, **kwargs):
-        super().check_params(**kwargs)
-
-
-    def _fit_prepare(self, train_set, val_set=None, display=False):
-        super()._fit_prepare(train_set=train_set, val_set=val_set, display=display)
-
-
-    def fit(self, train_set, val_set=None, display=False):
-        self._fit_prepare(train_set=train_set, val_set=val_set, display=False)
-        super().check_params(display=display)
-        self.start_trial()
-        self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w))
-
-
-    def build_assoc(self):
-        '''Build the real-valued association matrix
-
-        Confidence is the coverage made by vec_j within vec_i.
-        '''
-        self.assoc = self.X_train.T @ self.X_train
-        self.assoc = self.assoc.astype(float)
-        for i in range(self.n):
-            col_sum = self.X_train[:, i].sum()
-            self.assoc[i, :] = self.assoc[i, :] / col_sum if col_sum > 0 else 0
+        super().__init__(k, tau, w)
 
                 
     def build_basis(self):
         '''Get the binary-valued basis candidates
+
+        Note: rankdata doesn't have sparsity support
         '''
-        self.basis = (self.assoc >= self.tau).astype(int)
+        self.basis = rankdata(self.assoc.toarray(), method='ordinal', axis=1)
         self.basis = to_sparse(self.basis)
 
 

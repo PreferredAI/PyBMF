@@ -54,17 +54,18 @@ class ASSO(BaseModel):
         '''Build the integer-valued association matrix
 
         Confidence is the coverage made by vec_j within vec_i.
+
+        for i in range(self.n):
+            col_sum = self.X_train[:, i].sum()
+            self.assoc[i, :] = self.assoc[i, :] / col_sum if col_sum > 0 else 0
         '''
         self.assoc = self.X_train.T @ self.X_train
         self.assoc = self.assoc.astype(float)
         col_sum = self.X_train.sum(axis=0)
-        col_sum[col_sum == 0] = np.inf
-        self.assoc = self.assoc / col_sum[np.newaxis, :]
-        # for i in range(self.n):
-        #     col_sum = self.X_train[:, i].sum()
-        #     self.assoc[i, :] = self.assoc[i, :] / col_sum if col_sum > 0 else 0
+        idx = col_sum != 0
+        self.assoc[idx] = self.assoc[idx] / col_sum[np.newaxis, idx]
+        
 
-                
     def build_basis(self):
         '''Get the binary-valued basis candidates
         '''
@@ -80,7 +81,7 @@ class ASSO(BaseModel):
 
             best_score = 0 if k == 0 else best_score
             for c in tqdm(range(self.n), leave=False):
-                score, column = self._get_col_candidate(c)
+                score, column = self.get_col_candidate(c)
                 if score > best_score:
                     best_score = score
                     best_basis = self.basis[c]
@@ -93,7 +94,9 @@ class ASSO(BaseModel):
             self.show_matrix(title="tau: {}, w: {}, step: {}".format(self.tau, self.w, k+1))
 
 
-    def _get_col_candidate(self, c):
+    def get_col_candidate(self, c):
+        '''Return optimal column candidate given c-th basis
+        '''
         before = matmul(self.U, self.V, sparse=True, boolean=True)
         V = self.basis[c]
         U = lil_matrix(np.ones([self.m, 1]))

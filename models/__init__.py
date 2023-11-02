@@ -2,6 +2,7 @@ from .ASSO import ASSO
 # from .ASSOTRANS import ASSOTRANS
 # from .ASSOOPT import ASSOOPT
 # from .ASSOITER import ASSOITER
+from .ASSOQUANT import ASSOQUANT
 from .NMF import NMF
 from .binaryMF import binaryMF
 from .binaryMFdense import binaryMFdense
