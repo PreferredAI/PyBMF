@@ -1,27 +1,30 @@
-from .ASSO import ASSO
+from .Asso import Asso
 import numpy as np
-from multiprocessing import Pool
 import time
-from utils import boolean_matmul, generate_candidates
+from utils import matmul, ERR
+from scipy.sparse import csr_matrix, lil_matrix
+from tqdm import tqdm
+from typing import Union
+from multiprocessing import Pool, cpu_count
 
 
-class ASSOOPT(ASSO):
-    '''ASSOOPT algorithm using exhaustive search
+class AssoOpt(Asso):
+    '''The Asso algorithm using exhaustive search
     '''
-    def __init__(self, X, k, tau, w=[0.5, 0.5], U_idx=None, V_idx=None, display_flag=False):
-        super().__init__(X=X, k=k, tau=tau, w=w, U_idx=U_idx, V_idx=V_idx, display_flag=display_flag)
+    def __init__(self, k, tau=None, w=None):
+        super().__init__(k=k, tau=tau, w=w)
 
     
-    def solve(self):
-        super().solve()
+    def fit(self, train_set, val_set=None, display=False):
+        super().fit(train_set=train_set, val_set=val_set, display=display)
         self.exhaustive_search()
 
 
     def exhaustive_search(self):
         '''Using exhaustive search to refine U
         '''
-        self.Uis = generate_candidates(bits=self.n, dim=1) # all candidates for a row in U
-        self.Xis = boolean_matmul(self.Uis, self.V) # corresponding rows in X
+        self.Uis = self.generate_candidates(bits=self.n, dim=1) # all candidates for a row in U
+        self.Xis = matmul(U=self.Uis, V=self.V, sparse=True, boolean=True) # corresponding rows in X
 
         start_time = time.perf_counter()
         with Pool() as pool:
@@ -32,6 +35,38 @@ class ASSOOPT(ASSO):
         # debug
         # print(result)
         self.U = self.Uis[result] # refine U
+
+
+    def get_row_candidate(self, bits, dim):
+        '''Return all possible choices for a column (dim=0) or a row (dim=1) in a matrix
+
+        E.g.
+
+        When dim == 0 and m = 2, the output will be
+            0 0 1 1
+            0 1 0 1
+
+        When dim == 1 and n = 2, the output will be
+            0 0
+            0 1
+            1 0
+            1 1
+        '''
+        # rows, cols = bits, 2 ** bits
+        # candidates = np.zeros((rows, cols), dtype=int)
+        # for i in range(cols):
+        #     binary = bin(i)[2:].zfill(rows)  # convert i to binary representation
+        #     for j in range(rows):
+        #         candidates[i, j] = int(binary[j])  # fill each cell with binary digit
+        # return candidates if dim == 0 else candidates.T
+        bits = self.m if dim == 0 else self.n
+        rows, cols = bits, 2 ** bits
+        candidates = lil_matrix(shape=(rows, cols), dtype=np.uint8)
+        for i in range(cols):
+            binary = bin(i)[2:].zfill(rows)  # convert i to binary representation
+            for j in range(rows):
+                candidates[i, j] = np.uint8(binary[j])  # fill each cell with binary digit
+        return candidates if dim == 0 else candidates.T
 
 
     def find_optimal_Ui(self, i):
@@ -60,3 +95,13 @@ class ASSOOPT(ASSO):
     #     x = [np.any(np.bitwise_and(vec, mat[:, c])) * 1 for c in range(n)]
     #     x = np.array(x)
     #     return x
+    
+
+    def error(self, X=None, Y=None, axis=None) -> Union[float, np.ndarray]:
+        '''Measure the error between X and Y
+        '''
+        if X is None:
+            X = self.X_train
+        if Y is None:
+            Y = matmul(self.U, self.V, sparse=True, boolean=True)
+        error = 

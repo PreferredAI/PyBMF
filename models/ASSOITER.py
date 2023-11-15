@@ -1,4 +1,4 @@
-from .ASSO import ASSO
+from .Asso import Asso
 import numpy as np
 from multiprocessing import Pool
 import time
@@ -7,32 +7,18 @@ from copy import deepcopy
 from scipy.sparse import issparse, lil_matrix
 
 
-class ASSOITER(ASSO):
-    '''The ASSOITER Algorithm
+class AssoIter(Asso):
+    '''The AssoIter Algorithm
     
     From the paper 'The discrete basis problem', using iterative search.
     '''
     def __init__(self, k, tau=None, w=None):
         super().__init__(k=k, tau=tau, w=w)
 
-    
-    def _fit_prepare(self, train_set, val_set=None, display=False):
-        super().check_params(display=display)
-        super().check_dataset(train_set=train_set, val_set=val_set)
-        self.U = lil_matrix(np.zeros((self.m, self.k)))
-        self.V = lil_matrix(np.zeros((self.k, self.n)))
-        self.assoc = None # real-valued association matrix
-        self.basis = None # binary-valued basis candidates
-        self.build_assoc()
-        self.build_basis()
-        self.show_matrix(settings=self.assoc, title='assoc')
-        self.show_matrix(settings=self.basis, title='basis')
-
 
     def fit(self, train_set, val_set=None, display=False):
-        self._fit_prepare(train_set=train_set, val_set=val_set, display=False)
-        super().check_params(display=display)
-        self.start_trial()
+        super().fit(train_set=train_set, val_set=val_set, display=display)
+        self.iterative_search()
         self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w))
 
 

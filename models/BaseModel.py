@@ -115,7 +115,6 @@ class BaseModel():
             pass
 
 
-
     def show_matrix(self, settings=None, scaling=1.0, pixels=5, title=None, colorbar=False):
         if self.display is True:
             if settings is None:
@@ -134,3 +133,4 @@ class BaseModel():
                 # when settings is a matrix
                 settings = [(check_sparse(settings, sparse=False), [0, 0], title)]
             show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar)
+            

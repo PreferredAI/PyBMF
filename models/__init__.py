@@ -1,17 +1,16 @@
-from .ASSO import ASSO
-# from .ASSOTRANS import ASSOTRANS
-# from .ASSOOPT import ASSOOPT
-# from .ASSOITER import ASSOITER
-from .ASSOQUANT import ASSOQUANT
+from .Asso import Asso
+# from .AssoTrans import AssoTrans
+# from .AssoOpt import AssoOpt
+# from .AssoIter import AssoIter
+from .AssoQuant import AssoQuant
 from .NMF import NMF
 from .binaryMF import binaryMF
-from .binaryMFdense import binaryMFdense
 # from .MEBF import MEBF
 
-# __all__ = ['ASSO',
-#            'ASSOTRANS',
-#            'ASSOOPT',
-#            'ASSOITER',
+# __all__ = ['Asso',
+#            'AssoTrans',
+#            'AssoOpt',
+#            'AssoIter',
 #            'NMF',
 #            'binaryMF',
 #            'MEBF']

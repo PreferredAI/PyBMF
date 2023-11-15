@@ -40,13 +40,4 @@ def reverse_index(idx):
     inv = [np.where(idx==i)[0][0] for i in range(len(idx))]
     return inv
 
-def generate_candidates(bits, dim):
-    '''All possible choices for a column (dim=0) or a row (dim=1) in a matrix
-    '''
-    rows, cols = bits, 2 ** bits
-    candidates = np.zeros((rows, cols), dtype=int)
-    for i in range(cols):
-        binary = bin(i)[2:].zfill(rows)  # convert i to binary representation
-        for j in range(rows):
-            candidates[i, j] = int(binary[j])  # fill each cell with binary digit
-    return candidates if dim == 0 else candidates.T
+
