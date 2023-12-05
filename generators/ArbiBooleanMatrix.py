@@ -18,7 +18,8 @@ class ArbiBooleanMatrix(BaseBooleanMatrix):
         self.generate_factors()
         self.boolean_matmul()
         self.sorted_index()
-        # self.to_sparse()
+        self.set_factor_info()
+        self.to_sparse()
 
     def generate_factors(self):
         # trials using two point sequences with proper overlapping
@@ -27,7 +28,7 @@ class ArbiBooleanMatrix(BaseBooleanMatrix):
             points_start_v, points_end_v = self.generate_factor_points(n=self.n, k=self.k, low=self.size_range[2], high=self.size_range[3])
             if self.check_overlap(self.k, points_start_u, points_end_u, points_start_v, points_end_v) == True:
                 self.U = self.generate_factor(n=self.m, k=self.k, points_start=points_start_u, points_end=points_end_u)
-                self.V = self.generate_factor(n=self.n, k=self.k, points_start=points_start_v, points_end=points_end_v).T
+                self.V = self.generate_factor(n=self.n, k=self.k, points_start=points_start_v, points_end=points_end_v)
                 break # try until a qualified config is found
         
     def generate_factor_points(self, n, k, low, high):

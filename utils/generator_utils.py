@@ -4,22 +4,33 @@ from .common import get_rng
 
 def shuffle_by_dim(X, dim, seed=None, rng=None):
     '''Shuffle a matrix by dimension
+
+    dim:
+        0, shuffle by rows
+        1, shuffle by columns
+
+    same as:
+        np.take(X, idx, axis=dim, out=X)
     '''
     rng = get_rng(seed, rng)
     idx = rng.rand(X.shape[dim]).argsort()
-    np.take(X, idx, axis=dim, out=X)
+    X = X[idx, :] if dim == 0 else X[:, idx]
     return (idx, X, rng)
+
 
 def shuffle_matrix(X, seed=None, rng=None):
     '''Shuffle a matrix
     '''
     rng = get_rng(seed, rng)
     U_idx, X, rng = shuffle_by_dim(X=X, dim=0, rng=rng)
-    V_idx, X, rng = shuffle_by_dim(X=X, dim=1, rng=rng)
+    V_idx, X, rng = shuffle_by_dim(X=X, dim=0, rng=rng)
     return (U_idx, V_idx, X, rng)
+
 
 def add_noise(X, noise, seed=None, rng=None):
     '''Add noise
+
+    noise: [p_pos, p_neg]
     '''
     rng = get_rng(seed, rng)
     p_pos, p_neg = noise
@@ -28,6 +39,7 @@ def add_noise(X, noise, seed=None, rng=None):
     n = rng.binomial(size=X.shape, n=1, p=p_neg)
     X = np.minimum(X + n, 1)
     return (X, rng)
+
     
 def reverse_index(idx):
     '''Reverse index

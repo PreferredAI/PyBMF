@@ -6,6 +6,7 @@ from .AssoQuant import AssoQuant
 from .NMF import NMF
 from .binaryMF import binaryMF
 # from .MEBF import MEBF
+from .cmf_pycmf import PyCMF
 
 # __all__ = ['Asso',
 #            'AssoTrans',

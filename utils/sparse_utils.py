@@ -1,20 +1,21 @@
-from scipy.sparse import coo_matrix, csr_matrix, csc_matrix, dok_matrix, lil_matrix, issparse
+from scipy.sparse import coo_matrix, csr_matrix, csc_matrix, lil_matrix, issparse
 import numpy as np
 
 
 def to_sparse(X, type='csr'):
     '''Convert to sparse matrix
+
+    Guide for choosing sparsity types:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.lil_matrix.html
     '''
-    assert type in ['coo', 'csr', 'csc', 'dok', 'lil'], "Not an available sparse matrix format"
+    assert type in ['coo', 'csr', 'csc', 'lil'], "Not an available sparse matrix format"
     if type == 'coo':
         X = coo_matrix(X)
     elif type == 'csr':
         X = csr_matrix(X)
     elif type == 'csc':
         X = csc_matrix(X)
-    elif type == 'dok':
-        X = dok_matrix(X)
-    elif type == 'lil':
+    elif type == 'lil': # LIst of Lists
         X = lil_matrix(X)
     return X
 

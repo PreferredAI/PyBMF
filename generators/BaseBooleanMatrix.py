@@ -1,24 +1,25 @@
 import numpy as np
 import time
-from utils import matmul, shuffle_by_dim, add_noise, to_sparse, reverse_index, check_sparse, show_matrix
+from utils import matmul, shuffle_by_dim, add_noise, to_sparse, reverse_index, to_dense, show_matrix
 
 
 class BaseBooleanMatrix:
     def __init__(self):
         """Base Boolean matrix class
 
-        X : np.array
-            X = U * V. X is an m-by-n data matrix
-        U : np.array
-            X = U * V. U is an m-by-k factor matrix
-        V : np.array
-            X = U * V. V is a k-by-n factor matrix
+        X = U * V
+
+        X, U, V: np.ndarray | sparse.spmatrix
+            X is an m-by-n data matrix.
+            U is an m-by-k factor matrix.
+            V is a n-by-k factor matrix.
+
+        factor_info: list, [U_info, V_info]
         """
         self.X = None
         self.U = None
         self.V = None
-        self.U_order = None
-        self.V_order = None
+        self.factor_info = None
 
 
     def check_params(self, **kwargs):
@@ -170,9 +171,9 @@ class BaseBooleanMatrix:
         """Measure a matrix
 
         true_density
-            The percentage on the number of 1's
+            percentage on the number of 1's
         true_overlap
-            The percentage on the number of overlapped 1's
+            percentage on the number of overlapped 1's
         """
         self.measured_density = self.measure_density()
         self.measured_overlap = self.measure_overlap()
@@ -186,16 +187,16 @@ class BaseBooleanMatrix:
     
     
     def measure_overlap(self):
-        return np.sum(matmul(self.U, self.V, boolean=True) > 1) / (self.m * self.n)
+        return np.sum(matmul(self.U, self.V.T, boolean=True) > 1) / (self.m * self.n)
 
         
-    def shuffle(self, seed=None, sparse=True):
+    def shuffle(self, seed=None):
         """Shuffle a matrix together with its factors
         """        
         self.check_params(seed=seed)
         self.U_order, self.U, self.rng = shuffle_by_dim(X=self.U, dim=0, rng=self.rng)
-        self.V_order, self.V, self.rng = shuffle_by_dim(X=self.V, dim=1, rng=self.rng)
-        self.X = matmul(self.U, self.V, boolean=True, sparse=sparse)
+        self.V_order, self.V, self.rng = shuffle_by_dim(X=self.V, dim=0, rng=self.rng)
+        self.X = matmul(self.U, self.V.T, boolean=True)
         
 
     def shuffle_factors(self, seed=None):
@@ -203,8 +204,8 @@ class BaseBooleanMatrix:
         """
         self.check_params(seed=seed)
         _, self.U, self.rng = shuffle_by_dim(X=self.U, dim=1, rng=self.rng)
-        _, self.V, self.rng = shuffle_by_dim(X=self.V, dim=0, rng=self.rng)
-        self.X = matmul(self.U, self.V, boolean=True)
+        _, self.V, self.rng = shuffle_by_dim(X=self.V, dim=1, rng=self.rng)
+        self.X = matmul(self.U, self.V.T, boolean=True)
 
 
     def sortout(self, method=None):
@@ -220,13 +221,21 @@ class BaseBooleanMatrix:
         self.V_order = np.array([i for i in range(self.n)])
 
 
+    def set_factor_info(self):
+        """Set factor_info
+        """
+        U_info = (self.U_order, self.U_order, self.U_order.astype(str))
+        V_info = (self.V_order, self.V_order, self.V_order.astype(str))
+        self.factor_info = [U_info, V_info]
+        
+
     def add_noise(self, noise=None, seed=None):
         self.check_params(noise=noise, seed=seed)
         self.X, self.rng = add_noise(X=self.X, noise=self.noise, rng=self.rng)
 
     
     def boolean_matmul(self):
-        self.X = matmul(self.U, self.V, boolean=True)
+        self.X = matmul(self.U, self.V.T, boolean=True)
 
 
     def to_sparse(self, type='csr'):
@@ -240,20 +249,20 @@ class BaseBooleanMatrix:
     def to_dense(self):
         '''Convert U, V, X to dense matrices
         '''
-        pass
+        self.U = to_dense(self.U)
+        self.V = to_dense(self.V)
+        self.X = to_dense(self.X)
 
 
     def show_matrix(self, scaling=1.0, pixels=5, title=None, colorbar=False):
         U_inv = reverse_index(idx=self.U_order)
         V_inv = reverse_index(idx=self.V_order)
-        U = self.U[U_inv, :]
-        V = self.V[:, V_inv]
-        # to dense
-        U = check_sparse(U, sparse=False)
-        V = check_sparse(V, sparse=False)
-        # X = matmul(U, V, boolean=True, sparse=False)
+        U = self.U[U_inv]
+        V = self.V[V_inv]
+        U = to_dense(U)
+        V = to_dense(V)
         X = self.X[U_inv, :]
         X = X[:, V_inv]
-        X = check_sparse(X, sparse=False)
-        settings = [(U, [1, 0], "U"), (V, [0, 1], "V"), (X, [1, 1], "X " + str(self.X.shape))]
+        X = to_dense(X)
+        settings = [(U, [0, 1], "U"), (V.T, [1, 0], "V"), (X, [0, 0], "X")]
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar)

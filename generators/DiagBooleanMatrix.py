@@ -18,11 +18,12 @@ class DiagBooleanMatrix(BaseBooleanMatrix):
         self.generate_factors()
         self.boolean_matmul()
         self.sorted_index()
-        # self.to_sparse()
+        self.set_factor_info()
+        self.to_sparse()
 
     def generate_factors(self):
         self.U = self.generate_factor(self.m, self.k, overlap=self.overlap[0], span=self.overlap[1])
-        self.V = self.generate_factor(self.n, self.k, overlap=self.overlap[2], span=self.overlap[3]).T
+        self.V = self.generate_factor(self.n, self.k, overlap=self.overlap[2], span=self.overlap[3])
 
     def generate_factor(self, n, k, overlap, span):
         # trials for a point sequence with proper intervals

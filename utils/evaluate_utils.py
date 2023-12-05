@@ -1,6 +1,23 @@
 from .boolean_utils import multiply
-from scipy.sparse import issparse
+from scipy.sparse import spmatrix, issparse, csr_matrix
 import numpy as np
+from typing import Union, List
+
+
+def get_metrics(gt: Union[np.ndarray, spmatrix], pd: Union[np.ndarray, spmatrix], metrics: List[str], axis=None):
+    functions = {
+        'TP': TP, 'FP': FP, 'TN': TN, 'FN': FN,
+        'TPR': TPR, 'FPR': FPR, 'TNR': TNR, 'FNR': FNR,
+        'PPV': PPV, 'ACC': ACC, 'ERR': ERR, 'F1': F1,
+        'Recall': TPR, 'Precsion': PPV, 'Accuracy': ACC, 'Error': ERR, # alias
+    }
+    results = []
+    for m in metrics:
+        if m in functions:
+            results.append(functions[m](gt, pd, axis))
+        else:
+            results.append(None)
+    return results
 
 
 def TP(gt, pd, axis=None):
@@ -19,7 +36,7 @@ def FP(gt, pd, axis=None):
 
 
 def TN(gt, pd, axis=None):
-    return TP(gt=1-gt, pd=1-pd, axis=axis)
+    return TP(gt=csr_matrix(np.ones(gt.shape))-gt, pd=csr_matrix(np.ones(gt.shape))-pd, axis=axis)
 
 
 def FN(gt, pd, axis=None):
@@ -35,7 +52,7 @@ def TPR(gt, pd, axis=None):
 def TNR(gt, pd, axis=None):
     """specificity, selectivity or true negative rate
     """
-    return TN(gt, pd, axis=axis) / (1-gt).sum(axis=axis)
+    return TN(gt, pd, axis=axis) / (csr_matrix(np.ones(gt.shape))-gt).sum(axis=axis)
 
 
 def FPR(gt, pd, axis=None):

@@ -17,12 +17,13 @@ class SynthBooleanMatrix(BaseBooleanMatrix):
         self.check_params(seed=seed)
         self.generate_factors()
         self.shuffle() # shuffle factors and multiply
-        self.sorted_index()
-        # self.to_sparse()
+        self.sorted_index() # todo: get sorted index
+        self.set_factor_info()
+        self.to_sparse()
 
     def generate_factors(self):
         self.U = self.generate_factor(self.m, self.k, self.density[0])
-        self.V = self.generate_factor(self.n, self.k, self.density[1]).T
+        self.V = self.generate_factor(self.n, self.k, self.density[1])
 
     def generate_factor(self, n, k, density):
         """Generate a factor matrix

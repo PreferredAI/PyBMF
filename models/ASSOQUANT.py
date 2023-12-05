@@ -21,7 +21,9 @@ class AssoQuant(Asso):
     def build_basis(self):
         '''Get the binary-valued basis candidates
 
-        Note: rankdata doesn't have sparsity support
+        Note: rankdata doesn't have sparsity support.
+
+        The highest value will be assigned index 1.
         '''
         self.basis = rankdata(-self.assoc.toarray(), method='ordinal', axis=1)
         # self.basis = to_sparse(self.basis)

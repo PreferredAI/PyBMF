@@ -9,16 +9,16 @@ def show_matrix(settings, scaling=1.0, ppi=96, hds=1.5, pixels=None, title=None,
 
     Parameters
     ----------
-    settings : TYPE
-        DESCRIPTION.
-    scaling : TYPE, optional
-        Scaling. The default is 1.0.
-    ppi : TYPE, optional
-        Pixels per inch. The default, tested on a 4K 24" screen, is 96.
-    hds : TYPE, optional
-        High DPI scaling. Check your IDE. The default in Spyder is 1.5.
-    pixels : TYPE, optional
-        The presumed pixels for a cell. The default is None.
+    settings: tuple
+        data and location and title.
+    scaling: float, optional
+        scaling factor. the default is 1.0, which opens a window that match the height or width of the screen.
+    ppi: int, optional
+        pixels per inch. the default, tested on a 4K 24" screen, is 96.
+    hds : float, optional
+        high DPI scaling if your IDE support this. e.g. the default in Spyder is 1.5.
+    pixels : int, optional
+        each cell in a matrix takes up pivels * pixels on screen. this will overwrite scaling.
     """
     rows = []       # row index of each matrix
     cols = []       # col index of each matrix
@@ -45,30 +45,60 @@ def show_matrix(settings, scaling=1.0, ppi=96, hds=1.5, pixels=None, title=None,
         if c not in widths.keys():
             widths[c] = 0 # in case there's no matrix on this column
 
-    fig, axes = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={
-        'width_ratios': [widths[c] for c in range(n_cols)],
-        'height_ratios': [heights[r] for r in range(n_rows)]
-    })
+    if colorbar is False:
+        fig, axes = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={
+            'width_ratios': [widths[c] for c in range(n_cols)],
+            'height_ratios': [heights[r] for r in range(n_rows)]
+        })
 
-    if n_rows == 1 or n_cols == 1:
-        axes = np.reshape(axes, [n_rows, n_cols]) # axes must be a 2d array
+        if n_rows == 1 or n_cols == 1:
+            axes = np.reshape(axes, [n_rows, n_cols]) # axes must be a 2d array
 
-    for data, location, description in settings:
-        r, c = location
-        im = axes[r, c].matshow(data)
-        axes[r, c].set_title(description, fontdict={'fontsize': fontsize}, loc='left')
-        axes[r, c].set_xticks([])
-        axes[r, c].set_yticks([])
-        # under test
-        if colorbar:
-            divider = make_axes_locatable(axes[r, c])
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(im, cax=cax) # todo: modify width
+        for data, location, description in settings:
+            r, c = location
+            im = axes[r, c].matshow(data)
+            axes[r, c].set_title(description, fontdict={'fontsize': fontsize}, loc='left')
+            axes[r, c].set_xticks([])
+            axes[r, c].set_yticks([])
 
-    # set the rest of subplots to invisible
-    mat_locs = [(r, c) for r, c in zip(rows, cols)]
-    all_locs = [(r, c) for r in range(n_rows) for c in range(n_cols)]  # Cartesian product
-    nan_locs = set(all_locs) - set(mat_locs)
+        # set the rest of subplots to invisible
+        mat_locs = [(r, c) for r, c in zip(rows, cols)]
+        all_locs = [(r, c) for r in range(n_rows) for c in range(n_cols)]  # Cartesian product
+        nan_locs = set(all_locs) - set(mat_locs)
+
+    else:
+        cbar_width = 5
+        widths_with_cbar = [cbar_width] * (len(widths) * 2)
+        for c in range(len(widths)):
+            widths_with_cbar[c * 2] = widths[c]
+
+        n_cols *= 2
+
+        fig, axes = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={
+            'width_ratios': [widths_with_cbar[c] for c in range(n_cols)],
+            'height_ratios': [heights[r] for r in range(n_rows)]
+        })
+
+        if n_rows == 1 or n_cols == 1:
+            axes = np.reshape(axes, [n_rows, n_cols]) # axes must be a 2d array
+
+        for data, location, description in settings:
+            r, c = location
+            c *= 2
+            im = axes[r, c].matshow(data)
+            axes[r, c].set_title(description, fontdict={'fontsize': fontsize}, loc='left')
+            axes[r, c].set_xticks([])
+            axes[r, c].set_yticks([])
+
+            # debug: colorbar under dev
+            # todo: modify height 
+            plt.colorbar(im, cax=axes[r, c + 1])
+
+        # set the rest of subplots to invisible
+        mat_locs = [(r, c * 2) for r, c in zip(rows, cols)]
+        cbar_locs = [(r, c * 2 + 1) for r, c in zip(rows, cols)]
+        all_locs = [(r, c) for r in range(n_rows) for c in range(n_cols)]  # Cartesian product
+        nan_locs = set(all_locs) - set(mat_locs) - set(cbar_locs)
 
     for r, c in nan_locs:
         axes[r, c].set_visible(False)
@@ -86,7 +116,7 @@ def show_matrix(settings, scaling=1.0, ppi=96, hds=1.5, pixels=None, title=None,
     fig.set_size_inches(width_inches, height_inches)
     
     if title is not None:
-        plt.title(title, fontsize = fontsize, loc='right')
+        fig.suptitle(title, fontsize=fontsize)
         
     plt.show(block=False)
 
