@@ -1,11 +1,8 @@
-# from .data import Data
-# from .dataset import Dataset
-# from .GeneratedData import GeneratedData
-# from .CustomData import CustomData
 from .NoSplit import NoSplit
 from .RatioSplit import RatioSplit
 from .CrossValidation import CrossValidation
-# from .NetflixData import NetflixData, NetflixGenreData
+from .NetflixData import NetflixData
+from .NetflixGenreData import NetflixGenreData
 
 
 # __all__ = ['Data', 'Dataset', 

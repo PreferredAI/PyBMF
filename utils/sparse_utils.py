@@ -20,13 +20,12 @@ def to_sparse(X, type='csr'):
     return X
 
 
-def to_dense(X):
+def to_dense(X, squeeze=False):
     '''Convert to dense matrix
     '''
     if issparse(X):
         X = X.toarray()
-        X = X.squeeze()
-    return X
+    return X.squeeze() if squeeze else X
 
 
 def to_triplet(X):

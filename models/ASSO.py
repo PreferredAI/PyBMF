@@ -1,9 +1,10 @@
 import numpy as np
-from utils import matmul, add, to_sparse
+from utils import matmul, add, to_sparse, add_log
 from .BaseModel import BaseModel
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
+import pandas as pd
 
 
 class Asso(BaseModel):
@@ -31,24 +32,24 @@ class Asso(BaseModel):
             print("[I] weights      :", self.w)
 
 
-    def _fit_prepare(self, train_set, val_set=None, display=False):
+    def _fit_prepare(self, X_train, X_val=None, display=False):
         self.check_params(display=display)
-        self.check_dataset(train_set=train_set, val_set=val_set)
-        self.U = lil_matrix(np.zeros((self.m, self.k)), dtype=np.float32)
-        self.V = lil_matrix(np.zeros((self.n, self.k)), dtype=np.float32)
+        self.check_dataset(X_train=X_train, X_val=X_val)
+
         self.assoc = None # real-valued association matrix
         self.basis = None # binary-valued basis candidates
         self.build_assoc()
         self.build_basis()
-        self.show_matrix(settings=self.assoc, title='assoc', colorbar=True)
-        self.show_matrix(settings=self.basis, title='basis', colorbar=True)
+        self.show_matrix(settings=self.assoc, title='assoc, tau: {}'.format(self.tau), colorbar=True, scaling=0.3)
+        self.show_matrix(settings=self.basis, title='basis, tau: {}'.format(self.tau), colorbar=True, scaling=0.3)
 
 
-    def fit(self, train_set, val_set=None, display=False):
-        self._fit_prepare(train_set=train_set, val_set=val_set, display=False)
+    def fit(self, X_train, X_val=None, display=False):
+        self._fit_prepare(X_train=X_train, X_val=X_val, display=False)
         self.check_params(display=display)
+
         self.start_trial()
-        self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w))
+        self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w), scaling=0.1)
 
 
     def build_assoc(self):
@@ -72,13 +73,13 @@ class Asso(BaseModel):
         '''Get the binary-valued basis candidates
         '''
         self.basis = (self.assoc >= self.tau).astype(int)
-        self.basis = to_sparse(self.basis, 'csr')
+        self.basis = to_sparse(self.basis, 'lil') # will be modified, thus lil is used
 
 
     def start_trial(self):
-        for k in tqdm(range(self.k), leave=False):
-            # best_basis = lil_matrix(np.zeros((1, self.n)))
-            # best_column = lil_matrix(np.zeros((self.m, 1)))
+        for k in tqdm(range(self.k)):
+            best_basis = None
+            best_column = None
 
             best_cover = 0 if k == 0 else best_cover
             for i in tqdm(range(self.n), leave=False):
@@ -93,14 +94,23 @@ class Asso(BaseModel):
             self.U[:, k] = best_column
             self.basis[i] = 0 # remove this basis
 
-            print("[I] Asso step: {}, tau: {}, w: {}".format(self.tau, self.w, k+1))
-            self.show_matrix()
+            # self.show_matrix(title="step: {}, tau: {}, w: {}".format(k+1, self.tau, self.w), scaling=0.1)
+
+            # debug: eval at every step
+            if self.X_val is not None:
+                if not hasattr(self, 'df_eval'):
+                    metrics = ['Recall', 'Precsion', 'Error', 'Accuracy', 'F1']
+                    columns = ['time', 'k', 'tau', 'p_pos', 'p_neg'] + metrics
+                    self.df_eval = pd.DataFrame(columns=columns)
+
+                results = self.eval(self.X_val, metrics=metrics, task='prediction')
+                add_log(self.df_eval, [pd.Timestamp.now(), k+1, self.tau, self.w[0], self.w[1]] + results, verbose=False)
 
 
     def get_optimal_column(self, i):
         '''Return the optimal column given i-th basis candidate
         '''
-        before = matmul(self.U, self.V, sparse=True, boolean=True)
+        before = matmul(self.U, self.V.T, sparse=True, boolean=True)
         
         U = lil_matrix(np.ones([self.m, 1]))
         V = self.basis[i]

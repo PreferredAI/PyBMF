@@ -257,12 +257,9 @@ class BaseBooleanMatrix:
     def show_matrix(self, scaling=1.0, pixels=5, title=None, colorbar=False):
         U_inv = reverse_index(idx=self.U_order)
         V_inv = reverse_index(idx=self.V_order)
-        U = self.U[U_inv]
-        V = self.V[V_inv]
-        U = to_dense(U)
-        V = to_dense(V)
+        U, V = self.U[U_inv], self.V[V_inv]
         X = self.X[U_inv, :]
         X = X[:, V_inv]
-        X = to_dense(X)
+        U, V, X = to_dense(U), to_dense(V), to_dense(X)
         settings = [(U, [0, 1], "U"), (V.T, [1, 0], "V"), (X, [0, 0], "X")]
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar)

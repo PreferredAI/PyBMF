@@ -2,15 +2,16 @@ import os
 import pandas as pd
 from scipy.sparse import csr_matrix
 from utils import binarize
+from .BaseData import BaseData
 
 
-class NetflixData:
+class NetflixData(BaseData):
     '''Load Netflix dataset with preprocessing
     '''
     def __init__(self, path=None, small=True):
         self.X = None # csr_matrix, to be split
         self.factor_info = None # tuple, (order, idmap, alias)
-        
+
         self.set_paths(path, small)
         self.read()
         self.calibrate_genres()
@@ -100,7 +101,7 @@ class NetflixData:
         self.df_genres = self.df_genres.drop(index=idx_list)
         # generate row_idx and col_idx
         self.df_genres['row_idx'] = pd.factorize(self.df_genres['genre'])[0]
-        self.df_genres = self.df_genres.merge(self.df_V_info[['iid', 'col_idx']], on='iid', how='left') # col_idx is merged from df_ratings
+        self.df_genres = self.df_genres.merge(self.df_ratings_V_info[['iid', 'col_idx']], on='iid', how='left') # col_idx is merged from df_ratings
 
         # row_idx - genre
         self.df_genres_U_info = self.df_genres.drop_duplicates(subset=['genre', 'row_idx'])[['genre', 'row_idx']]

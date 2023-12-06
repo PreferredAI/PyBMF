@@ -36,7 +36,7 @@ def FP(gt, pd, axis=None):
 
 
 def TN(gt, pd, axis=None):
-    return TP(gt=csr_matrix(np.ones(gt.shape))-gt, pd=csr_matrix(np.ones(gt.shape))-pd, axis=axis)
+    return TP(gt=invert(gt), pd=invert(pd), axis=axis)
 
 
 def FN(gt, pd, axis=None):
@@ -52,7 +52,7 @@ def TPR(gt, pd, axis=None):
 def TNR(gt, pd, axis=None):
     """specificity, selectivity or true negative rate
     """
-    return TN(gt, pd, axis=axis) / (csr_matrix(np.ones(gt.shape))-gt).sum(axis=axis)
+    return TN(gt, pd, axis=axis) / invert(gt).sum(axis=axis)
 
 
 def FPR(gt, pd, axis=None):
@@ -76,11 +76,8 @@ def PPV(gt, pd, axis=None):
 def ACC(gt, pd, axis=None):
     """accuracy
     """
-    if hasattr(pd, "shape"):
-        if axis is None:
-            n = pd.shape[0] * pd.shape[1]
-        else:
-            n = pd.shape[axis]
+    if len(pd.shape) == 2:
+        n = pd.shape[0] * pd.shape[1] if axis is None else pd.shape[axis]
     else:
         n = len(pd)
     return (TP(gt, pd, axis) + TN(gt, pd, axis)) / n
@@ -94,11 +91,28 @@ def ERR(gt, pd, axis=None):
 
 def F1(gt, pd, axis=None):
     """F1 score
+
+    tp = TP(gt, pd, axis)
+    fp = FP(gt, pd, axis)
+    fn = FN(gt, pd, axis)
+    return 2 * tp / (2 * tp + fp + fn)
     """
-    # tp = TP(gt, pd, axis)
-    # fp = FP(gt, pd, axis)
-    # fn = FN(gt, pd, axis)
-    # return 2 * tp / (2 * tp + fp + fn)
     precision = PPV(gt, pd, axis)
     recall = TPR(gt, pd, axis)
     return 2 * precision * recall / (precision + recall)
+
+
+def invert(X):
+    if issparse(X):
+        X = csr_matrix(np.ones(X.shape)) - X
+    elif isinstance(X, np.ndarray):
+        X = np.ones(X.shape) - X
+    else:
+        raise TypeError
+    return X
+
+
+def add_log(df, line, verbose=True):
+    df.loc[len(df.index)] = line
+    if verbose:
+        display(df.tail())

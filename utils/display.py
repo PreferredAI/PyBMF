@@ -30,6 +30,9 @@ def show_matrix(settings, scaling=1.0, ppi=96, hds=1.5, pixels=None, title=None,
         rows.append(r)
         cols.append(c)
         
+        # debug
+        print(data.shape)
+        
         if r not in heights.keys():
             heights[r] = data.shape[0]
         if c not in widths.keys():

@@ -1,4 +1,5 @@
 from .BaseSplit import BaseSplit
+from scipy.sparse import spmatrix
 
 
 class NoSplit(BaseSplit):
@@ -6,7 +7,7 @@ class NoSplit(BaseSplit):
 
     For a reconstruction task, training and testing will use the same full set of samples.
     '''
-    def __init__(self, X) -> None:
+    def __init__(self, X: spmatrix) -> None:
         super().__init__(X)
 
         self.X_train = self.X
