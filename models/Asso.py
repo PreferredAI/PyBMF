@@ -21,36 +21,32 @@ class Asso(BaseModel):
         # check threshold tau
         if "tau" in kwargs:
             self.tau = kwargs.get("tau")
-            if self.tau == None:
-                self.tau = 0.5
             print("[I] tau          :", self.tau)
         # check reward and penalty parameters
         if "w" in kwargs:
             self.w = kwargs.get("w")
-            if self.w == None:
-                self.w = [0.5, 0.5]
             print("[I] weights      :", self.w)
 
 
-    def _fit_prepare(self, X_train, X_val=None, display=False):
-        self.check_params(display=display)
+    def fit(self, X_train, X_val=None, **kwargs):
+        self._fit_prepare(X_train=X_train, X_val=X_val)
+        self.check_params(**kwargs)
+
+        self._fit()
+        self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w))
+
+
+    def _fit_prepare(self, X_train, X_val=None, **kwargs):
+        self.check_params(**kwargs)
         self.check_dataset(X_train=X_train, X_val=X_val)
 
         self.assoc = None # real-valued association matrix
         self.basis = None # binary-valued basis candidates
         self.build_assoc()
         self.build_basis()
-        self.show_matrix(settings=self.assoc, title='assoc, tau: {}'.format(self.tau), colorbar=True, scaling=0.3)
-        self.show_matrix(settings=self.basis, title='basis, tau: {}'.format(self.tau), colorbar=True, scaling=0.3)
-
-
-    def fit(self, X_train, X_val=None, display=False):
-        self._fit_prepare(X_train=X_train, X_val=X_val, display=False)
-        self.check_params(display=display)
-
-        self.start_trial()
-        self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w), scaling=0.1)
-
+        self.show_matrix(matrix=self.assoc, title='assoc, tau: {}'.format(self.tau), colorbar=True)
+        self.show_matrix(matrix=self.basis, title='basis, tau: {}'.format(self.tau), colorbar=True)
+        
 
     def build_assoc(self):
         '''Build the real-valued association matrix
@@ -61,9 +57,7 @@ class Asso(BaseModel):
         # idx = col_sum != 0
         # self.assoc[idx] = self.assoc[idx] / col_sum[np.newaxis, idx]
         '''
-        self.assoc = self.X_train.T @ self.X_train
-        self.assoc = self.assoc.astype(float)
-
+        self.assoc = to_sparse(self.X_train.T @ self.X_train, 'lil').astype(float)
         for i in range(self.n):
             col_sum = self.X_train[:, i].sum()
             self.assoc[i, :] = self.assoc[i, :] / col_sum if col_sum > 0 else 0
@@ -76,39 +70,53 @@ class Asso(BaseModel):
         self.basis = to_sparse(self.basis, 'lil') # will be modified, thus lil is used
 
 
-    def start_trial(self):
-        for k in tqdm(range(self.k)):
+    def _fit(self):
+        for k in tqdm(range(self.k), position=0):
             best_basis = None
             best_column = None
-
             best_cover = 0 if k == 0 else best_cover
-            for i in tqdm(range(self.n), leave=False):
+            b = self.basis.shape[0]
+
+            # early stop detection
+            if b == 0:
+                print("[W] Stopped in advance: no more basis left.")
+                break
+
+            for i in tqdm(range(b), leave=False, position=0, desc=f"[I] Working on k={k+1}"):
                 score, column = self.get_optimal_column(i)
                 if score > best_cover:
                     best_cover = score
                     best_basis = self.basis[i].T
                     best_column = column
 
+            # early stop detection
+            if best_basis is None:
+                print("[W] Stopped in advance: coverage stops improving.")
+                break
+
             # update factors
             self.V[:, k] = best_basis
             self.U[:, k] = best_column
-            self.basis[i] = 0 # remove this basis
 
-            # self.show_matrix(title="step: {}, tau: {}, w: {}".format(k+1, self.tau, self.w), scaling=0.1)
+            # debug: remove this basis
+            idx = np.array([j for j in range(b) if i != j])
+            self.basis = self.basis[idx]
 
-            # debug: eval at every step
-            if self.X_val is not None:
-                if not hasattr(self, 'df_eval'):
-                    metrics = ['Recall', 'Precsion', 'Error', 'Accuracy', 'F1']
-                    columns = ['time', 'k', 'tau', 'p_pos', 'p_neg'] + metrics
-                    self.df_eval = pd.DataFrame(columns=columns)
+            # debug: show matrix at every step, when verbose=True and display=True
+            if self.verbose:
+                self.show_matrix(title="step: {}, tau: {}, w: {}".format(k+1, self.tau, self.w))
 
-                results = self.eval(self.X_val, metrics=metrics, task='prediction')
-                add_log(self.df_eval, [pd.Timestamp.now(), k+1, self.tau, self.w[0], self.w[1]] + results, verbose=False)
+            # debug: validation, and print results when verbose=True
+            self.validate(names=['time', 'k', 'tau', 'p_pos', 'p_neg'], 
+                          values=[pd.Timestamp.now(), k+1, self.tau, self.w[0], self.w[1]], 
+                          metrics=['Recall', 'Precision', 'Accuracy', 'F1'],
+                          verbose=self.verbose)
 
 
     def get_optimal_column(self, i):
         '''Return the optimal column given i-th basis candidate
+
+        Vectorized comparison on whether to set a column factor value to 1.
         '''
         before = matmul(self.U, self.V.T, sparse=True, boolean=True)
         

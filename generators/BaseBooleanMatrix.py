@@ -151,8 +151,8 @@ class BaseBooleanMatrix:
                 self.seed = seed
                 self.rng = np.random.RandomState(seed)
                 print("[I] seed         :", self.seed)
-            else:
-                pass # self.rng remains unchanged
+            else: # self.rng remains unchanged
+                pass
 
 
     def generate(self):

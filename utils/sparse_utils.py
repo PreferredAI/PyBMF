@@ -1,5 +1,6 @@
 from scipy.sparse import coo_matrix, csr_matrix, csc_matrix, lil_matrix, issparse
 import numpy as np
+from typing import Union
 
 
 def to_sparse(X, type='csr'):
@@ -59,3 +60,18 @@ def sparse_indexing(X, indices):
     X = to_sparse(X, type=type)
     return X
 
+# def delete_row_lil(X: lil_matrix, i: Union[int, np.ndarray]):
+#     """
+
+    
+#     i:
+#         row indices.
+
+#     Reference:
+#         https://stackoverflow.com/questions/13077527/is-there-a-numpy-delete-equivalent-for-sparse-matrices
+#     """
+#     if not isinstance(X, lil_matrix):
+#         raise ValueError("Works only for LIL format.")
+#     X.rows = np.delete(X.rows, i)
+#     X.data = np.delete(X.data, i)
+#     X._shape = (X._shape[0] - 1, X._shape[1])

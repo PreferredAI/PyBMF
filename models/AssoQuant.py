@@ -29,7 +29,7 @@ class AssoQuant(Asso):
         # self.basis = to_sparse(self.basis)
 
 
-    # def start_trial(self):
+    # def _fit(self):
     #     for k in range(self.k):
     #         # ver 1: original
     #         # if k == 0:
