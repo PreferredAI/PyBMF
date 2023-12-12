@@ -1,4 +1,6 @@
 from .Asso import Asso
+from .Panda import Panda
+from .MEBF import MEBF
 # from .AssoTrans import AssoTrans
 # from .AssoOpt import AssoOpt
 # from .AssoIter import AssoIter

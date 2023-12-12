@@ -26,6 +26,8 @@ def to_dense(X, squeeze=False):
     '''
     if issparse(X):
         X = X.toarray()
+    elif isinstance(X, np.matrix):
+        X = np.asarray(X)
     return X.squeeze() if squeeze else X
 
 
@@ -60,13 +62,18 @@ def sparse_indexing(X, indices):
     X = to_sparse(X, type=type)
     return X
 
+
+def bool_to_index(x):
+    bool_array = to_dense(x, squeeze=True).astype(bool)
+    idx = np.arange(len(bool_array))
+    idx = idx[bool_array]
+    return idx
+
+
 # def delete_row_lil(X: lil_matrix, i: Union[int, np.ndarray]):
 #     """
-
-    
 #     i:
 #         row indices.
-
 #     Reference:
 #         https://stackoverflow.com/questions/13077527/is-there-a-numpy-delete-equivalent-for-sparse-matrices
 #     """

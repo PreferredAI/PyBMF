@@ -144,5 +144,5 @@ def invert(X):
 
 def add_log(df, line, verbose=False):
     df.loc[len(df.index)] = line
-    if verbose: # print last 5 records upon update
+    if verbose: # print the last 5 records upon update
         display(df.tail())

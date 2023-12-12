@@ -22,21 +22,25 @@ def summarize(X: Union[np.ndarray, spmatrix]):
     print("[I] cols {} / {} / {} / {:.1f} / {}".format(v_num, v_min, v_median, v_mean, v_max))
 
 
-def sum(X: Union[np.ndarray, spmatrix]):
+def sum(X: Union[np.ndarray, spmatrix], axis=None):
     '''Row and column-wise sum
     '''
     sum_u = np.squeeze(np.array(X.sum(axis=1)))
     sum_v = np.squeeze(np.array(X.sum(axis=0)))
-    return sum_u, sum_v
+    result = (sum_u, sum_v)
+    return result if axis is None else result[1-axis]
 
-def mean(X: Union[np.ndarray, spmatrix]):
+
+def mean(X: Union[np.ndarray, spmatrix], axis=None):
     sum_u, sum_v = sum(X)
-    return np.mean(sum_u), np.mean(sum_v)
+    result = (np.mean(sum_u), np.mean(sum_v))
+    return result if axis is None else result[1-axis]
 
 
-def median(X: Union[np.ndarray, spmatrix]):
+def median(X: Union[np.ndarray, spmatrix], axis=None):
     sum_u, sum_v = sum(X)
-    return np.median(sum_u), np.median(sum_v)
+    result = (np.median(sum_u), np.median(sum_v))
+    return result if axis is None else result[1-axis]
 
 
 def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):

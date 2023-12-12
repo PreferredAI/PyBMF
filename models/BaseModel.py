@@ -26,7 +26,10 @@ class BaseModel():
             verbose: whether to show matrix and print result at each step during the fitting.
         '''
         if "k" in kwargs:
-            self.k = kwargs.get("k")
+            k = kwargs.get("k")
+            if k is None:
+                print("[I] Running without k.")
+            self.k = k
             print("[I] k            :", self.k)
 
         if "seed" in kwargs:
@@ -92,7 +95,7 @@ class BaseModel():
                 pixels: set the resolution of matrix plot.
             verbose: whether to show matrix and print result at each step during the fitting.
         """
-        raise NotImplementedError("[E] Missing fit method.")
+        raise NotImplementedError("Missing fit method.")
     
 
     def check_dataset(self, X_train: Union[np.ndarray, spmatrix], X_val: Union[np.ndarray, spmatrix]=None):
@@ -110,8 +113,8 @@ class BaseModel():
 
         self.m, self.n = self.X_train.shape
 
-        self.U = lil_matrix((self.m, self.k), dtype=float)
-        self.V = lil_matrix((self.n, self.k), dtype=float)
+        self.U = lil_matrix(np.zeros(self.m, self.k))
+        self.V = lil_matrix(np.zeros(self.n, self.k))
 
 
     def cover(self, X=None, Y=None, w=None, axis=None) -> Union[float, np.ndarray]:
@@ -189,6 +192,21 @@ class BaseModel():
             self.df_validation = pd.DataFrame(columns=names+metrics)
         results = self.eval(self.X_val, metrics=metrics, task=self.task)
         add_log(df=self.df_validation, line=values+results, verbose=self.verbose)
+
+
+    def early_stop(self, msg: str, k: int=None):
+        print("[W] Stopped in advance: " + msg)
+        if hasattr(self, 'k'):
+            print("[W]   requested {} factor(s), got {} factor(s).".format(self.k, k))
+        elif not hasattr(self, 'k') and k is not None:
+            print("[W]   got {} factor(s).".format(k))
+            self.U = self.U[:, :k]
+            self.V = self.V[:, :k]
+    
+    
+    def print_msg(self, msg):
+        if self.verbose:
+            print("[I] " + msg)
 
 
     def show_matrix(self, settings: List[Tuple]=None, 

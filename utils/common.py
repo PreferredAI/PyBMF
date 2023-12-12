@@ -51,16 +51,16 @@ def safe_indexing(X, indices):
         return [X[idx] for idx in indices]
 
 
-def safe_update(old, new, var_name=None, ignore=False):
-    """Check if the new value is different from a non-null old one
+def step_function(X, threshold):
+    '''Heaviside step function
+    '''
+    X[X >= threshold] = 1
+    X[X < threshold] = 0
+    return X
 
-    Used when tiling multiple Data into Dataset.
-    """
-    if old is None:
-        return new
-    var_name = '' if var_name is None else var_name
-    if new is not None and np.any(new.tolist() != old.tolist()) and not ignore:
-        print("[W] Conflits found when updating", var_name)
-        print("[W] new: ", new)
-        print("[W] old: ", old)
-    return new if ignore else old
+
+def sigmoid_function(X, lamda):
+    '''Sigmoid function
+    '''
+    X = 1 / (1 + np.exp(-lamda * X))
+    return X

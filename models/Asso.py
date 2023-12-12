@@ -13,18 +13,30 @@ class Asso(BaseModel):
     From the paper 'The discrete basis problem'.
     '''
     def __init__(self, k, tau=None, w=None):
+        """
+        k:
+            rank.
+        tau:
+            threshold.
+        w:
+            reward and penalty parameters.
+        """
         self.check_params(k=k, tau=tau, w=w)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        # check threshold tau
         if "tau" in kwargs:
-            self.tau = kwargs.get("tau")
+            tau = kwargs.get("tau")
+            if tau is None:
+                tau = 0.5
+            self.tau = tau
             print("[I] tau          :", self.tau)
-        # check reward and penalty parameters
         if "w" in kwargs:
-            self.w = kwargs.get("w")
+            w = kwargs.get("w")
+            if w is None:
+                w = [0.2, 0.2]
+            self.w = w
             print("[I] weights      :", self.w)
 
 
@@ -46,7 +58,7 @@ class Asso(BaseModel):
         self.build_basis()
         self.show_matrix(matrix=self.assoc, title='assoc, tau: {}'.format(self.tau), colorbar=True)
         self.show_matrix(matrix=self.basis, title='basis, tau: {}'.format(self.tau), colorbar=True)
-        
+
 
     def build_assoc(self):
         '''Build the real-valued association matrix
@@ -79,7 +91,7 @@ class Asso(BaseModel):
 
             # early stop detection
             if b == 0:
-                print("[W] Stopped in advance: no more basis left.")
+                self.early_stop(msg="No more basis left", k=k)
                 break
 
             for i in tqdm(range(b), leave=False, position=0, desc=f"[I] Working on k={k+1}"):
@@ -91,7 +103,7 @@ class Asso(BaseModel):
 
             # early stop detection
             if best_basis is None:
-                print("[W] Stopped in advance: coverage stops improving.")
+                self.early_stop(msg="Coverage stops improving", k=k)
                 break
 
             # update factors
