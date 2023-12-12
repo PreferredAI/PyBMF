@@ -6,7 +6,8 @@ from .MEBF import MEBF
 # from .AssoIter import AssoIter
 from .AssoQuant import AssoQuant
 from .NMF import NMF
-from .binaryMF import binaryMF
+from .bMFPenalty import bMFPenalty
+from .bMFThreshold import bMFThreshold
 # from .MEBF import MEBF
 from .cmf_pycmf import PyCMF
 

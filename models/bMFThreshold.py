@@ -64,7 +64,7 @@ class bMFThreshold(bMF):
 
         self.U = step_function(self.U, self.u)
         self.V = step_function(self.V, self.v)
-        self.show_matrix(title="after thresholding algorithm")
+        # self.show_matrix(title="after thresholding algorithm")
     
 
     def F(self, params):

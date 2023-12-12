@@ -113,8 +113,8 @@ class BaseModel():
 
         self.m, self.n = self.X_train.shape
 
-        self.U = lil_matrix(np.zeros(self.m, self.k))
-        self.V = lil_matrix(np.zeros(self.n, self.k))
+        self.U = lil_matrix(np.zeros((self.m, self.k)))
+        self.V = lil_matrix(np.zeros((self.n, self.k)))
 
 
     def cover(self, X=None, Y=None, w=None, axis=None) -> Union[float, np.ndarray]:

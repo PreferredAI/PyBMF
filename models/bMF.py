@@ -2,8 +2,8 @@ from .BaseModel import BaseModel
 from .NMF import NMF
 import numpy as np
 
-from utils import multiply, matmul, to_dense, to_sparse
-from scipy.linalg import inv
+from utils import step_function, matmul, to_dense, to_sparse
+# from scipy.linalg import inv
 # from scipy.sparse.linalg import inv
 from scipy.sparse import csr_matrix
 
@@ -81,7 +81,7 @@ class bMF(BaseModel):
 
     def initialize(self, nmf_max_iter=2000, nmf_seed=None):
         nmf = NMF(k=self.k, init='random', max_iter=nmf_max_iter, seed=nmf_seed)
-        nmf.fit(train_set=self.X_train)
+        nmf.fit(X_train=self.X_train)
 
         self.U = to_sparse(nmf.U, type='csr')
         self.V = to_sparse(nmf.V, type='csr')
@@ -92,7 +92,7 @@ class bMF(BaseModel):
 
     def normalize(self):
         diag_U = np.sqrt(np.max(self.U, axis=0)).toarray().flatten()
-        diag_V = np.sqrt(np.max(self.V, axis=1)).toarray().flatten()
+        diag_V = np.sqrt(np.max(self.V, axis=0)).toarray().flatten()
         
         for i in range(self.k):
             self.U[:, i] = self.U[:, i] * diag_V[i] / diag_U[i]
@@ -102,17 +102,27 @@ class bMF(BaseModel):
         self.show_matrix(title="after normalization", colorbar=True)
 
 
-    def show_matrix(self, title=None, scaling=1.0, pixels=5, colorbar=False):
-        if self.display:        
-            if self.algorithm == "penalty":
-                u, v = 0.5, 0.5
-            elif self.algorithm == "threshold":
-                u, v = self.u, self.v
+    def show_matrix(self, title=None, scaling=None, pixels=None, colorbar=False):
+        if not self.display:
+            return
+        if self.algorithm == "penalty":
+            u, v = 0.5, 0.5
+        elif self.algorithm == "threshold":
+            u, v = self.u, self.v
 
-            U = self.step_function(X=self.U, threshold=u)
-            V = self.step_function(X=self.V, threshold=v)
-            X = matmul(U, V, sparse=False, boolean=True)
-            U, V = to_dense(U), to_dense(V)
+        U = self.U.copy()
+        V = self.V.copy()
+        X_inner = matmul(U, V.T, sparse=False, boolean=False)
 
-            settings = [(U, [0, 1], "U"), (V.T, [1, 0], "V"), (X, [0, 0], "X")]
-            super().show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar)
+        U = step_function(X=U, threshold=u)
+        V = step_function(X=V, threshold=v)
+        X_bool = matmul(U, V.T, sparse=False, boolean=True)
+
+        settings = [(to_dense(U), [0, 3], "U thresholded"), 
+                    (to_dense(V).T, [1, 2], "V thresholded"), 
+                    (X_bool, [0, 2], "X boolean product"),
+                    (to_dense(self.U), [0, 1], "U"), 
+                    (to_dense(self.V).T, [1, 0], "V"), 
+                    (X_inner, [0, 0], "X inner product"),
+                    ]
+        super().show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar)

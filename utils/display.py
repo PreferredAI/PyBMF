@@ -63,27 +63,36 @@ def show_matrix(settings, scaling=1.0, ppi=96, hds=1.5, pixels=None, title=None,
 
         # set the rest of subplots to invisible
         mat_locs = [(r, c) for r, c in zip(rows, cols)]
-        all_locs = [(r, c) for r in range(n_rows) for c in range(n_cols)]  # Cartesian product
+        all_locs = [(r, c) for r in range(n_rows) for c in range(n_cols)]  
         nan_locs = set(all_locs) - set(mat_locs)
 
     else:
         cbar_width = 5
+        heights_with_cbar = [cbar_width] * (len(heights) * 2)
         widths_with_cbar = [cbar_width] * (len(widths) * 2)
+
+        for r in range(len(heights)):
+            heights_with_cbar[r * 2] = heights[r]
         for c in range(len(widths)):
             widths_with_cbar[c * 2] = widths[c]
 
+        n_rows *= 2
         n_cols *= 2
 
         fig, axes = plt.subplots(nrows=n_rows, ncols=n_cols, gridspec_kw={
             'width_ratios': [widths_with_cbar[c] for c in range(n_cols)],
-            'height_ratios': [heights[r] for r in range(n_rows)]
+            'height_ratios': [heights_with_cbar[r] for r in range(n_rows)]
         })
 
         if n_rows == 1 or n_cols == 1:
             axes = np.reshape(axes, [n_rows, n_cols]) # axes must be a 2d array
 
+        mat_locs = []
+        cbar_locs = []
+
         for data, location, description in settings:
             r, c = location
+            r *= 2
             c *= 2
             im = axes[r, c].matshow(data)
             axes[r, c].set_title(description, fontdict={'fontsize': fontsize}, loc='left')
@@ -91,13 +100,17 @@ def show_matrix(settings, scaling=1.0, ppi=96, hds=1.5, pixels=None, title=None,
             axes[r, c].set_yticks([])
 
             # debug: colorbar under dev
-            # todo: modify height 
-            plt.colorbar(im, cax=axes[r, c + 1])
+            # todo: fix height mismatch
+            mat_locs.append((r, c))
+            if data.shape[0] >= data.shape[1]:
+                plt.colorbar(im, cax=axes[r, c + 1])
+                cbar_locs.append((r, c + 1))
+            else:
+                plt.colorbar(im, cax=axes[r + 1, c], location='bottom')
+                cbar_locs.append((r + 1, c))
 
         # set the rest of subplots to invisible
-        mat_locs = [(r, c * 2) for r, c in zip(rows, cols)]
-        cbar_locs = [(r, c * 2 + 1) for r, c in zip(rows, cols)]
-        all_locs = [(r, c) for r in range(n_rows) for c in range(n_cols)]  # Cartesian product
+        all_locs = [(r, c) for r in range(n_rows) for c in range(n_cols)]  
         nan_locs = set(all_locs) - set(mat_locs) - set(cbar_locs)
 
     for r, c in nan_locs:
