@@ -28,7 +28,7 @@ class bMFPenalty(bMF):
         while True:
             error, rec_error, reg_error = self.penalty_error()
             errors.append(error)
-            print("[I] iter: {}, reg: {:.3f}, err: {:.3f}, rec_err: {:.3f}, reg_err: {:.3f}".format(n_iter, self.reg, error, rec_error, reg_error))
+            print("[I] iter: {}, reg: {:.1e}, err: {:.3f}, rec_err: {:.3f}, reg_err: {:.3f}".format(n_iter, self.reg, error, rec_error, reg_error))
 
             n_iter += 1
 

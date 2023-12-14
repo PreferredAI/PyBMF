@@ -196,7 +196,7 @@ class BaseModel():
 
     def early_stop(self, msg: str, k: int=None):
         print("[W] Stopped in advance: " + msg)
-        if hasattr(self, 'k'):
+        if hasattr(self, 'k') and k is not None:
             print("[W]   requested {} factor(s), got {} factor(s).".format(self.k, k))
         elif not hasattr(self, 'k') and k is not None:
             print("[W]   got {} factor(s).".format(k))

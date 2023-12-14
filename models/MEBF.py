@@ -182,4 +182,3 @@ class MEBF(BaseModel):
 
         return (a, b) if axis == 0 else (b, a)
 
-

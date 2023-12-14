@@ -5,7 +5,7 @@ import numpy as np
 from utils import step_function, matmul, to_dense, to_sparse
 # from scipy.linalg import inv
 # from scipy.sparse.linalg import inv
-from scipy.sparse import csr_matrix
+# from scipy.sparse import csr_matrix
 
 
 class bMF(BaseModel):
@@ -83,23 +83,34 @@ class bMF(BaseModel):
         nmf = NMF(k=self.k, init='random', max_iter=nmf_max_iter, seed=nmf_seed)
         nmf.fit(X_train=self.X_train)
 
-        self.U = to_sparse(nmf.U, type='csr')
-        self.V = to_sparse(nmf.V, type='csr')
+        if self.algorithm == 'penalty':
+            # penalty supports sparse matrix
+            self.U = to_sparse(nmf.U, type='csr')
+            self.V = to_sparse(nmf.V, type='csr')
+        elif self.algorithm == 'threshold':
+            self.X_train = to_dense(self.X_train)
+            self.U = to_dense(nmf.U)
+            self.V = to_dense(nmf.V)
+            # # debug
+            # print(type(self.U), self.U.shape, type(self.V), self.V.shape)
 
-        print("[I] After initialization: max U: {:.3f}, max V: {:.3f}".format(np.max(self.U), np.max(self.V)))
+        print("[I] After initialization: max U: {:.3f}, max V: {:.3f}".format(self.U.max(), self.V.max()))
         self.show_matrix(title="after initialization", colorbar=True)
 
 
     def normalize(self):
-        diag_U = np.sqrt(np.max(self.U, axis=0)).toarray().flatten()
-        diag_V = np.sqrt(np.max(self.V, axis=0)).toarray().flatten()
+        diag_U = to_dense(np.sqrt(np.max(self.U, axis=0))).flatten()
+        diag_V = to_dense(np.sqrt(np.max(self.V, axis=0))).flatten()
         
         for i in range(self.k):
             self.U[:, i] = self.U[:, i] * diag_V[i] / diag_U[i]
-            self.V[i, :] = self.V[i, :] * diag_U[i] / diag_V[i]
+            self.V[:, i] = self.V[:, i] * diag_U[i] / diag_V[i]
 
-        print("[I] After normalization: max U: {:.3f}, max V: {:.3f}".format(np.max(self.U), np.max(self.V)))
+        print("[I] After normalization: max U: {:.3f}, max V: {:.3f}".format(self.U.max(), self.V.max()))
         self.show_matrix(title="after normalization", colorbar=True)
+
+        if self.U.max() > 1 or self.V.max() > 1:
+            print("[W] Normalization failed. Re-try will help.")
 
 
     def show_matrix(self, title=None, scaling=None, pixels=None, colorbar=False):

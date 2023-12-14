@@ -56,19 +56,21 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
     '''
     if idx is not None:
         print("[I] Sampling with given indices")
-        assert X.shape[axis] >= len(idx), "[E] Target length is greater than the original."
+        assert X.shape[axis] >= len(idx), "[E] Target length exceeds the original."
     elif n_samples is not None:
         print("[I] Sampling to size", n_samples)
-        assert X.shape[axis] >= n_samples, "[E] Target length is greater than the original."
+        assert X.shape[axis] >= n_samples, "[E] Target length exceeds the original."
         
         seed = int(time.time()) if seed is None else seed
         rng = np.random.RandomState(seed)
-        print("[I]   Sampling seed    :", seed)
+        print("[I]   sampling seed    :", seed)
         
         idx = [True] * n_samples + [False] * (X.shape[axis] - n_samples)
         rng.shuffle(idx)
 
+    print("[I]   sampling from    :", X.shape)
     X = X[idx, :] if axis == 0 else X[:, idx]
+    print("[I]            to      :", X.shape)
 
     if factor_info is not None:
         for i in [0, 1, 2]: # order, idmap, alias

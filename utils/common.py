@@ -59,8 +59,11 @@ def step_function(X, threshold):
     return X
 
 
-def sigmoid_function(X, lamda):
+def sigmoid_function(X, lamda=None):
     '''Sigmoid function
     '''
-    X = 1 / (1 + np.exp(-lamda * X))
+    if lamda is None:
+        X = 1 / (1 + np.exp(-X))
+    else:
+        X = 1 / (1 + np.exp(-lamda * X))
     return X

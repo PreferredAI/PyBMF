@@ -24,6 +24,8 @@ class bMFThreshold(bMF):
     def threshold_algorithm(self):
         '''A gradient descent method minimizing F(u, v), or 'F(w, h)' in the paper.
         '''
+        self.V = self.V.T
+
         x_last = np.array([0.8, 0.2]) # or [self.u, self.v]
         p_last = - self.dF(x_last) # initial gradient
 
@@ -64,7 +66,8 @@ class bMFThreshold(bMF):
 
         self.U = step_function(self.U, self.u)
         self.V = step_function(self.V, self.v)
-        # self.show_matrix(title="after thresholding algorithm")
+        self.V = self.V.T
+        self.show_matrix(title="after thresholding algorithm")
     
 
     def F(self, params):
@@ -74,7 +77,14 @@ class bMFThreshold(bMF):
         '''
         u, v = params
         # reconstruction
-        rec = sigmoid_function(self.U - u, self.lamda) @ sigmoid_function(self.V - v, self.lamda).T #
+        U = sigmoid_function(self.U - u, self.lamda)
+        V = sigmoid_function(self.V - v, self.lamda)
+
+        # # debug
+        # print(type(self.U), self.U.shape, type(self.V), self.V.shape)
+        # print(type(U), U.shape, type(V), V.shape)
+
+        rec = U @ V
         F = 0.5 * np.sum((self.X_train - rec) ** 2)
         return F
     
@@ -86,14 +96,14 @@ class bMFThreshold(bMF):
         '''
         u, v = params
         sigmoid_U = sigmoid_function(self.U - u, self.lamda)
-        sigmoid_V = sigmoid_function(self.V - v, self.lamda).T #
+        sigmoid_V = sigmoid_function(self.V - v, self.lamda)
 
         dFdU = self.X_train @ sigmoid_V.T - sigmoid_U @ (sigmoid_V @ sigmoid_V.T)
         dUdu = self.dXdx(self.U, u)
         dFdu = multiply(dFdU, dUdu)
 
         dFdV = sigmoid_U.T @ self.X_train - (sigmoid_U.T @ sigmoid_U) @ sigmoid_V
-        dVdv = self.dXdx(self.V, v).T #
+        dVdv = self.dXdx(self.V, v)
         dFdv = multiply(dFdV, dVdv)
 
         dF = np.array([np.sum(dFdu), np.sum(dFdv)])
@@ -108,5 +118,5 @@ class bMFThreshold(bMF):
         '''
         diff = X - x # compute X* - x, in which X* = sigmoid(X - x)
         numerator = np.exp(-self.lamda * diff) * self.lamda
-        denominator_inv = self.sigmoid_function(diff) ** 2
+        denominator_inv = sigmoid_function(diff, self.lamda) ** 2
         return multiply(numerator, denominator_inv)

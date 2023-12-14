@@ -68,17 +68,3 @@ def bool_to_index(x):
     idx = np.arange(len(bool_array))
     idx = idx[bool_array]
     return idx
-
-
-# def delete_row_lil(X: lil_matrix, i: Union[int, np.ndarray]):
-#     """
-#     i:
-#         row indices.
-#     Reference:
-#         https://stackoverflow.com/questions/13077527/is-there-a-numpy-delete-equivalent-for-sparse-matrices
-#     """
-#     if not isinstance(X, lil_matrix):
-#         raise ValueError("Works only for LIL format.")
-#     X.rows = np.delete(X.rows, i)
-#     X.data = np.delete(X.data, i)
-#     X._shape = (X._shape[0] - 1, X._shape[1])

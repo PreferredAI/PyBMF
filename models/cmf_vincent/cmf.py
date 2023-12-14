@@ -5,7 +5,7 @@ import scipy.sparse
 import argparse
 from .anewton import *
 from .utils import *
-from utils import show_matrix, check_sparse, matmul, FPR, TP, TPR
+from utils import show_matrix, check_sparse, matmul, FPR, ACC, PPV, F1, TPR, to_dense
 
 # def parse_args():
 #     parser = argparse.ArgumentParser(description = 'Collective Matrix Factorization')
@@ -73,47 +73,74 @@ def learn(Xs, Xstst, rc_schema, modes, alphas, K, reg, learn_rate, max_iter, tol
         Ystst = predict(Us, Xstst, rc_schema, modes)
         test_rmse = RMSE(Xstst[0], Ystst[0])
 
-        # plot
-        if i % 20 == 0:
-            # for i in range(len(Xs)): # i = 1
-            #     if Xs[i] is None:
-            #         continue
-                
-                # X = Xs[i]
-            U = Us[rc_schema[0, 0]]
-            V = Us[rc_schema[0, 1]].T
-            Z = Us[rc_schema[1, 0]]
-
-                # X_pred = sigmoid(U @ V.T)
-                # Y_pred = sigmoid(Z @ V.T)
-                # X_pred = Ys[i]
-
-            settings = [(check_sparse(Ys[0], sparse=False), [2, 1], "X"),
-                        (check_sparse(Xs[0], sparse=False), [2, 2], "X, gt"),
-                        (check_sparse(Ys[1].T, sparse=False), [0, 1], "Y"),
-                        (check_sparse(Xs[1].T, sparse=False), [0, 2], "Y, gt"),
-                        (check_sparse(U, sparse=False), [2, 0], "U"),
-                        (check_sparse(V, sparse=False), [1, 1], "V"),
-                        (check_sparse(Z, sparse=False), [0, 0], "Z")
-                        ]
-            show_matrix(settings)
-
+        # ===============================================================
 
         toc = time.time()
         logger.info('Iter {}/{}. Time: {:.1f}'.format(i, max_iter, toc - tic))
-        logger.info('Training Loss: {:.1f} (change {:.2f}%). Training RMSE: {:.2f}. Testing RMSE: {:.2f}'.format(training_loss, change_rate, train_rmse, test_rmse))
+        # logger.info('Training Loss: {:.1f} (change {:.2f}%). Training RMSE: {:.2f}. Testing RMSE: {:.2f}'.format(training_loss, change_rate, train_rmse, test_rmse))
 
         train_gt = (Xs[0] > 0.5) * 1
         train_pd = (Ys[0] > 0.5) * 1
-        # train_ppv = PPV(train_gt, train_pd)
+
         test_gt = (Xstst[0] > 0.5) * 1
         test_pd = (Ystst[0] > 0.5) * 1
-        # test_ppv = PPV(test_gt, test_pd)
-        # print(Xs[0].min(), Xs[0].max(), Ys[0].min(), Ys[0].max())
 
-        logger.info('Training TPR: {:.2f}. Testing TPR: {:.2f}'.format(TPR(train_gt, train_pd), TPR(test_gt, test_pd)))
-        logger.info('Training FPR: {:.2f}. Testing FPR: {:.2f}'.format(FPR(train_gt, train_pd), FPR(test_gt, test_pd)))
-        # logger.info('Training precision: {:.2f}. Testing precision: {:.2f}'.format(train_ppv, test_ppv))
+        logger.info('trn rmse: {:.2f} tpr: {:.2f} ppv: {:.2f} acc: {:.2f} f1: {:.2f} loss: {:.1f} (change {:.2f}%)'.format(
+             train_rmse, TPR(train_gt, train_pd), PPV(train_gt, train_pd), 
+             ACC(train_gt, train_pd), F1(train_gt, train_pd), 
+             training_loss, change_rate))
+        logger.info('tst rmse: {:.2f} tpr: {:.2f} ppv: {:.2f} acc: {:.2f} f1: {:.2f}'.format(
+             test_rmse, TPR(test_gt, test_pd), PPV(test_gt, test_pd), 
+             ACC(test_gt, test_pd), F1(test_gt, test_pd)))
+
+        # plot ==========================================================
+
+        if i % 5 == 0:
+
+            U = Us[0]
+            V = Us[1]
+            W = Us[2]
+
+            # display(U.shape, V.shape, W.shape)
+
+            # Y = numpy.dot(U, V.T)
+            # Y = logistic(Y)
+
+            X_pred = Ystst[0] # = logistic(U @ V.T)
+            Z_pred = logistic(W @ V.T)
+
+            U_bool = (U > 0.5) * 1
+            V_bool = (V > 0.5) * 1
+            W_bool = (W > 0.5) * 1
+            
+            X_bool = matmul(U_bool, V_bool.T, sparse=False, boolean=True)
+            Z_bool = matmul(W_bool, V_bool.T, sparse=False, boolean=True)
+            
+            settings = [(to_dense(logistic(U @ V.T)), [0, 0], "X logistic of inner product"), 
+                        (to_dense(logistic(W @ V.T)), [2, 0], "Z logistic of inner product"), 
+                        (to_dense(U), [0, 1], "U real"), 
+                        (to_dense(V).T, [1, 0], "V real"), 
+                        (to_dense(W), [2, 1], "W real"), 
+
+                        (to_dense((X_pred > 0.5) * 1), [0, 2], "X thresholded"), 
+                        (to_dense((Z_pred > 0.5) * 1), [2, 2], "Z thresholded"), 
+                        (to_dense(U_bool), [0, 3], "U thresholded"), 
+                        (to_dense(V_bool).T, [1, 2], "V thresholded"), 
+                        (to_dense(W_bool), [2, 3], "W thresholded"), 
+
+                        (to_dense(X_bool), [0, 4], "X bool"), 
+                        (to_dense(Z_bool), [2, 4], "Z bool"), 
+                        (to_dense(U_bool), [0, 5], "U bool"), 
+                        (to_dense(V_bool).T, [1, 4], "V bool"), 
+                        (to_dense(W_bool), [2, 5], "W bool"), 
+
+                        (to_dense(Xs[0]), [0, 6], "X gt"), 
+                        (to_dense(Xs[1]).T, [2, 6], "Z gt"), 
+                        ]
+            show_matrix(settings, title='Iter {}/{}'.format(i, max_iter), colorbar=True, scaling=2)
+
+        # ===============================================================
+
     
         # early stop
         if tol!=0 and i!=1 and change_rate > -tol :
