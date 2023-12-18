@@ -1,5 +1,5 @@
 from .bMF import bMF
-from utils import multiply, step_function
+from utils import multiply, step
 import numpy as np
 
 
@@ -52,8 +52,8 @@ class bMFPenalty(bMF):
 
         self.show_matrix(title="after penalty function algorithm")
 
-        self.U = step_function(self.U, 0.5)
-        self.V = step_function(self.V, 0.5)
+        self.U = step(self.U, 0.5)
+        self.V = step(self.V, 0.5)
 
 
     def penalty_update_U(self):

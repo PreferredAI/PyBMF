@@ -23,7 +23,7 @@ class AssoQuant(Asso):
 
         Note: rankdata doesn't have sparsity support.
 
-        The highest value will be assigned index 1.
+        The highest value will be assigned with 1.
         '''
         self.basis = rankdata(-self.assoc.toarray(), method='ordinal', axis=1)
         # self.basis = to_sparse(self.basis)

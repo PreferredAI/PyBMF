@@ -78,7 +78,7 @@ class BaseModel():
             self.pixels = kwargs.get("pixels")
             print("[I]   pixels     :", self.pixels)
         else:
-            self.pixels = 2 # auto reset to 2
+            self.pixels = 2
 
 
     def fit(self, X_train: Union[np.ndarray, spmatrix], X_val: Union[np.ndarray, spmatrix]=None, **kwargs):
@@ -196,9 +196,7 @@ class BaseModel():
 
     def early_stop(self, msg: str, k: int=None):
         print("[W] Stopped in advance: " + msg)
-        if hasattr(self, 'k') and k is not None:
-            print("[W]   requested {} factor(s), got {} factor(s).".format(self.k, k))
-        elif not hasattr(self, 'k') and k is not None:
+        if k is not None:
             print("[W]   got {} factor(s).".format(k))
             self.U = self.U[:, :k]
             self.V = self.V[:, :k]

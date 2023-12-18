@@ -2,7 +2,7 @@ from .BaseModel import BaseModel
 from .NMF import NMF
 import numpy as np
 
-from utils import step_function, matmul, to_dense, to_sparse
+from utils import step, matmul, to_dense, to_sparse
 # from scipy.linalg import inv
 # from scipy.sparse.linalg import inv
 # from scipy.sparse import csr_matrix
@@ -59,8 +59,8 @@ class bMF(BaseModel):
                 # initial threshold u and v
                 self.u = kwargs.get("u")
                 self.v = kwargs.get("v")
-                self.u = 0.8 if self.u is None else self.u
-                self.v = 0.8 if self.v is None else self.v
+                self.u = 0.5 if self.u is None else self.u
+                self.v = 0.5 if self.v is None else self.v
                 print("[I] initial u, v :", [self.u, self.v])
                 # check lamda
                 self.lamda = kwargs.get('lamda') # 'lambda' for sigmoid function
@@ -113,7 +113,7 @@ class bMF(BaseModel):
             print("[W] Normalization failed. Re-try will help.")
 
 
-    def show_matrix(self, title=None, scaling=None, pixels=None, colorbar=False):
+    def show_matrix(self, title=None, colorbar=None):
         if not self.display:
             return
         if self.algorithm == "penalty":
@@ -125,8 +125,8 @@ class bMF(BaseModel):
         V = self.V.copy()
         X_inner = matmul(U, V.T, sparse=False, boolean=False)
 
-        U = step_function(X=U, threshold=u)
-        V = step_function(X=V, threshold=v)
+        U = step(X=U, threshold=u)
+        V = step(X=V, threshold=v)
         X_bool = matmul(U, V.T, sparse=False, boolean=True)
 
         settings = [(to_dense(U), [0, 3], "U thresholded"), 
@@ -136,4 +136,5 @@ class bMF(BaseModel):
                     (to_dense(self.V).T, [1, 0], "V"), 
                     (X_inner, [0, 0], "X inner product"),
                     ]
-        super().show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar)
+        super().show_matrix(settings=settings, title=title, colorbar=colorbar, 
+                            scaling=self.scaling, pixels=self.pixels)

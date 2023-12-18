@@ -51,7 +51,7 @@ def safe_indexing(X, indices):
         return [X[idx] for idx in indices]
 
 
-def step_function(X, threshold):
+def step(X, threshold):
     '''Heaviside step function
     '''
     X[X >= threshold] = 1
@@ -59,11 +59,8 @@ def step_function(X, threshold):
     return X
 
 
-def sigmoid_function(X, lamda=None):
+def sigmoid(X):
     '''Sigmoid function
     '''
-    if lamda is None:
-        X = 1 / (1 + np.exp(-X))
-    else:
-        X = 1 / (1 + np.exp(-lamda * X))
+    X = 1 / (1 + np.exp(-X))
     return X

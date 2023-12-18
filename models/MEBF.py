@@ -26,18 +26,23 @@ class MEBF(BaseModel):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.t = kwargs.get("t")
-        if self.t == None:
-            self.t = 0.5
-        print("[I] t            :", self.t)
-        self.w = kwargs.get("w")
-        if self.w == None:
-            self.w = [1, 1]
-        print("[I] w            :", self.w)
+        if 't' in kwargs:
+            t = kwargs.get("t")
+            if t is None:
+                t = 0.5
+            self.t = t
+            print("[I] t            :", self.t)
+        if 'w' in kwargs:
+            w = kwargs.get("w")
+            if w is None:
+                w = [1, 1]
+            self.w = w
+            print("[I] w            :", self.w)
 
 
     def fit(self, X_train, X_val=None, **kwargs):
         self.check_params(**kwargs)
+        self.k = min(X_train.shape) if self.k is None else self.k
         self.check_dataset(X_train=X_train, X_val=X_val)
         self._fit()
 
@@ -47,18 +52,11 @@ class MEBF(BaseModel):
         self.X_cover = self.X_train.copy()
         self.cost = self.X_res.sum()
 
-        if self.k is not None:
-            self.U = lil_matrix(np.zeros((self.m, self.k)))
-            self.V = lil_matrix(np.zeros((self.n, self.k)))
-        else:
-            k = min([self.m, self.n])
-            self.U = lil_matrix(np.zeros((self.m, k)))
-            self.V = lil_matrix(np.zeros((self.n, k)))
-
         self.u = lil_matrix(np.zeros((self.m, 1)))
         self.v = lil_matrix(np.zeros((self.n, 1)))
 
         k = 0
+
         while True:
             self.bidirectional_growth()
             if self.d_cost > 0: # cost increases
@@ -70,7 +68,8 @@ class MEBF(BaseModel):
             self.U[:, k] = self.u
             self.V[:, k] = self.v
             self.cost = self.cost + self.d_cost
-            self.print_msg("[I] k: {}, pattern: {}, d_cost: {}, cost: {}".format(k, (self.u.sum(), self.v.sum()), self.d_cost, self.cost))
+            self.print_msg("[I] k: {}, pattern: {}, d_cost: {}, cost: {}".format(
+                k, (self.u.sum(), self.v.sum()), self.d_cost, self.cost))
 
             # debug: verify cost (slow)
             # X = matmul(self.U, self.V.T, sparse=True, boolean=True)
@@ -84,14 +83,9 @@ class MEBF(BaseModel):
 
             k += 1
             
-            if self.k is not None and k == self.k:
+            if k == self.k:
                 self.early_stop(msg="Reached requested rank", k=k)
                 break
-
-            if k == min([self.m, self.n]):
-                self.early_stop(msg="Reached maximum rank", k=k)
-                break
-
 
 
     def bidirectional_growth(self):
