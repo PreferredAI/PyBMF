@@ -33,7 +33,7 @@ class bMFThreshold(bMF):
             xk = x_last # start point
             pk = p_last # search direction
 
-            # pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
+            pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
             print("[I] iter: {}, start from [{:.3f}, {:.3f}], search direction [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
 
@@ -83,7 +83,7 @@ class bMFThreshold(bMF):
         V = sigmoid((self.V - v) * self.lamda)
 
         rec = U @ V.T
-        F = 0.5 * np.sum((self.X_train - rec) ** 2) # / (self.m * self.n) # self.X_train.sum() # debug: normalize
+        F = 0.5 * np.sum((self.X_train - rec) ** 2) / (self.m * self.n) # self.X_train.sum() # debug: normalize
         return F
     
 
@@ -106,7 +106,7 @@ class bMFThreshold(bMF):
         # dVdv = self.dXdx(self.V, v) # authors' implemantation
         dFdv = multiply(dFdV, dVdv.T)
 
-        dF = np.array([np.sum(dFdu), np.sum(dFdv)]) # / (self.m * self.n) # self.X_train.sum() # debug: normalize
+        dF = np.array([np.sum(dFdu), np.sum(dFdv)]) / (self.m * self.n) # self.X_train.sum() # debug: normalize
         return dF
 
 
