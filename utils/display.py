@@ -106,7 +106,8 @@ def show_matrix(settings, scaling=1.0, ppi=96, hds=1.5, pixels=None, title=None,
                 plt.colorbar(im, cax=axes[r, c + 1])
                 cbar_locs.append((r, c + 1))
             else:
-                plt.colorbar(im, cax=axes[r + 1, c], location='bottom')
+                # plt.colorbar(im, cax=axes[r + 1, c], location='bottom')
+                plt.colorbar(im, cax=axes[r + 1, c], orientation="horizontal")
                 cbar_locs.append((r + 1, c))
 
         # set the rest of subplots to invisible

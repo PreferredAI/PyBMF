@@ -49,16 +49,20 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
     axis: which dimension to down-sample.
         0, sample rows.
         1, sample columns.
-    factor_info: factor info for X.
-    idx: sample with given indices.
-    n_samples: randomly down-sample to this length.
-    seed: seed for down-sampling.
+    factor_info: 
+        factor info for X.
+    idx:
+        sample with given indices.
+    n_samples:
+        randomly down-sample to this length.
+    seed:
+        seed for down-sampling.
     '''
     if idx is not None:
-        print("[I] Sampling with given indices")
+        print("[I] sampling axis {} with given indices".format(axis))
         assert X.shape[axis] >= len(idx), "[E] Target length exceeds the original."
     elif n_samples is not None:
-        print("[I] Sampling to size", n_samples)
+        print("[I] Sampling axis {} to size {}".format(axis, n_samples))
         assert X.shape[axis] >= n_samples, "[E] Target length exceeds the original."
         
         seed = int(time.time()) if seed is None else seed
@@ -70,7 +74,7 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
 
     print("[I]   sampling from    :", X.shape)
     X = X[idx, :] if axis == 0 else X[:, idx]
-    print("[I]            to      :", X.shape)
+    print("[I]              to    :", X.shape)
 
     if factor_info is not None:
         for i in [0, 1, 2]: # order, idmap, alias
@@ -103,28 +107,17 @@ def get_factor_info(X):
     X can be any of the following types:
         np.ndarray, for custom data.
         spmatrix, for custom data.
-        BaseBooleanMatrix, for generated data.
+        BaseGenerator, for generated data.
         BaseData, for datasets, e.g. NetflixData.
     """
-    if isinstance(X, np.ndarray) or isinstance(X, spmatrix):
-        U_order = np.array([i for i in range(X.shape[0])]).astype(int)
-        V_order = np.array([i for i in range(X.shape[1])]).astype(int)
-        U_info = (U_order, U_order, U_order.astype(str))
-        V_info = (V_order, V_order, V_order.astype(str))
-        factor_info = [U_info, V_info]
-    elif hasattr(X, 'factor_info'):
-        factor_info = X.factor_info
+    # if isinstance(X, np.ndarray) or isinstance(X, spmatrix):
+    #     U_order = np.array([i for i in range(X.shape[0])]).astype(int)
+    #     V_order = np.array([i for i in range(X.shape[1])]).astype(int)
+    #     U_info = (U_order, U_order, U_order.astype(str))
+    #     V_info = (V_order, V_order, V_order.astype(str))
+    #     factor_info = [U_info, V_info]
+    # elif hasattr(X, 'factor_info'):
+    #     factor_info = X.factor_info
 
-    return factor_info
-
-
-def write_cache(data, path):
-    pickle_data = {'X': data.X, 'factor_info': data.factor_info}
-    with open(path, 'wb') as handle:
-        pickle.dump(pickle_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    
-
-def read_cache(path):
-    with open(path, 'rb') as handle:
-        data = pickle.load(handle)
-    return data['X'], data['factor_info']
+    # return factor_info
+    pass

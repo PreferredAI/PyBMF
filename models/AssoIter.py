@@ -9,18 +9,15 @@ from functools import reduce
 
 
 class AssoIter(Asso):
-    '''The AssoIter Algorithm using iterative search
+    '''The AssoIter algorithm using iterative search
     
-    From the paper 'The discrete basis problem'.
+    Reference:
+        The discrete basis problem
     '''
-    def __init__(self, k, tau=None, w=None):
-        super().__init__(k=k, tau=tau, w=w)
-
-
-    def fit(self, train_set, val_set=None, display=False):
-        super().fit(train_set=train_set, val_set=val_set, display=display)
+    def fit(self, X_train, X_val=None, **kwargs):
+        super().fit(X_train, X_val, **kwargs)
         self.iterative_search()
-        self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w))
+        self.show_matrix(title="after iterative search")
 
 
     def iterative_search(self):
@@ -33,9 +30,9 @@ class AssoIter(Asso):
         this_cover = 0
         this_error = 0
 
-        self.Xs = []
-        for i in range(self.k):
-            X = matmul(self.U[:, i], self.V[i, :], boolean=True)
+        self.Xs = [] # build k overlapping matrices
+        for k in range(self.k):
+            X = matmul(self.U[:, k], self.V[:, k].T, boolean=True, sparse=True)
             self.Xs.append(X)
 
         while True:
@@ -44,78 +41,48 @@ class AssoIter(Asso):
             for i in range(self.k):
                 best_cover = self.cover()
 
-                score, column = self.get_optimal_column(i)
+                score, column = self.get_refined_column(i)
 
                 # update factors
                 self.U[:, i] = column
-                X = matmul(self.U[:, i], self.V[i, :], boolean=True)
+                X = matmul(self.U[:, i], self.V[:, i].T, boolean=True, sparse=True)
                 self.Xs[i] = X
 
                 this_cover = score
                 this_error = self.error()
-                print("[I] Refined column i = {}. cover: {} -> {}. error: {} -> {}.".format(i, best_cover, this_cover, best_error, this_error))
+                print("[I] Refined column i = {}, cover: {} -> {}, error: {} -> {}.".format(i, best_cover, this_cover, best_error, this_error))
 
             if this_error < best_error:
                 best_error = this_error
-            else: # error stops decreasing
+            else:
+                print("[I] Error stops decreasing.")
                 break
 
 
-    def get_optimal_column(self, i):
-        '''Return the optimal column given i-th basis, while the other k-1 basis remains unchanged
+    def get_refined_column(self, i):
+        '''Return the optimal column given i-th basis
+        
+        The other k-1 basis remains unchanged.
         '''
-        idx = [j for j in range(self.k) if i != j]
-        before = reduce(add, self.Xs[idx]) # without j-th basis
+        X_before = lil_matrix(np.zeros((self.m, self.n)))
+        for idx in range(self.k):
+            if idx != i: # without i-th basis
+                X_before = add(X_before, self.Xs[idx])
+        
+        U = lil_matrix(np.ones([self.m, 1]))
+        V = self.V[:, i]
 
-        U = lil_matrix(np.ones((self.m, 1)))
-        V = self.V[i, :]
-        after = matmul(U, V, sparse=True, boolean=True)
-        after = add(before, after) # with j-th basis
+        X_after = matmul(U, V.T, sparse=True, boolean=True)
+        X_after = add(X_before, X_after)
 
-        before_cover = self.cover(Y=before, axis=1, w=[1, 1])
-        after_cover = self.cover(Y=after, axis=1, w=[1, 1])
-        optimal_col = (after_cover > before_cover) * 1
-        optimal_col = lil_matrix(optimal_col).T
+        cover_before = self.cover(Y=X_before, axis=1, w=[1, 1])
+        cover_after = self.cover(Y=X_after, axis=1, w=[1, 1])
 
-        U = optimal_col
-        after = matmul(U, V, sparse=True, boolean=True)
-        after = add(before, after)
-        cover = self.cover(Y=after)
+        U = lil_matrix(np.array(cover_after > cover_before, dtype=int)).T
 
-        return cover, optimal_col
+        X_after = matmul(U, V.T, sparse=True, boolean=True)
+        X_after = add(X_before, X_after)
 
+        cover = self.cover(Y=X_after)
 
-    #     for i in range(self.m):
-    #         current_row_in_X = self.X[i].astype(int) # j-th row in X
-    #         score_0 = self.vec_cover(current_row_in_X, self.Xwoj[i]) # score when U[i, j] = 0
-    #         score_1 = self.vec_cover(current_row_in_X, self.Xwj[i]) # score when U[i, j] = 1
-    #         self.U[i, j] = 0 if score_0 >= score_1 else 1
-
-
-    # def vec_cover(self, x, y):
-    #     '''Vector version for cover function (with modified weights)
-    #     x: ground truth
-    #     y: reconstruction
-    #     '''
-    #     covered = np.sum(np.bitwise_and(x, y))
-    #     overcovered = np.sum(np.maximum(y-x, 0))
-    #     return 1 * covered - 1 * overcovered # w = [1, 1] in iterative search
-    
-    
-    # def X_without_j_th_basis(self, j):
-    #     '''UV without j-th basis
-    #     '''
-    #     idx = [i for i in range(self.k) if j != i]
-    #     U = self.U[:, idx]
-    #     V = self.V[idx, :]
-    #     X = matmul(U, V, sparse=True, boolean=True)
-    #     return X
-    
-    # def X_with_j_th_basis(self, j):
-    #     '''UV with j-th basis
-    #     '''
-    #     U = deepcopy(self.U)
-    #     U[:, j] = 1
-    #     V = self.V
-    #     X = matmul(U, V, boolean=True)
-    #     return X
+        return cover, U

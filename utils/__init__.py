@@ -6,8 +6,7 @@ from .sparse_utils import to_dense, to_sparse, to_triplet, check_sparse, sparse_
 from .evaluate_utils import get_metrics, invert, add_log
 from .evaluate_utils import TP, FP, TN, FN, TPR, FPR, TNR, FNR
 from .evaluate_utils import ACC, ERR, PPV, F1
-from .data_utils import binarize, summarize, sum, mean, median, sample
-from .data_utils import get_factor_info, write_cache, read_cache
+from .data_utils import binarize, summarize, sum, mean, median, sample, sort_order, get_factor_info
 
 
 __all__ = ['show_matrix', 
@@ -20,6 +19,5 @@ __all__ = ['show_matrix',
            'TP', 'FP', 'TN', 'FN', 
            'TPR', 'FPR', 'TNR', 'FNR', 
            'PPV', 'ACC', 'ERR', 'F1', 
-           'binarize', 'summarize', 'sum', 'mean', 'median', 'sample', 
-           'get_factor_info', 'write_cache', 'read_cache'
+           'binarize', 'summarize', 'sum', 'mean', 'median', 'sample', 'sort_order', 'get_factor_info'
            ]

@@ -28,7 +28,7 @@ class BaseSplit:
 
         Any arithmetic operation or csr_matrix.eliminate_zeros() will lose the negative samples.
         """
-        raise NotImplementedError("[E] Missing negative_sample method.")
+        raise NotImplementedError("Missing negative_sample method.")
 
 
     def check_params(self, **kwargs):
@@ -52,7 +52,7 @@ class BaseSplit:
         '''
         Used in RatioSplit and CrossValidation.
 
-        Leave empty if val_idx/test_idx length is 0 for negative sampling.
+        Leave X_val, X_test empty if val_idx/test_idx length is 0 for negative sampling.
         '''
         self.X_train = safe_indexing(self.X, train_idx)
         self.X_val = safe_indexing(self.X, val_idx) if len(val_idx) > 0 else csr_matrix(self.X.shape)
@@ -66,6 +66,8 @@ class BaseSplit:
     def get_neg_indices(self, n_negatives, type):
         '''
         Used in RatioSplit.negative_sample and CrossValidation.negative_sample.
+
+        This is fast but intractable for large dataset. Use trial-and-error for large dataset.
         '''
         m, n = self.X.shape
         if type == "uniform":

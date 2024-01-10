@@ -10,8 +10,8 @@ import pandas as pd
 class BaseModel():
     def __init__(self) -> None:
         # model parameters
-        self.U = None # csr_matrix
-        self.V = None # csr_matrix
+        self.U = None # spmatrix
+        self.V = None # spmatrix
 
 
     def check_params(self, **kwargs):

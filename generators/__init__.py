@@ -1,7 +1,7 @@
-from .SynthBooleanMatrix import SynthBooleanMatrix
-from .DiagBooleanMatrix import DiagBooleanMatrix
-from .ArbiBooleanMatrix import ArbiBooleanMatrix
+from .SyntheticMatrixGenerator import SyntheticMatrixGenerator
+from .BlockDiagonalMatrixGenerator import BlockDiagonalMatrixGenerator
+from .BlockMatrixGenerator import BlockMatrixGenerator
 
-__all__ = ['SynthBooleanMatrix',
-           'DiagBooleanMatrix',
-           'ArbiBooleanMatrix']
+__all__ = ['SyntheticMatrixGenerator',
+           'BlockDiagonalMatrixGenerator',
+           'BlockMatrixGenerator']

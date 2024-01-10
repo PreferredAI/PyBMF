@@ -10,7 +10,8 @@ import pandas as pd
 class Asso(BaseModel):
     '''The Asso algorithm
     
-    From the paper 'The discrete basis problem'.
+    Reference:
+        The discrete basis problem
     '''
     def __init__(self, k, tau=None, w=None):
         """
@@ -72,7 +73,7 @@ class Asso(BaseModel):
         self.assoc = to_sparse(self.X_train.T @ self.X_train, 'lil').astype(float)
         for i in range(self.n):
             col_sum = self.X_train[:, i].sum()
-            self.assoc[i, :] = self.assoc[i, :] / col_sum if col_sum > 0 else 0
+            self.assoc[i, :] = (self.assoc[i, :] / col_sum) if col_sum > 0 else 0
         
 
     def build_basis(self):
@@ -94,7 +95,7 @@ class Asso(BaseModel):
                 self.early_stop(msg="No more basis left", k=k)
                 break
 
-            for i in tqdm(range(b), leave=False, position=0, desc=f"[I] Working on k={k+1}"):
+            for i in tqdm(range(b), leave=False, position=0, desc=f"[I] k = {k+1}"):
                 score, column = self.get_optimal_column(i)
                 if score > best_cover:
                     best_cover = score
@@ -130,23 +131,24 @@ class Asso(BaseModel):
 
         Vectorized comparison on whether to set a column factor value to 1.
         '''
-        before = matmul(self.U, self.V.T, sparse=True, boolean=True)
+        X_before = matmul(self.U, self.V.T, sparse=True, boolean=True)
         
         U = lil_matrix(np.ones([self.m, 1]))
         V = self.basis[i]
-        after = matmul(U, V, sparse=True, boolean=True)
-        after = add(before, after)
 
-        before_cover = self.cover(Y=before, axis=1)
-        after_cover = self.cover(Y=after, axis=1)
-        optimal_col = (after_cover > before_cover) * 1
-        optimal_col = lil_matrix(optimal_col).T
+        X_after = matmul(U, V, sparse=True, boolean=True)
+        X_after = add(X_before, X_after)
 
-        U = optimal_col
-        after = matmul(U, V, sparse=True, boolean=True)
-        after = add(before, after)
-        cover = self.cover(Y=after)
+        cover_before = self.cover(Y=X_before, axis=1)
+        cover_after = self.cover(Y=X_after, axis=1)
 
-        return cover, optimal_col
+        U = lil_matrix(np.array(cover_after > cover_before, dtype=int)).T
+
+        X_after = matmul(U, V, sparse=True, boolean=True)
+        X_after = add(X_before, X_after)
+
+        cover = self.cover(Y=X_after)
+
+        return cover, U
     
         
