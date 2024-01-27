@@ -1,4 +1,4 @@
-from scipy.sparse import coo_matrix, csr_matrix, csc_matrix, lil_matrix, issparse
+from scipy.sparse import coo_matrix, csr_matrix, csc_matrix, lil_matrix, issparse, isspmatrix
 import numpy as np
 from typing import Union
 
@@ -21,9 +21,15 @@ def to_sparse(X, type='csr'):
     return X
 
 
-def to_dense(X, squeeze=False):
-    '''Convert to dense matrix
+def to_dense(X, squeeze=False, keep_nan=False):
+    '''Convert to dense array
     '''
+    if keep_nan and isspmatrix((X)):
+        rows, cols, values = to_triplet(X)
+        X = np.empty(shape=X.shape)
+        X.fill(np.nan)
+        for i in range(len(values)):
+            X[rows[i], cols[i]] = values[i]
     if issparse(X):
         X = X.toarray()
     elif isinstance(X, np.matrix):

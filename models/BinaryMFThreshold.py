@@ -5,7 +5,11 @@ from scipy.optimize import line_search
 
 
 class BinaryMFThreshold(BinaryMF):
+<<<<<<< HEAD
+    '''Binary matrix factorization, Thresholding algorithm
+=======
     '''Binary matrix factorization
+>>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
     
     From the papers:
         'Binary Matrix Factorization with Applications', 
@@ -37,7 +41,7 @@ class BinaryMFThreshold(BinaryMF):
 
             print("[I] iter: {}, start from [{:.3f}, {:.3f}], search direction [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
 
-            alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=1000)
+            alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=1000, c1=0.0001, c2=0.9, amax=None) # debug: amax
             if alpha is None:
                 self.early_stop("search direction is not a descent direction.")
                 break
@@ -82,6 +86,10 @@ class BinaryMFThreshold(BinaryMF):
         U = sigmoid((self.U - u) * self.lamda)
         V = sigmoid((self.V - v) * self.lamda)
 
+<<<<<<< HEAD
+        diff = self.X_train - U @ V.T
+        F = 0.5 * np.sum(diff ** 2)       
+=======
         rec = U @ V.T
         F = 0.5 * np.sum((self.X_train - rec) ** 2) /  self.X_train.sum()
         
@@ -91,6 +99,7 @@ class BinaryMFThreshold(BinaryMF):
         F = F / (self.m * self.n)
         # F = F / self.X_train.sum()
         
+>>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
         return F
     
 
@@ -105,15 +114,15 @@ class BinaryMFThreshold(BinaryMF):
 
         dFdU = self.X_train @ sigmoid_V - sigmoid_U @ (sigmoid_V.T @ sigmoid_V)
         dUdu = self.dXdx(sigmoid_U, u) # original paper
-        # dUdu = self.dXdx(self.U, u) # authors' implemantation
+        # dUdu = self.dXdx(self.U, u) # authors' implementation
         dFdu = multiply(dFdU, dUdu)
 
         dFdV = sigmoid_U.T @ self.X_train - (sigmoid_U.T @ sigmoid_U) @ sigmoid_V.T
         dVdv = self.dXdx(sigmoid_V, v) # original paper
-        # dVdv = self.dXdx(self.V, v) # authors' implemantation
+        # dVdv = self.dXdx(self.V, v) # authors' implementation
         dFdv = multiply(dFdV, dVdv.T)
 
-        dF = np.array([np.sum(dFdu), np.sum(dFdv)]) / (self.m * self.n) # self.X_train.sum() # debug: normalize
+        dF = np.array([np.sum(dFdu), np.sum(dFdv)])
         return dF
 
 

@@ -5,7 +5,7 @@ import scipy.sparse
 import argparse
 from .anewton import *
 from .utils import *
-from utils import show_matrix, check_sparse, matmul, FPR, ACC, PPV, F1, TPR, to_dense
+from utils import show_matrix, check_sparse, matmul, FPR, ACC, PPV, F1, TPR
 
 # def parse_args():
 #     parser = argparse.ArgumentParser(description = 'Collective Matrix Factorization')
@@ -116,28 +116,28 @@ def learn(Xs, Xstst, rc_schema, modes, alphas, K, reg, learn_rate, max_iter, tol
             X_bool = matmul(U_bool, V_bool.T, sparse=False, boolean=True)
             Z_bool = matmul(W_bool, V_bool.T, sparse=False, boolean=True)
             
-            settings = [(to_dense(logistic(U @ V.T)), [0, 0], "X logistic of inner product"), 
-                        (to_dense(logistic(W @ V.T)), [2, 0], "Z logistic of inner product"), 
-                        (to_dense(U), [0, 1], "U real"), 
-                        (to_dense(V).T, [1, 0], "V real"), 
-                        (to_dense(W), [2, 1], "W real"), 
+            settings = [(logistic(U @ V.T), [0, 0], "X logistic of inner product"), 
+                        (logistic(W @ V.T), [2, 0], "Z logistic of inner product"), 
+                        (U, [0, 1], "U real"), 
+                        (V.T, [1, 0], "V real"), 
+                        (W, [2, 1], "W real"), 
 
-                        (to_dense((X_pred > 0.5) * 1), [0, 2], "X thresholded"), 
-                        (to_dense((Z_pred > 0.5) * 1), [2, 2], "Z thresholded"), 
-                        (to_dense(U_bool), [0, 3], "U thresholded"), 
-                        (to_dense(V_bool).T, [1, 2], "V thresholded"), 
-                        (to_dense(W_bool), [2, 3], "W thresholded"), 
+                        ((X_pred > 0.5) * 1, [0, 2], "X thresholded"), 
+                        ((Z_pred > 0.5) * 1, [2, 2], "Z thresholded"), 
+                        (U_bool, [0, 3], "U thresholded"), 
+                        (V_bool.T, [1, 2], "V thresholded"), 
+                        (W_bool, [2, 3], "W thresholded"), 
 
-                        (to_dense(X_bool), [0, 4], "X bool"), 
-                        (to_dense(Z_bool), [2, 4], "Z bool"), 
-                        (to_dense(U_bool), [0, 5], "U bool"), 
-                        (to_dense(V_bool).T, [1, 4], "V bool"), 
-                        (to_dense(W_bool), [2, 5], "W bool"), 
+                        (X_bool, [0, 4], "X bool"), 
+                        (Z_bool, [2, 4], "Z bool"), 
+                        (U_bool, [0, 5], "U bool"), 
+                        (V_bool.T, [1, 4], "V bool"), 
+                        (W_bool, [2, 5], "W bool"), 
 
-                        (to_dense(Xs[0]), [0, 6], "X gt"), 
-                        (to_dense(Xs[1]).T, [2, 6], "Z gt"), 
+                        (Xs[0], [0, 6], "X gt"), 
+                        (Xs[1].T, [2, 6], "Z gt"), 
                         ]
-            show_matrix(settings, title='Iter {}/{}'.format(i, max_iter), colorbar=True, scaling=2)
+            show_matrix(settings, title='Iter {}/{}'.format(i, max_iter), colorbar=True, scaling=2, clim=[0, 1])
 
         # ===============================================================
 

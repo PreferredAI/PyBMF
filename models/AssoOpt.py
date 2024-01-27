@@ -17,7 +17,11 @@ class AssoOpt(Asso):
     def fit(self, X_train, X_val=None, **kwargs):
         super().fit(X_train, X_val, **kwargs)
         self.exhaustive_search()
+<<<<<<< HEAD
+        self.show_matrix(title="result after exhaustive search")
+=======
         self.show_matrix(title="after iterative search")
+>>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
 
 
     def exhaustive_search(self):

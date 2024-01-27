@@ -79,7 +79,7 @@ class BinaryMF(BaseModel):
                 print("[I] max_iter     :", self.max_iter)
         
 
-    def initialize(self, nmf_max_iter=2000, nmf_seed=None):
+    def initialize(self, nmf_max_iter=1000, nmf_seed=None):
         nmf = NMF(k=self.k, init='random', max_iter=nmf_max_iter, seed=nmf_seed)
         nmf.fit(X_train=self.X_train)
 

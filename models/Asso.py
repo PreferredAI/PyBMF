@@ -5,6 +5,7 @@ from scipy.sparse import lil_matrix
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 import pandas as pd
+from p_tqdm import p_map
 
 
 class Asso(BaseModel):
@@ -36,29 +37,29 @@ class Asso(BaseModel):
         if "w" in kwargs:
             w = kwargs.get("w")
             if w is None:
-                w = [0.2, 0.2]
+                w = [0.2, 0.2] # default weights
+            if isinstance(w, list):
+                w = w / np.sum(w) # normalize weights
+            if isinstance(w, float) or isinstance(w, int):
+                w = [1 - w, w] # w is the ratio of true positives
             self.w = w
             print("[I] weights      :", self.w)
 
 
     def fit(self, X_train, X_val=None, **kwargs):
-        self._fit_prepare(X_train=X_train, X_val=X_val)
-        self.check_params(**kwargs)
-
-        self._fit()
-        self.show_matrix(title="tau: {}, w: {}".format(self.tau, self.w))
-
-
-    def _fit_prepare(self, X_train, X_val=None, **kwargs):
         self.check_params(**kwargs)
         self.check_dataset(X_train=X_train, X_val=X_val)
+        self.check_outcome()
 
-        self.assoc = None # real-valued association matrix
-        self.basis = None # binary-valued basis candidates
-        self.build_assoc()
-        self.build_basis()
-        self.show_matrix(matrix=self.assoc, title='assoc, tau: {}'.format(self.tau), colorbar=True)
-        self.show_matrix(matrix=self.basis, title='basis, tau: {}'.format(self.tau), colorbar=True)
+        self.build_assoc() # real-valued association matrix
+        self.build_basis() # binary-valued basis candidates
+
+        self.show_matrix([(self.assoc, [0, 0], 'assoc'), 
+                          (self.basis, [0, 1], 'basis')], 
+                          colorbar=True, clim=[0, 1], 
+                          title='tau: {}'.format(self.tau))
+        self._fit()
+        self.show_matrix(title="result")
 
 
     def build_assoc(self):
@@ -85,45 +86,52 @@ class Asso(BaseModel):
 
     def _fit(self):
         for k in tqdm(range(self.k), position=0):
-            best_basis = None
-            best_column = None
-            best_cover = 0 if k == 0 else best_cover
-            b = self.basis.shape[0]
+            best_basis, best_column = None, None
+            best_cover = 0 if k == 0 else best_cover # inherit from coverage of previous factors
+            basis_num = self.basis.shape[0] # number of basis candidates
 
             # early stop detection
-            if b == 0:
-                self.early_stop(msg="No more basis left", k=k)
+            if basis_num == 0:
+                self.early_stop(msg="No basis left.", k=k)
                 break
 
+<<<<<<< HEAD
+            for i in tqdm(range(basis_num), leave=False, position=0, desc=f"[I] k = {k+1}"):
+=======
             for i in tqdm(range(b), leave=False, position=0, desc=f"[I] k = {k+1}"):
+>>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
                 score, column = self.get_optimal_column(i)
                 if score > best_cover:
                     best_cover = score
                     best_basis = self.basis[i].T
                     best_column = column
-
-            # early stop detection
+            
             if best_basis is None:
-                self.early_stop(msg="Coverage stops improving", k=k)
+                self.early_stop(msg="Coverage stops improving.", k=k)
                 break
 
             # update factors
             self.V[:, k] = best_basis
             self.U[:, k] = best_column
 
-            # debug: remove this basis
-            idx = np.array([j for j in range(b) if i != j])
+            # remove this basis
+            idx = np.array([j for j in range(basis_num) if i != j])
             self.basis = self.basis[idx]
 
-            # debug: show matrix at every step, when verbose=True and display=True
+            # show matrix at every step, when verbose=True and display=True
             if self.verbose:
                 self.show_matrix(title="step: {}, tau: {}, w: {}".format(k+1, self.tau, self.w))
 
-            # debug: validation, and print results when verbose=True
-            self.validate(names=['time', 'k', 'tau', 'p_pos', 'p_neg'], 
-                          values=[pd.Timestamp.now(), k+1, self.tau, self.w[0], self.w[1]], 
-                          metrics=['Recall', 'Precision', 'Accuracy', 'F1'],
-                          verbose=self.verbose)
+            self.evaluate(X_gt=self.X_train, df="train_results", 
+                verbose=self.verbose, task=self.task, 
+                metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+                extra_metrics=['cover_score'], 
+                extra_results=[self.cover()])
+            self.evaluate(X_gt=self.X_val, df="val_results", 
+                verbose=self.verbose, task=self.task, 
+                metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+                extra_metrics=['cover_score'], 
+                extra_results=[self.cover()])
 
 
     def get_optimal_column(self, i):

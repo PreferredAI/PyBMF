@@ -37,7 +37,7 @@ def dot(u, v, boolean=None):
     else:
         assert u.shape == v.shape, "U and V should have the same shape"
         if boolean == True: # replace multiplication with logical
-            x = np.any(np.logical_and(u, v), axis=1).astype(int) # Boolean product
+            x = np.any(np.logical_and(u, v), axis=-1).astype(int) # Boolean product
         else:
             x = np.dot(u, v)
     return x

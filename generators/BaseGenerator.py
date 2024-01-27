@@ -260,6 +260,6 @@ class BaseGenerator:
         U, V = self.U[U_inv], self.V[V_inv]
         X = self.X[U_inv, :]
         X = X[:, V_inv]
-        U, V, X = to_dense(U), to_dense(V), to_dense(X)
-        settings = [(U, [0, 1], "U"), (V.T, [1, 0], "V"), (X, [0, 0], "X")]
+
+        settings = [(X, [0, 0], "X"), (U, [0, 1], "U"), (V.T, [1, 0], "V")]
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar)
