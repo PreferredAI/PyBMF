@@ -30,8 +30,11 @@ class BaseData:
         self.X, self.Xs, self.factors, self.factor_info = None, None, None, None
         self.is_single, self.name = None, None
 
-        self.root = os.path.abspath("D:/OneDrive - Singapore Management University/datasets")
-        self.cache_path = os.path.abspath("D:/OneDrive - Singapore Management University/cache")
+        import platform
+        plt = platform.system()
+
+        self.root = os.path.abspath("D:/OneDrive - Singapore Management University/datasets" if plt == 'Windows' else "~/datasets")
+        self.cache_path = os.path.abspath("../cache")
         self.pickle_path = path
 
 
