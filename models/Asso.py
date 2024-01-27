@@ -95,11 +95,7 @@ class Asso(BaseModel):
                 self.early_stop(msg="No basis left.", k=k)
                 break
 
-<<<<<<< HEAD
             for i in tqdm(range(basis_num), leave=False, position=0, desc=f"[I] k = {k+1}"):
-=======
-            for i in tqdm(range(b), leave=False, position=0, desc=f"[I] k = {k+1}"):
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
                 score, column = self.get_optimal_column(i)
                 if score > best_cover:
                     best_cover = score

@@ -5,11 +5,7 @@ from scipy.optimize import line_search
 
 
 class BinaryMFThreshold(BinaryMF):
-<<<<<<< HEAD
     '''Binary matrix factorization, Thresholding algorithm
-=======
-    '''Binary matrix factorization
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
     
     From the papers:
         'Binary Matrix Factorization with Applications', 
@@ -86,20 +82,8 @@ class BinaryMFThreshold(BinaryMF):
         U = sigmoid((self.U - u) * self.lamda)
         V = sigmoid((self.V - v) * self.lamda)
 
-<<<<<<< HEAD
         diff = self.X_train - U @ V.T
         F = 0.5 * np.sum(diff ** 2)       
-=======
-        rec = U @ V.T
-        F = 0.5 * np.sum((self.X_train - rec) ** 2) /  self.X_train.sum()
-        
-        # debug: normalize
-        # huge values in F may cause instability in line search
-        # method 1: normalize by size; 2: by number of non-zeros
-        F = F / (self.m * self.n)
-        # F = F / self.X_train.sum()
-        
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
         return F
     
 

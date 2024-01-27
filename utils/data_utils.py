@@ -50,19 +50,12 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
         which dimension to down-sample.
         0, sample rows.
         1, sample columns.
-<<<<<<< HEAD
     factor_info : list, tuple 
         factor_info for single matrix X or collective matrices Xs.
         for X, factor_info is a list of tuples.
         for Xs, factor_info is a tuple.
     idx:
         the indices to sample with.
-=======
-    factor_info: 
-        factor info for X.
-    idx:
-        sample with given indices.
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
     n_samples:
         randomly down-sample to this length.
     seed:
@@ -116,7 +109,6 @@ def sort_order(order):
     return order
 
 
-<<<<<<< HEAD
 
 
 
@@ -179,25 +171,3 @@ def get_settings(Xs, factors, factor_info, Us=None, all_factors=None):
             settings.append((U.T, [r, c], f"Us[{i}].T"))
         
     return settings
-=======
-def get_factor_info(X):
-    """Returns the factor_info list given input X
-    
-    X can be any of the following types:
-        np.ndarray, for custom data.
-        spmatrix, for custom data.
-        BaseGenerator, for generated data.
-        BaseData, for datasets, e.g. NetflixData.
-    """
-    # if isinstance(X, np.ndarray) or isinstance(X, spmatrix):
-    #     U_order = np.array([i for i in range(X.shape[0])]).astype(int)
-    #     V_order = np.array([i for i in range(X.shape[1])]).astype(int)
-    #     U_info = (U_order, U_order, U_order.astype(str))
-    #     V_info = (V_order, V_order, V_order.astype(str))
-    #     factor_info = [U_info, V_info]
-    # elif hasattr(X, 'factor_info'):
-    #     factor_info = X.factor_info
-
-    # return factor_info
-    pass
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f

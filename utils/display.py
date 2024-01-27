@@ -163,12 +163,7 @@ def show_matrix(settings,
                 plt.colorbar(im, cax=axes[r, c + 1], ticks=ticks, extend=extend, orientation='vertical')
                 cbar_locs.append((r, c + 1))
             else:
-<<<<<<< HEAD
                 plt.colorbar(im, cax=axes[r + 1, c], ticks=ticks, extend=extend, orientation="horizontal")
-=======
-                # plt.colorbar(im, cax=axes[r + 1, c], location='bottom')
-                plt.colorbar(im, cax=axes[r + 1, c], orientation="horizontal")
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
                 cbar_locs.append((r + 1, c))
 
         # set the rest of subplots to invisible

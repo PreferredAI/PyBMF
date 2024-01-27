@@ -10,13 +10,7 @@ from tqdm import tqdm
 
 class BaseModel():
     def __init__(self) -> None:
-<<<<<<< HEAD
         raise NotImplementedError("Missing init method.")
-=======
-        # model parameters
-        self.U = None # spmatrix
-        self.V = None # spmatrix
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
 
 
     def check_params(self, **kwargs):

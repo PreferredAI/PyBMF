@@ -4,11 +4,7 @@ import numpy as np
 
 
 class BinaryMFPenalty(BinaryMF):
-<<<<<<< HEAD
     '''Binary matrix factorization, Penalty algorithm
-=======
-    '''Binary matrix factorization
->>>>>>> 8ea583386c050f827fd03c38c626ea0e080fd29f
     
     From the papers:
         'Binary Matrix Factorization with Applications', 
