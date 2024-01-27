@@ -4,6 +4,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, spmatrix
 from matplotlib import cm
 from .sparse_utils import to_triplet, to_dense
+import platform
 
 
 def show_matrix(settings, 
@@ -218,11 +219,15 @@ def get_size_inches(scaling, ppi, hds, pixels, figure_width_cells, figure_height
 
     """
     if pixels is None:
-        # get screen resolution in plxels
-        user32 = ctypes.windll.user32
-        user32.SetProcessDPIAware()
-        screen_width_pixels = user32.GetSystemMetrics(0)
-        screen_height_pixels = user32.GetSystemMetrics(1)
+        # get screen resolution in pixels
+        if platform.system() == "Windows":
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            screen_width_pixels = user32.GetSystemMetrics(0)
+            screen_height_pixels = user32.GetSystemMetrics(1)
+        else:
+            screen_width_pixels = 1920
+            screen_height_pixels = 1080
         
         # check which dimension should be aligned
         screen_aspect_ratio = screen_width_pixels / screen_height_pixels
