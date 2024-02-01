@@ -30,14 +30,14 @@ class BinaryMFThreshold(BinaryMF):
         us, vs, Fs, ds = [], [], [], []
         n_iter = 0
         while True:
-            xk = x_last # start point
-            pk = p_last # search direction
+            xk = x_last # starting point
+            pk = p_last # searching direction
 
             pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
             print("[I] iter: {}, start from [{:.3f}, {:.3f}], search direction [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
 
-            alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=1000, c1=0.4, c2=0.4) # debug: c1=0.0001, c2=0.9
+            alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk)
             if alpha is None:
                 self.early_stop("search direction is not a descent direction.")
                 break
@@ -67,9 +67,13 @@ class BinaryMFThreshold(BinaryMF):
                 self.early_stop("Difference lower than threshold")
                 break
 
-        self.U = step(self.U, self.u) # debug: iteratively update U, V?
+        self.U = step(self.U, self.u)
         self.V = step(self.V, self.v)
         self.show_matrix(title="after thresholding algorithm")
+
+
+    def line_search(self, f, myfprime, xk, pk, maxiter=1000, c1=0.1, c2=0.4):
+        line_search(f=f, myfprime=myfprime, xk=xk, pk=pk, maxiter=maxiter, c1=c1, c2=c2)
     
 
     def F(self, params):

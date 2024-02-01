@@ -6,7 +6,9 @@ from scipy.optimize import line_search
 
 
 class BinaryMFThresholdExCustomFactors(BinaryMFThresholdExWeighted):
-    '''Weighted BMF Thresholding algorithm with initial factors provided by the user (experimental)
+    '''Weighted BMF Thresholding algorithm (experimental)
+    
+    The initial factors are provided by the user
     '''
     def __init__(self, U, V, lamda=None, u=None, v=None, eps=None, max_iter=None):
         self.check_params(lamda=lamda, u=u, v=v, eps=eps, max_iter=max_iter, algorithm='threshold')

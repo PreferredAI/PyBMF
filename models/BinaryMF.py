@@ -70,7 +70,7 @@ class BinaryMF(BaseModel):
                 # check eps
                 self.eps = kwargs.get('eps') # step size threshold
                 if self.eps is None:
-                    self.eps = 1e-6
+                    self.eps = 1e-4
                 print("[I] eps          :", self.eps)
                 # check max_iter
                 self.max_iter = kwargs.get('max_iter') # max iteration

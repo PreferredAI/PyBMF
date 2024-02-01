@@ -26,11 +26,11 @@ class BinaryMFThresholdExSimple(BinaryMFThreshold):
         # check grid
         if 'u_grid' in kwargs and 'v_grid' in kwargs:
             u_grid, v_grid = kwargs.get('u_grid'), kwargs.get('v_grid')
-            if u_grid is not None and v_grid is not None:
-                self.u_grid, self.v_grid = u_grid, v_grid
-                print("[I] using external grid")
-            else:
+            if u_grid is None or v_grid is None:
                 self.u_grid, self.v_grid = None, None
+            else:
+                self.u_grid, self.v_grid = u_grid, v_grid
+                print("[I] using custom grid")
 
         
     def _fit(self):
@@ -42,7 +42,7 @@ class BinaryMFThresholdExSimple(BinaryMFThreshold):
     def threshold_algorithm(self):
         '''A gradient descent method minimizing F(u, v), or 'F(w, h)' in the paper.
         '''
-        if self.u_grid is not None and self.v_grid is not None:
+        if self.u_grid is None or self.v_grid is None:
             self.u_grid = np.arange(start=0, step=self.interval, stop=self.U.max())
             self.v_grid = np.arange(start=0, step=self.interval, stop=self.V.max())
         grid = np.array(np.meshgrid(self.u_grid, self.v_grid)).reshape(2, -1)

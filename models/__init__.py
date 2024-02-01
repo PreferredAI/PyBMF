@@ -14,11 +14,11 @@ from .NMF import NMF
 from .WeightedNMF import WeightedNMF
 
 from .BinaryMFPenalty import BinaryMFPenalty
+from .BinaryMFPenaltyExWeighted import BinaryMFPenaltyExWeighted
 
 from .BinaryMFThreshold import BinaryMFThreshold
+from .BinaryMFThresholdExWolfe import BinaryMFThresholdExWolfe
 from .BinaryMFThresholdExSimple import BinaryMFThresholdExSimple
-
-from .BinaryMFPenaltyExWeighted import BinaryMFPenaltyExWeighted
 from .BinaryMFThresholdExWeighted import BinaryMFThresholdExWeighted
 from .BinaryMFThresholdExCustomFactors import BinaryMFThresholdExCustomFactors
 
