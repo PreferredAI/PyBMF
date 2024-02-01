@@ -65,7 +65,7 @@ class BinaryMF(BaseModel):
                 # check lamda
                 self.lamda = kwargs.get('lamda') # 'lambda' for sigmoid function
                 if self.lamda is None:
-                    self.lamda = 10
+                    self.lamda = 100
                 print("[I] lamda        :", self.lamda)
                 # check eps
                 self.eps = kwargs.get('eps') # step size threshold

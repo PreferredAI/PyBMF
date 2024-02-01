@@ -19,9 +19,9 @@ class Asso(BaseModel):
         k:
             rank.
         tau:
-            threshold.
+            threshold for binarization when building basis.
         w:
-            reward and penalty parameters.
+            weights for coverage reward and overcoverage penalty.
         """
         self.check_params(k=k, tau=tau, w=w)
 
@@ -36,12 +36,12 @@ class Asso(BaseModel):
             print("[I] tau          :", self.tau)
         if "w" in kwargs:
             w = kwargs.get("w")
-            if w is None:
-                w = [0.2, 0.2] # default weights
-            if isinstance(w, list):
-                w = w / np.sum(w) # normalize weights
-            if isinstance(w, float) or isinstance(w, int):
-                w = [1 - w, w] # w is the ratio of true positives
+            if w is None: # default weights
+                w = [0.2, 0.2]
+            if isinstance(w, list): # normalize the weights
+                w = w / np.sum(w)
+            if isinstance(w, (float, int)): # w is the ratio of true positives
+                w = [1 - w, w]
             self.w = w
             print("[I] weights      :", self.w)
 
@@ -154,5 +154,4 @@ class Asso(BaseModel):
         cover = self.cover(Y=X_after)
 
         return cover, U
-    
         

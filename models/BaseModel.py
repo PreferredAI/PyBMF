@@ -59,7 +59,7 @@ class BaseModel():
     def check_model_params(self, **kwargs):
         '''
         k: 
-            rank, number of patterns.
+            rank, the number of patterns.
         seed: 
             random seed shared by the whole model.
         '''

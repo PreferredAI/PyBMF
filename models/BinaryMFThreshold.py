@@ -37,7 +37,7 @@ class BinaryMFThreshold(BinaryMF):
 
             print("[I] iter: {}, start from [{:.3f}, {:.3f}], search direction [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
 
-            alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=1000, c1=0.0001, c2=0.9, amax=None) # debug: amax
+            alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=1000, c1=0.4, c2=0.4) # debug: c1=0.0001, c2=0.9
             if alpha is None:
                 self.early_stop("search direction is not a descent direction.")
                 break

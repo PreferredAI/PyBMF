@@ -5,6 +5,7 @@ from scipy.sparse import lil_matrix
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 import pandas as pd
+import pickle
 
 
 class AssoExIterate(Asso):
@@ -32,9 +33,12 @@ class AssoExIterate(Asso):
 
             break_counter = 0
 
+            candidates = []
+
             while True:
 
                 last_cover = best_cover
+
 
                 ###### original Asso ######
                 for i in tqdm(range(basis_num), leave=False, position=0, desc=f"[I] k = {k+1}"):
@@ -59,6 +63,9 @@ class AssoExIterate(Asso):
                     self.U[:, k], self.V[:, k] = best_column, best_basis
                     self._evaluate()
                     self.U[:, k], self.V[:, k] = 0, 0
+                # recorder
+                candidates.append([self.columns.copy(), self.basis.copy()])
+                
 
                 ###### iterative update ######
                 for i in tqdm(range(basis_num), leave=False, position=0, desc=f"[I] k = {k+1}"):
@@ -83,7 +90,16 @@ class AssoExIterate(Asso):
                     self.U[:, k], self.V[:, k] = best_column, best_basis
                     self._evaluate()
                     self.U[:, k], self.V[:, k] = 0, 0
-                    
+                # recorder
+                candidates.append([self.columns.copy(), self.basis.copy()])
+
+
+            # recorder
+            from datetime import datetime
+            now = datetime.now()
+            current_time = now.strftime("%H_%M_%S")
+            with open(f'{current_time}_tau{self.tau}_candidates_{k}.pkl', 'wb') as f:  # open a text file
+                pickle.dump(candidates, f) # serialize the list
 
             if best_basis is None or best_column is None:
                 self.early_stop(msg="Coverage stops improving.", k=k)
