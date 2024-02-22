@@ -1,5 +1,5 @@
 from .BinaryMF import BinaryMF
-from utils import multiply, step
+from utils import multiply
 import numpy as np
 
 

@@ -1,15 +1,15 @@
-from typing import Union, List, Tuple
-from scipy.sparse import spmatrix, lil_matrix
 import numpy as np
 import time
 from .generator_utils import reverse_index
 
 
-def binarize(X: Union[np.ndarray, spmatrix], threshold=0.5):
-    return (X >= threshold).astype(int)
+def summarize(X):
+    """To show the summary of a matrix.
 
-
-def summarize(X: Union[np.ndarray, spmatrix]):
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+    """
     u_num, v_num = X.shape
     u_sum, v_sum = sum(X)
     u_min, u_max = min(u_sum), max(u_sum)
@@ -22,8 +22,17 @@ def summarize(X: Union[np.ndarray, spmatrix]):
     print("[I] cols {} / {} / {} / {:.1f} / {}".format(v_num, v_min, v_median, v_mean, v_max))
 
 
-def sum(X: Union[np.ndarray, spmatrix], axis=None):
-    '''Row and column-wise sum
+def sum(X, axis=None):
+    '''Row and column-wise sum.
+
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+    axis : int, optional
+
+    Returns
+    -------
+    result : tuple, ndarray
     '''
     sum_u = np.squeeze(np.array(X.sum(axis=1)))
     sum_v = np.squeeze(np.array(X.sum(axis=0)))
@@ -31,20 +40,42 @@ def sum(X: Union[np.ndarray, spmatrix], axis=None):
     return result if axis is None else result[1-axis]
 
 
-def mean(X: Union[np.ndarray, spmatrix], axis=None):
+def mean(X, axis=None):
+    '''Row and column-wise mean.
+
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+    axis : int, optional
+
+    Returns
+    -------
+    result : tuple, ndarray
+    '''
     sum_u, sum_v = sum(X)
     result = (np.mean(sum_u), np.mean(sum_v))
     return result if axis is None else result[1-axis]
 
 
-def median(X: Union[np.ndarray, spmatrix], axis=None):
+def median(X, axis=None):
+    '''Row and column-wise median.
+
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+    axis : int, optional
+
+    Returns
+    -------
+    result : tuple, ndarray
+    '''
     sum_u, sum_v = sum(X)
     result = (np.median(sum_u), np.median(sum_v))
     return result if axis is None else result[1-axis]
 
 
 def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
-    '''Sample a matrix by its row or column, together with corresponding factor_info
+    '''Sample a matrix by its row or column. Update factor_info if provided.
 
     axis : int
         which dimension to down-sample.
@@ -93,7 +124,7 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
 
 
 def sort_order(order):
-    '''Fix the gap after down-sampling
+    '''Fix the gap after down-sampling.
 
     E.g. [1, 6, 4, 2] will be turned into [0, 3, 2, 1].
     '''

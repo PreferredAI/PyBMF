@@ -62,7 +62,8 @@ def matmul(U, V, sparse=None, boolean=None):
 
 
 def add(X, Y):
-    return np.add(X, Y).astype(bool).astype(int)
+    sum = np.add(X, Y).astype(bool).astype(int)
+    return sum
 
 
 def subtract(X, Y):

@@ -1,12 +1,11 @@
 import numpy as np
-from utils import matmul, add, to_sparse, to_dense, step, invert, show_matrix
+from utils import matmul, add, to_sparse, to_dense, binarize, invert, show_matrix, cover, binarize
 from .BaseModel import BaseModel
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 import pandas as pd
 from p_tqdm import p_map
-
 
 class Asso(BaseModel):
     '''The Asso algorithm.
@@ -48,6 +47,7 @@ class Asso(BaseModel):
         self.load_dataset(X_train=X_train, X_val=X_val)
         self.init_model()
 
+
         # real-valued association matrix
         self.assoc = self.build_assoc(X=self.X_train, dim=1)
         # binary-valued basis candidates
@@ -74,12 +74,10 @@ class Asso(BaseModel):
         '''
         assoc = X @ X.T if dim == 0 else X.T @ X
         assoc = to_sparse(assoc, 'lil').astype(float)
-        s = X.sum(axis=1-dim) # col sum when axis == 0
+        s = X.sum(axis=1-dim)
         s = to_dense(s, squeeze=True)
         for i in range(X.shape[dim]):
             assoc[i, :] = (assoc[i, :] / s[i]) if s[i] > 0 else 0
-            # s = X[:, i].sum() if dim == 1 else X[i, :].sum()
-            # assoc[i, :] = (assoc[i, :] / s) if s > 0 else 0
         return assoc
         
 
@@ -92,7 +90,7 @@ class Asso(BaseModel):
         basis : spmatrix
             Each row of `basis` is a candidate basis.
         '''
-        basis = step(assoc.copy(), tau)
+        basis = binarize(assoc, tau)
         basis = to_sparse(basis, 'lil').astype(int)
         return basis
 
@@ -109,13 +107,18 @@ class Asso(BaseModel):
                 break
 
             X_before = matmul(self.U, self.V.T, sparse=True, boolean=True)
+            cover_before = cover(X=self.X_train, Y=X_before, w=self.w, axis=1)
 
             for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
                 row = self.basis[i]
-                score, col = self.get_vector(X_gt=self.X_train, X_before=X_before, basis=row, dim=1)
+                score, col = self.get_vector(
+                    X_gt=self.X_train, 
+                    X_before=X_before, 
+                    cover_before=cover_before, 
+                    basis=row, dim=1, w=self.w)
                 if score > best_score:
                     best_score, best_row, best_col = score, row, col
-            
+
             if best_row is None:
                 self.early_stop(msg="Coverage stops improving.", k=k)
                 break
@@ -147,7 +150,8 @@ class Asso(BaseModel):
                     extra_results=[self.cover()])
 
 
-    def get_vector(self, X_gt, X_before, basis, dim):
+    @staticmethod
+    def get_vector(X_gt, X_before, cover_before, basis, dim, w):
         '''Return the optimal column/row vector given a row/column basis candidate.
 
         Parameters
@@ -158,10 +162,11 @@ class Asso(BaseModel):
         dim : int
             The dimension which `basis` belongs to.
             If `dim` == 0, `basis` is treated as a column vector and `vector` as a row vector.
+        w : float in [0, 1]
 
         Returns
         -------
-        cover : float
+        score : float
             The coverage score.
         vector : (1, n) spmatrix
         '''
@@ -170,13 +175,14 @@ class Asso(BaseModel):
         X_after = X_after if dim == 0 else X_after.T
         X_after = add(X_before, X_after)
 
-        cover_before = self.cover(X=X_gt, Y=X_before, axis=dim)
-        cover_after = self.cover(X=X_gt, Y=X_after, axis=dim)
+        cover_before = cover(X=X_gt, Y=X_before, w=w, axis=dim)
+        cover_after = cover(X=X_gt, Y=X_after, w=w, axis=dim)
 
         vector = lil_matrix(np.array(cover_after > cover_before, dtype=int))
 
-        a = cover_before[to_dense(invert(vector), squeeze=True).astype(bool)]
-        b = cover_after[to_dense(vector, squeeze=True).astype(bool)]
-        cover = a.sum() + b.sum()
-        return cover, vector
+        cover_before = cover_before[to_dense(invert(vector), squeeze=True).astype(bool)]
+        cover_after = cover_after[to_dense(vector, squeeze=True).astype(bool)]
+        score = cover_before.sum() + cover_after.sum()
+
+        return score, vector
         

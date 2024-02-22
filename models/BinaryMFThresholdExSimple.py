@@ -1,5 +1,5 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from utils import multiply, step, sigmoid
+from utils import multiply, binarize, sigmoid
 import numpy as np
 from tqdm import tqdm
 
@@ -64,8 +64,8 @@ class BinaryMFThresholdExSimple(BinaryMFThreshold):
         '''
         u, v = params
         # reconstruction
-        U = step(self.U, u)
-        V = step(self.V, v)
+        U = binarize(self.U, u)
+        V = binarize(self.V, v)
 
         diff = self.X_train - U @ V.T
         F = 0.5 * np.sum(diff ** 2)       

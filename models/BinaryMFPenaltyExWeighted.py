@@ -1,5 +1,5 @@
 from .BinaryMF import BinaryMF
-from utils import multiply, step
+from utils import multiply, binarize
 import numpy as np
 
 
@@ -48,8 +48,8 @@ class BinaryMFPenaltyExWeighted(BinaryMF):
 
         self.show_matrix(title="after penalty function algorithm")
 
-        self.U = step(self.U, 0.5)
-        self.V = step(self.V, 0.5)
+        self.U = binarize(self.U, 0.5)
+        self.V = binarize(self.V, 0.5)
 
 
     def penalty_update_U(self):

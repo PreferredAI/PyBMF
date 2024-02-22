@@ -1,5 +1,5 @@
 from .BinaryMF import BinaryMF
-from utils import multiply, step, sigmoid
+from utils import multiply, binarize, sigmoid
 import numpy as np
 from scipy.optimize import line_search
 
@@ -67,8 +67,8 @@ class BinaryMFThreshold(BinaryMF):
                 self.early_stop("Difference lower than threshold")
                 break
 
-        self.U = step(self.U, self.u)
-        self.V = step(self.V, self.v)
+        self.U = binarize(self.U, self.u)
+        self.V = binarize(self.V, self.v)
         self.show_matrix(title="after thresholding algorithm")
 
 

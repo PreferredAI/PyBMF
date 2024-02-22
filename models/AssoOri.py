@@ -8,7 +8,7 @@ import pandas as pd
 from p_tqdm import p_map
 
 
-class Asso(BaseModel):
+class AssoOri(BaseModel):
     '''The Asso algorithm
     
     Reference:
@@ -36,20 +36,14 @@ class Asso(BaseModel):
             print("[I] tau          :", self.tau)
         if "w" in kwargs:
             w = kwargs.get("w")
-            if w is None: # default weights
-                w = [0.2, 0.2]
-            if isinstance(w, list): # normalize the weights
-                w = w / np.sum(w)
-            if isinstance(w, (float, int)): # w is the ratio of true positives
-                w = [1 - w, w]
             self.w = w
             print("[I] weights      :", self.w)
 
 
     def fit(self, X_train, X_val=None, **kwargs):
         self.check_params(**kwargs)
-        self.check_dataset(X_train=X_train, X_val=X_val)
-        self.check_outcome()
+        self.load_dataset(X_train=X_train, X_val=X_val)
+        self.init_model()
 
         self.build_assoc() # real-valued association matrix
         self.build_basis() # binary-valued basis candidates
@@ -118,16 +112,20 @@ class Asso(BaseModel):
             if self.verbose:
                 self.show_matrix(title="step: {}, tau: {}, w: {}".format(k+1, self.tau, self.w))
 
-            self.evaluate(X_gt=self.X_train, df="train_results", 
+            self.evaluate(X_gt=self.X_train, 
+                df_name="train_results", 
                 verbose=self.verbose, task=self.task, 
                 metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
                 extra_metrics=['cover_score'], 
                 extra_results=[self.cover()])
-            self.evaluate(X_gt=self.X_val, df="val_results", 
-                verbose=self.verbose, task=self.task, 
-                metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-                extra_metrics=['cover_score'], 
-                extra_results=[self.cover()])
+            
+            if self.X_val is not None:
+                self.evaluate(X_gt=self.X_val, 
+                    df_name="val_results", 
+                    verbose=self.verbose, task=self.task, 
+                    metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+                    extra_metrics=['cover_score'], 
+                    extra_results=[self.cover()])
 
 
     def get_optimal_column(self, i):

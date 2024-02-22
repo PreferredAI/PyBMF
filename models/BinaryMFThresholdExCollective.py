@@ -1,6 +1,6 @@
 from .BinaryMFThreshold import BinaryMFThreshold
 from .BaseCollectiveModel import BaseCollectiveModel
-from utils import multiply, step, sigmoid, dot, to_dense
+from utils import multiply, sigmoid, dot, to_dense
 from utils import split_factor_list, get_factor_list
 import numpy as np
 from scipy.optimize import line_search

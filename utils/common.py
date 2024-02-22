@@ -3,6 +3,8 @@ import time
 import numbers
 from scipy.sparse import isspmatrix
 from .sparse_utils import sparse_indexing
+from scipy.sparse import spmatrix
+from .sparse_utils import to_sparse
 
 
 def get_rng(seed, rng):
@@ -49,19 +51,24 @@ def safe_indexing(X, indices):
                 return X[indices]
     else:
         return [X[idx] for idx in indices]
+    
 
-
-def step(X, threshold):
-    '''Heaviside step function.
+def binarize(X, threshold=0.5):
+    """To binarize a matrix. Also known as Heaviside step function.
 
     Parameters
     ----------
-    X : ndarray, spmatrix
-    threshold : int, float
-    '''
-    X[X >= threshold] = 1
-    X[X < threshold] = 0
-    return X
+    X : float ndarray, spmatrix
+    threshold : float, default: 0.5
+
+    Returns
+    -------
+    result : int ndarray, spmatrix
+    """
+    Y = (X >= threshold).astype(int)
+    if isinstance(X, spmatrix):
+        Y = to_sparse(Y, type=X.format)
+    return
 
 
 def sigmoid(X):

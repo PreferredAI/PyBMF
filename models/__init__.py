@@ -2,6 +2,7 @@ from .BaseModel import BaseModel
 from .BaseCollectiveModel import BaseCollectiveModel
 
 from .Asso import Asso
+from .AssoOri import AssoOri
 from .Panda import Panda
 from .MEBF import MEBF
 

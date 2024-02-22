@@ -1,5 +1,5 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from utils import multiply, step, sigmoid, dot, to_dense
+from utils import multiply, sigmoid, dot, to_dense
 import numpy as np
 from scipy.optimize import line_search
 

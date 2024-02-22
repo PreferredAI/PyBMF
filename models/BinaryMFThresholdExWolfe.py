@@ -1,5 +1,5 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from utils import multiply, step, sigmoid, dot
+from utils import multiply, binarize, sigmoid, dot
 import numpy as np
 
 
@@ -67,8 +67,8 @@ class BinaryMFThresholdExWolfe(BinaryMFThreshold):
                 self.early_stop("Difference lower than threshold")
                 break
 
-        self.U = step(self.U, self.u) # debug: iteratively update U, V?
-        self.V = step(self.V, self.v)
+        self.U = binarize(self.U, self.u) # debug: iteratively update U, V?
+        self.V = binarize(self.V, self.v)
         self.show_matrix(title="after thresholding algorithm")
 
 

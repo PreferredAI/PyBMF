@@ -1,11 +1,7 @@
 from .BaseModel import BaseModel
 from .NMF import NMF
 import numpy as np
-
-from utils import step, matmul, to_dense, to_sparse
-# from scipy.linalg import inv
-# from scipy.sparse.linalg import inv
-# from scipy.sparse import csr_matrix
+from utils import binarize, matmul, to_dense, to_sparse
 
 
 class BinaryMF(BaseModel):
@@ -124,8 +120,8 @@ class BinaryMF(BaseModel):
         V = self.V.copy()
         X_inner = matmul(U, V.T, sparse=False, boolean=False)
 
-        U = step(X=U, threshold=u)
-        V = step(X=V, threshold=v)
+        U = binarize(X=U, threshold=u)
+        V = binarize(X=V, threshold=v)
         X_bool = matmul(U, V.T, sparse=False, boolean=True)
 
         settings = [(to_dense(U), [0, 3], "U thresholded"), 
