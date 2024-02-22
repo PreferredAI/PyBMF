@@ -29,7 +29,7 @@ class NMF(BaseModel):
         
     
     def fit(self, X_train, X_val=None):
-        self.check_dataset(X_train, X_val)
+        self.load_dataset(X_train, X_val)
         self.U = self.model.fit_transform(self.X_train)
         self.V = self.model.components_
         self.V = self.V.T

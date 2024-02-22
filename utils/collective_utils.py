@@ -4,8 +4,18 @@ import numpy as np
 
 
 def get_factor_list(factors):
-    '''Get sorted factor list
-    '''
+    """Get sorted factor list.
+
+    Parameters
+    ----------
+    factors : list of int list
+        List of factor id pairs, indicating the row and column factors of each matrix. Although this function allows for any indexing of factors, please follow the convention that factors are numbered consecutively and starting from 0.
+
+    Returns
+    -------
+    factor_list : list
+        List of sorted factor ids.
+    """    
     factor_list = []
     for f in factors:
         factor_list.extend(f)
@@ -14,9 +24,9 @@ def get_factor_list(factors):
 
 
 def get_matrices(factors):
-    '''Related matrices of a factor
+    '''List of related matrices of factors.
 
-    This is the reverse of 'factors', the related factors of a matrix.
+    This is the reversion of 'factors', which gives the list of related factors of matrices.
     '''
     factor_list = get_factor_list(factors)
     matrices = []
@@ -90,12 +100,12 @@ def split_factor_list(factors):
             f[a] = 3 - f[b] if f[a] == 0 else f[a]
             f[b] = 3 - f[a] if f[b] == 0 else f[b]
         
-    rows = sorted([i for i, v in enumerate(f) if v == 1])
-    cols = sorted([i for i, v in enumerate(f) if v == 2])
-    return (rows, cols)
+    row_factors = sorted([i for i, v in enumerate(f) if v == 1])
+    col_factors = sorted([i for i, v in enumerate(f) if v == 2])
+    return [row_factors, col_factors]
 
 
-# transformations
+# #### Transformations ####
 
 
 def concat_factor_info(factor_info, factors):
@@ -151,7 +161,7 @@ def concat_Us_into_U(Us, factors):
 
 
 def split_X_into_Xs(X, factors, factor_starts):
-    '''Seperate concatenated single matrix X into collective matrices Xs
+    '''Seperate concatenated single matrix X into collective matrices Xs.
 
     This is used in some collective models.
     '''
@@ -176,7 +186,7 @@ def split_X_into_Xs(X, factors, factor_starts):
 
 
 def split_U_into_Us(U, V, factors, factor_starts):
-    '''Seperate concatenated factors (U, V) into collective factors Us
+    '''Seperate concatenated factors (U, V) into collective factors Us.
 
     This is used in some collective models.
     '''

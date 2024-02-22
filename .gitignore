@@ -1,2 +1,6 @@
 *.pyc
 *.pkl
+*.ipynb
+*.pickle
+*.bak
+*.txt

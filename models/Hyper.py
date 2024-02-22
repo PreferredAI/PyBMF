@@ -8,5 +8,5 @@ class Hyper(BaseModel):
 
     def fit(self, X_train, X_val=None, **kwargs):
         self.check_params(**kwargs)
-        self.check_dataset(X_train, X_val)
+        self.load_dataset(X_train, X_val)
         self._fit()

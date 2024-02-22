@@ -36,7 +36,7 @@ class WeightedNMF(BaseModel):
         
     
     def fit(self, X_train, W, X_val=None):
-        self.check_dataset(X_train, X_val)
+        self.load_dataset(X_train, X_val)
 
         self.X_train = to_dense(X_train).astype(float)
         self.W = to_dense(W).astype(float)

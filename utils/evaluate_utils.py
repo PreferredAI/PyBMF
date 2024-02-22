@@ -132,6 +132,26 @@ def F1(gt, pd, axis=None):
     return 2 * precision * recall / (precision + recall)
 
 
+def cover(gt, pd, w, axis=None):
+    '''Measure the coverage of X using Y.
+
+    Parameters
+    ----------
+    w : float in [0, 1], optional
+        The weights [1 - `w`, `w`] are the reward for coverage and the penalty for over-coverage. It can also be considered as the lower-bound of true positive ratio when `cover` is used as a factorization criteria.
+    axis : int in {0, 1}, default: None
+        To return the overall or the row/column-wise coverage score.
+
+    Returns
+    -------
+    result : float, ndarray
+        The overall or the row/column-wise coverage score.
+    '''
+    covered = TP(gt, pd, axis=axis)
+    overcovered = FP(gt, pd, axis=axis)
+    return (1 - w) * covered - w * overcovered
+
+
 def invert(X):
     if issparse(X):
         X = csr_matrix(np.ones(X.shape)) - X

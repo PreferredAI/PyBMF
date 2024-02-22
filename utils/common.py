@@ -52,7 +52,12 @@ def safe_indexing(X, indices):
 
 
 def step(X, threshold):
-    '''Heaviside step function
+    '''Heaviside step function.
+
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+    threshold : int, float
     '''
     X[X >= threshold] = 1
     X[X < threshold] = 0

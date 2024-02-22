@@ -3,10 +3,11 @@ import numpy as np
 from utils import to_triplet
 
 class AssoTrans(Asso):
-    '''The Asso algorithm with transpose
+    '''The Asso algorithm with transpose.
     
-    Reference:
-        The discrete basis problem
+    Reference
+    ---------
+        The discrete basis problem.
     '''
     def fit(self, X_train, X_val=None, **kwargs):
         X_train = X_train.T

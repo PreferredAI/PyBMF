@@ -13,35 +13,40 @@ def show_matrix(settings,
                 keep_nan=True, 
                 colorbar=False, clim=None, discrete=False, center=True, 
                 cmap='rainbow', cmin='gray', cmax='black', cnan='white'):
-    """Show the matrix and factors
+    """Show the matrix and factors.
 
     Parameters
     ----------
-    settings: list of tuples
-        a list of (data, location, title) tuple.
-    scaling: float, optional
-        scaling factor. the default is 1.0, which opens a window that match the height or width of the screen.
-    ppi: int, optional
-        pixels per inch. the default, tested on a 4K 24" screen, is 96.
-    hds : float, optional
-        high DPI scaling if your IDE support this. e.g. the default in Spyder is 1.5.
+    settings : list of tuple
+        A list of (data, location, title) tuple.
+    scaling : float, default: 1.0
+        The scaling factor. The default `scaling` is 1.0, the maximum size a figure can be displayed within the screen.
+    ppi : int, default: 96
+        Pixels per inch. The `ppi` of a 4K 24" display is 96.
+    hds : float, default: 1.5
+        High DPI scaling, if your Python IDE supports this. The default `hds` in Spyder is 1.5.
     pixels : int, optional
-        each cell in a matrix takes up pivels * pixels on screen. this will overwrite scaling.
+        Each cell in a matrix takes up `pivels` * `pixels` on screen. This will overwrite `scaling`.
     title : string, optional
-        name of each matrix.
-    fontsize : int
-        size of titles.
-    colorbar : bool
-        whether to enable colorbar and the advanced settings including limitation, discretization and centering.
-    cmap : str
-        name of colormap.
-    clim : list
-        shared range limit of colorbar, applied to all matrices.
-        will show colorbar separately if clim is None.
-    discrete : bool
-        show discrete colorbar.
-    center : bool
-        available only when discrete is True.
+        The centered suptitle of the figure.
+    fontsize : int, default: 8
+        Size of the `title` and subtitles.
+    colorbar : bool, default: False
+        Show colorbar.
+    clim : list, optional
+        Colorbar range limit applied over all matrices. If `clim` is ``None``, each matrix will have its own colorbar range limit separately.
+    discrete : bool, default: False
+        Show discrete colorbar.
+    center : bool, default: True
+        Available only when `discrete` is True.
+    cmap : str, default: 'rainbow'
+        The colormap.
+    cmin : str, default: 'gray'
+        The color of values lower than the range limit `clim`.
+    cmax : str, default: 'black'
+        The color of values higher than the range limit `clim`.
+    cnan : str, default: 'white'
+        The color of ``NaN``. To differentiate real zeros and ``NaN`` in sparse marices.
     """
     rows = []       # row index of each matrix
     cols = []       # col index of each matrix
@@ -180,9 +185,8 @@ def show_matrix(settings,
         ppi=ppi,
         hds=hds, 
         pixels=pixels,
-        figure_width_cells=sum(widths.values()),
-        figure_height_cells=sum(heights.values())
-        )
+        width_cells=sum(widths.values()),
+        height_cells=sum(heights.values()))
 
     fig.set_size_inches(width_inches, height_inches)
     
@@ -192,31 +196,22 @@ def show_matrix(settings,
     plt.show(block=False)
 
 
-def get_size_inches(scaling, ppi, hds, pixels, figure_width_cells, figure_height_cells):
-    """Get fig size in inches
+def get_size_inches(scaling, ppi, hds, pixels, width_cells, height_cells):
+    """Get figure size in inches.
 
     Parameters
     ----------
-    scaling : TYPE
-        DESCRIPTION.
-    ppi : TYPE
-        DESCRIPTION.
-    hds : TYPE
-        DESCRIPTION.
-    pixels : TYPE
-        DESCRIPTION.
-    figure_width_cells : TYPE
-        Approximate number of all cells horizontally.
-    figure_height_cells : TYPE
-        Approximate number of all cells vertically.
+    width_cells : int
+        Figure width in the number of matrix cells.
+    height_cells : int
+        Figure height in the number of matrix cells.
 
     Returns
     -------
-    width_inches : TYPE
-        DESCRIPTION.
-    height_inches : TYPE
-        DESCRIPTION.
-
+    width_inches : float
+        Figure width in inches.
+    height_inches : float
+        Figure height in inches.
     """
     if pixels is None:
         # get screen resolution in pixels
@@ -225,13 +220,13 @@ def get_size_inches(scaling, ppi, hds, pixels, figure_width_cells, figure_height
             user32.SetProcessDPIAware()
             screen_width_pixels = user32.GetSystemMetrics(0)
             screen_height_pixels = user32.GetSystemMetrics(1)
-        else:
+        else: # todo: linux
             screen_width_pixels = 1920
             screen_height_pixels = 1080
         
         # check which dimension should be aligned
         screen_aspect_ratio = screen_width_pixels / screen_height_pixels
-        figure_aspect_ratio = figure_width_cells / figure_height_cells
+        figure_aspect_ratio = width_cells / height_cells
         if screen_aspect_ratio > figure_aspect_ratio:
             # match the height of screen
             height_inches = screen_height_pixels * scaling / ppi / hds
@@ -242,20 +237,30 @@ def get_size_inches(scaling, ppi, hds, pixels, figure_width_cells, figure_height
             height_inches = width_inches / figure_aspect_ratio
     else:
         # set the size according to presumed pixels
-        width_inches = figure_width_cells * pixels * scaling / ppi / hds
-        height_inches = figure_height_cells * pixels * scaling / ppi / hds
+        width_inches = width_cells * pixels * scaling / ppi / hds
+        height_inches = height_cells * pixels * scaling / ppi / hds
         
     return (width_inches, height_inches)
 
 
 def fill_nan(X, mask: spmatrix):
-    '''Fill the missing values of a sparse matrix with NaN
+    '''Fill the missing values of a sparse matrix with NaN, so that missing values in a sparse matrix are displayed differently from zeros.
 
-    So that missing values are displayed differently from zeros.
+    Used for displaying matrices while identifying missing values.
 
-    Explicit zeros in the mask are not considered as missing.
-    Explicit zeros can be added properly into a sparse matrix as in BaseSplit.load_neg_data().
-    Used for displaying matrices to separate missing values.
+    Parameters
+    ----------
+    X : ndarray or spmatrix
+        The matrix with values to be filled with ``NaN``.
+    mask : spamtrix
+        The masking matrix.
+        Explicit zeros in `mask` are not considered as missing. 
+        Note that there are several ways to preserve zeros in a sparse matrix. BaseSplit.load_neg_data() is one fot them.
+
+    Returns
+    -------
+    Y : ndarray
+        The dense matrix with ``NaN`` in it.
     '''
     rows, cols, _ = to_triplet(mask)
     Y = np.empty(shape=X.shape)

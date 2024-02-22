@@ -6,11 +6,12 @@ from scipy.sparse import lil_matrix
 
 
 class Panda(BaseModel):
-    """PaNDa and PaNDa+ algorithms
+    """PaNDa and PaNDa+ algorithm.
 
-    Reference:
-        Mining Top-K Patterns from Binary Datasets in presence of Noise
-        A unifying framework for mining approximate top-k binary patterns
+    Reference
+    ---------
+    Mining Top-K Patterns from Binary Datasets in presence of Noise.
+    A unifying framework for mining approximate top-k binary patterns.
     """
     def __init__(self, k, rho=None, w=None, method=None):
         """
@@ -51,7 +52,7 @@ class Panda(BaseModel):
 
 
     def fit(self, X_train, X_val=None, **kwargs):
-        self.check_dataset(X_train=X_train, X_val=X_val)
+        self.load_dataset(X_train=X_train, X_val=X_val)
         self.check_params(**kwargs)
         self._fit()
 

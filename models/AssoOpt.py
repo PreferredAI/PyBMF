@@ -9,10 +9,11 @@ from multiprocessing import Pool, cpu_count
 
 
 class AssoOpt(Asso):
-    '''The Asso algorithm using exhaustive search
+    '''The Asso algorithm with exhaustive search over each row of U.
     
-    Reference:
-        The discrete basis problem
+    Reference
+    ---------
+    The discrete basis problem.
     '''
     def fit(self, X_train, X_val=None, **kwargs):
         super().fit(X_train, X_val, **kwargs)
@@ -30,7 +31,7 @@ class AssoOpt(Asso):
         with Pool() as pool:
             result = pool.map(self.get_optimal_row, range(self.m))
         finish_time = time.perf_counter()
-        print("[I] Exhaustive search finished in {} seconds with parallelism.".format(finish_time - start_time))
+        print("[I] Exhaustive search finished in {}s.".format(finish_time - start_time))
 
         self.U = self.Us[result, :] # refine U
 

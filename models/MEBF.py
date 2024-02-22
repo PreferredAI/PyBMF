@@ -43,7 +43,7 @@ class MEBF(BaseModel):
     def fit(self, X_train, X_val=None, **kwargs):
         self.check_params(**kwargs)
         self.k = min(X_train.shape) if self.k is None else self.k
-        self.check_dataset(X_train=X_train, X_val=X_val)
+        self.load_dataset(X_train=X_train, X_val=X_val)
         self._fit()
 
 

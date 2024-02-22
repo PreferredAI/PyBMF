@@ -9,10 +9,11 @@ from functools import reduce
 
 
 class AssoIter(Asso):
-    '''The AssoIter algorithm using iterative search
+    '''The Asso algorithm with iterative search over each column of U.
     
-    Reference:
-        The discrete basis problem
+    Reference
+    ---------
+    The discrete basis problem.
     '''
     def fit(self, X_train, X_val=None, **kwargs):
         super().fit(X_train, X_val, **kwargs)

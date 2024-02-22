@@ -13,23 +13,23 @@ class AssoExIterate(Asso):
     '''
     def _fit(self):
 
-        self.scores = [None] * self.k
+        self.logs['scores'] = [None] * self.k
         
         for k in tqdm(range(self.k), position=0):
             best_basis, best_column = None, None
             best_cover = 0 if k == 0 else best_cover
-            basis_num = self.basis.shape[0]
+            n_basis = self.basis.shape[0]
 
             # early stop detection
-            if basis_num == 0:
+            if n_basis == 0:
                 self.early_stop(msg="No basis left.", k=k)
                 break
             
             # debug:
             # to record the scores of each pattern during iterative update
-            self.scores[k] = [[] for _ in range(basis_num)]
+            self.logs['scores'][k] = [[] for _ in range(n_basis)]
             # to record the columns of corresponding basis
-            self.columns = lil_matrix(np.zeros((basis_num, self.m)))
+            self.columns = lil_matrix(np.zeros((n_basis, self.m)))
 
             break_counter = 0
 
@@ -41,10 +41,11 @@ class AssoExIterate(Asso):
 
 
                 ###### original Asso ######
-                for i in tqdm(range(basis_num), leave=False, position=0, desc=f"[I] k = {k+1}"):
+                for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
                     score, column = self.get_optimal_column(i)
+                    score, column = self.get_vector
                     # debug
-                    self.scores[k][i].append(score)
+                    self.logs['scores'][k][i].append(score)
                     self.columns[i] = column.T
                     if score > best_cover:
                         best_cover = score
@@ -68,10 +69,10 @@ class AssoExIterate(Asso):
                 
 
                 ###### iterative update ######
-                for i in tqdm(range(basis_num), leave=False, position=0, desc=f"[I] k = {k+1}"):
+                for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
                     score, basis = self.get_optimal_row(i)
                     # debug
-                    self.scores[k][i].append(score)
+                    self.logs['scores'][k][i].append(score)
                     self.basis[i] = basis.T
                     if score > best_cover:
                         best_cover = score
@@ -110,7 +111,7 @@ class AssoExIterate(Asso):
             self.U[:, k] = best_column
 
             # remove this basis and column
-            idx = np.array([j for j in range(basis_num) if i != j])
+            idx = np.array([j for j in range(n_basis) if i != j])
             self.basis = self.basis[idx]
             self.columns = self.columns[idx]
 
