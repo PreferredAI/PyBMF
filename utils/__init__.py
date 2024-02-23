@@ -6,11 +6,11 @@ from .sparse_utils import to_dense, to_sparse, to_triplet, check_sparse, sparse_
 from .evaluate_utils import get_metrics, invert, add_log, cover
 from .evaluate_utils import TP, FP, TN, FN, TPR, FPR, TNR, FNR
 from .evaluate_utils import ACC, ERR, PPV, F1
-from .data_utils import summarize, sum, mean, median, sample, sort_order, get_settings
+from .data_utils import summarize, sum, mean, median, sample, sort_order
 from .collective_utils import get_dummy_factor_info, get_factor_list, get_factor_dims, get_factor_starts, split_factor_list, get_matrices
 from .collective_utils import concat_Xs_into_X, concat_Us_into_U, concat_factor_info
 from .collective_utils import split_X_into_Xs, split_U_into_Us
-
+from .collective_utils import sort_matrices, get_settings
 
 # __all__ = ['show_matrix', 
 #            'get_rng', 'safe_indexing', 

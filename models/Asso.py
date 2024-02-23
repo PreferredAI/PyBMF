@@ -47,15 +47,14 @@ class Asso(BaseModel):
         self.load_dataset(X_train=X_train, X_val=X_val)
         self.init_model()
 
-
         # real-valued association matrix
         self.assoc = self.build_assoc(X=self.X_train, dim=1)
         # binary-valued basis candidates
         self.basis = self.build_basis(assoc=self.assoc, tau=self.tau)
 
-        show_matrix([(self.assoc, [0, 0], 'assoc'), 
-                     (self.basis, [0, 1], 'basis')], 
-                    colorbar=True, clim=[0, 1], title='tau: {}'.format(self.tau))
+        if self.display:
+            show_matrix([(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')], 
+                        colorbar=True, clim=[0, 1], title='tau: {}'.format(self.tau))
 
         self._fit()
         self.show_matrix(title="result")
@@ -97,7 +96,7 @@ class Asso(BaseModel):
 
     def _fit(self):
         for k in tqdm(range(self.k), position=0):
-            best_row, best_col = None, None
+            best_row, best_col, best_idx = None, None, None
             best_score = 0 if k == 0 else best_score # best coverage score is inherited from previous factors
             n_basis = self.basis.shape[0] # number of basis candidates
 
@@ -107,7 +106,7 @@ class Asso(BaseModel):
                 break
 
             X_before = matmul(self.U, self.V.T, sparse=True, boolean=True)
-            cover_before = cover(X=self.X_train, Y=X_before, w=self.w, axis=1)
+            cover_before = cover(gt=self.X_train, pd=X_before, w=self.w, axis=1)
 
             for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
                 row = self.basis[i]
@@ -117,9 +116,9 @@ class Asso(BaseModel):
                     cover_before=cover_before, 
                     basis=row, dim=1, w=self.w)
                 if score > best_score:
-                    best_score, best_row, best_col = score, row, col
+                    best_score, best_row, best_col, best_idx = score, row, col, i
 
-            if best_row is None:
+            if best_idx is None:
                 self.early_stop(msg="Coverage stops improving.", k=k)
                 break
 
@@ -127,7 +126,7 @@ class Asso(BaseModel):
             self.U[:, k], self.V[:, k] = best_col.T, best_row.T
 
             # remove this basis
-            idx = np.array([j for j in range(n_basis) if i != j])
+            idx = np.array([j for j in range(n_basis) if j != best_idx])
             self.basis = self.basis[idx]
 
             # show matrix at every step, when verbose=True and display=True
@@ -175,8 +174,7 @@ class Asso(BaseModel):
         X_after = X_after if dim == 0 else X_after.T
         X_after = add(X_before, X_after)
 
-        cover_before = cover(X=X_gt, Y=X_before, w=w, axis=dim)
-        cover_after = cover(X=X_gt, Y=X_after, w=w, axis=dim)
+        cover_after = cover(gt=X_gt, pd=X_after, w=w, axis=dim)
 
         vector = lil_matrix(np.array(cover_after > cover_before, dtype=int))
 

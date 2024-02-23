@@ -68,7 +68,7 @@ def binarize(X, threshold=0.5):
     Y = (X >= threshold).astype(int)
     if isinstance(X, spmatrix):
         Y = to_sparse(Y, type=X.format)
-    return
+    return Y
 
 
 def sigmoid(X):

@@ -1,6 +1,5 @@
 import numpy as np
 import time
-from .generator_utils import reverse_index
 
 
 def summarize(X):
@@ -138,67 +137,3 @@ def sort_order(order):
             n += 1
 
     return order
-
-
-
-
-
-
-
-
-
-def get_settings(Xs, factors, factor_info, Us=None, all_factors=None):
-    '''Get display settings, used in show_matrix() wrapper for CMF models
-
-    factors: 
-        may not contain factor relations for all matrices, e.g., when a part of matrices are used in validation and testing. all_factors is required when the Xs, factors and factor_info do not have all matrices and factors.
-    all_factors:
-        factors list that contains factor relations for all matrices, especially that the factor id starts from 0.
-
-    a, b, f: factor id
-        note that factor id may not be equal to the index in Us and factor_info, especially when the factor id does not start from 0.
-        split_factor_list only accepts the compete factors list.
-    '''
-    all_factors = factors if all_factors is None else all_factors
-    rows, cols = split_factor_list(all_factors)
-    factor_list = get_factor_list(factors)
-
-    settings = []
-
-    for i, X in enumerate(Xs):
-        # 1st and 2nd factor index
-        a, b = factors[i]
-        # reorder X by factor order
-        a_info = factor_info[factor_list.index(a)]
-        b_info = factor_info[factor_list.index(b)]
-        a_order = reverse_index(a_info[0])
-        b_order = reverse_index(b_info[0])
-        X = X[a_order, :]
-        X = X[:, b_order]
-        # get row and column
-        if a in rows and b in cols:
-            r, c = rows.index(a), cols.index(b)
-            settings.append((X, [r, c], f"Xs[{i}]"))
-        elif a in cols and b in rows:
-            r, c = rows.index(b), cols.index(a)
-            settings.append((X.T, [r, c], f"Xs[{i}].T"))
-
-    if Us is None:
-        return settings
-
-    for i, U in enumerate(Us):
-        # factor index
-        f = factor_list[i]
-        # reorder factor
-        f_info = factor_info[i]
-        f_order = reverse_index(f_info[0])
-        U = U[f_order, :]
-        # get row and column
-        if f in rows:
-            r, c = rows.index(f), len(cols)
-            settings.append((U, [r, c], f"Us[{i}]"))
-        elif f in cols:
-            r, c = len(rows), cols.index(f)
-            settings.append((U.T, [r, c], f"Us[{i}].T"))
-        
-    return settings

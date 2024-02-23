@@ -40,8 +40,6 @@ class BaseCollectiveModel(BaseModel):
             List of factor id pairs, indicating the row and column factors of each matrix.
         Xs_val : list of np.ndarray, spmatrix and None, optional
             List of Boolean matrices for validation. It should have the same length of Xs_train. In the ``list``, `None` can be used as placeholders of those matrices that are not being validated. When `Xs_val` is `None`, the matrix with factor id [0, 1] is used as the only matrix being validated.
-        factor_list : list of int
-        factor_dims : list of int
         """
         if Xs_train is None:
             raise TypeError("Missing training data.")
@@ -77,41 +75,21 @@ class BaseCollectiveModel(BaseModel):
         self.logs = {}
 
 
-    def show_matrix(self, settings: List[Tuple]=None, 
-                    matrix: Union[np.ndarray, spmatrix]=None, 
-                    factors: List[List[int]]=None,
-                    factor_info: List[Tuple]=None,
-                    scaling=None, pixels=None, title=None, colorbar=True, **kwargs):
+    def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
         """The show_matrix() wrapper for CMF models.
 
-        If both settings and matrix are None, show the factors and their boolean product.
-
-        settings : list of tuple
-            to show matrices given their positions and labels.
-        matrix : np.ndarray, spmatrix
-            show a single matrix even when settings are provided.
-        factor_info : list of tuples
-            the info tuples of each factor.
-        factors : list of int lists
-            the factors of a matrix.
+        If `settings` is None, show the factors and their boolean product.
         """
         if not self.display:
             return
         scaling = self.scaling if scaling is None else scaling
         pixels = self.pixels if pixels is None else pixels
 
-        factors = self.factors if factors is None else factors
-        factor_info = get_dummy_factor_info(self.Xs_train, factors) if factor_info is None else factor_info
-        all_factors = self.factor_list # must be full factors
-
-        if settings is None and matrix is None:
+        if settings is None:
             Xs = []
-            for a, b in factors:
+            for a, b in self.factors:
                 X = matmul(U=self.Us[a], V=self.Us[b].T, boolean=True, sparse=True)
                 Xs.append(X)
-            settings = get_settings(Xs, factors, factor_info, self.Us, all_factors)
+            settings = get_settings(Xs=Xs, factors=self.factors, Us=self.Us)
 
-        elif matrix is not None:
-            settings = [(matrix, [0, 0], title)]
-
-        show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar, **kwargs)
+        show_matrix(settings=settings, scaling=scaling, pixels=pixels, **kwargs)

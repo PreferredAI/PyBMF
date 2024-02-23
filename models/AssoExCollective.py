@@ -22,8 +22,8 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             The binarization threshold when building basis.
         w : list of float in [0, 1]
             The ratio of true positives.
-        p : list of float that sum up tp 1
-            Importance weight.
+        p : list of float
+            Importance weights that sum up tp 1.
         """
         self.check_params(k=k, tau=tau, w=w, p=p)
 
@@ -42,32 +42,39 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         self.load_dataset(Xs_train=Xs_train, factors=factors, Xs_val=Xs_val)
         self.init_model()
 
-        starting_factor = 0
-
-        if starting_factor in self.row_factors:
-            idx = self.row_factors.index(starting_factor)
-            start = self.row_starts[idx]
-            end = self.row_starts[idx+1]
-            X = self.X_train[start:end, :]
-            self.assoc = self.build_assoc(X=X, dim=0)
-        elif starting_factor in self.col_factors:
-            idx = self.col_factors.index(starting_factor)
-            start = self.col_starts[idx]
-            end = self.col_starts[idx+1]
-            X = self.X_train[:, start:end]
-            self.assoc = self.build_assoc(X=X, dim=1)
-
-        basis = self.build_basis(assoc=self.assoc, tau=self.tau)
-
-        self.basis = [None] * self.n_factors
-        self.basis[starting_factor] = basis
-
-        self.show_matrix([(self.assoc, [0, 0], 'assoc'), 
-                          (self.basis, [0, 1], 'basis')], 
-                         colorbar=True, clim=[0, 1], 
-                         title='tau: {}'.format(self.tau))
-        
+        # can have initial basis for multiple independent factors
+        self.starting_factors = [0]
+        self.get_independent_factors()
+        self.init_basis()
         self._fit()
+
+
+    def get_independent_factors(self):
+        independent_factors = []
+        for a in self.starting_factors:
+            is_independent = True
+            for b in independent_factors:
+                if [a, b] in self.factors or [b, a] in self.factors:
+                    is_independent = False
+                    break
+            if is_independent:
+                independent_factors.append(a)
+        if len(self.starting_factors) != len(independent_factors):
+            print("[I] starting factors : {}".format(independent_factors))
+        self.starting_factors = independent_factors
+
+
+    def init_basis(self):
+        self.basis = [None] * self.n_factors
+        for f in self.starting_factors:
+            is_row = f in self.row_factors
+            i = self.row_factors.index(f) if is_row else self.col_factors.index(f)
+            a = self.row_starts[i] if is_row else self.col_starts[i]
+            b = self.row_starts[i+1] if is_row else self.col_starts[i+1]
+            X = self.X_train[a:b, :] if is_row else self.X_train[:, a:b]
+            A = self.build_assoc(X=X, dim=0 if is_row else 1)
+            B = self.build_basis(assoc=A, tau=self.tau)
+            self.basis[f] = B
 
 
     def _fit(self):
@@ -81,7 +88,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             while True:
 
                 if is_first_iter:
-                    factor_list = [i for i in self.factor_list if i != starting_factor] # no starting factor
+                    factor_list = [i for i in self.factor_list if i != self.starting_factor] # no starting factor
                     is_first_iter = False
                 else:
                     factor_list = self.factor_list

@@ -252,9 +252,9 @@ class BaseModel():
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
-        """The show_matrix() wrapper for BMF models
+        """The show_matrix() wrapper for BMF models.
 
-        If both settings is None, show the factors and their boolean product.
+        If `settings` is None, show the factors and their boolean product.
         """
         if not self.display:
             return

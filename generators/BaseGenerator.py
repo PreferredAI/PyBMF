@@ -254,7 +254,8 @@ class BaseGenerator:
         self.X = to_dense(self.X)
 
 
-    def show_matrix(self, scaling=1.0, pixels=5, title=None, colorbar=False, **kwargs):
+    def show_matrix(self, scaling=1.0, pixels=5, 
+                    colorbar=True, discrete=True, center=True, clim=[0, 1], keep_nan=True, **kwargs):
         U_inv = reverse_index(idx=self.U_order)
         V_inv = reverse_index(idx=self.V_order)
         U, V = self.U[U_inv], self.V[V_inv]
@@ -262,4 +263,5 @@ class BaseGenerator:
         X = X[:, V_inv]
 
         settings = [(X, [0, 0], "X"), (U, [0, 1], "U"), (V.T, [1, 0], "V")]
-        show_matrix(settings=settings, scaling=scaling, pixels=pixels, title=title, colorbar=colorbar, **kwargs)
+        show_matrix(settings=settings, scaling=scaling, pixels=pixels, 
+                    colorbar=colorbar, discrete=discrete, center=center, clim=clim, keep_nan=keep_nan, **kwargs)

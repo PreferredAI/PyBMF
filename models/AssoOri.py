@@ -80,7 +80,7 @@ class AssoOri(BaseModel):
 
     def _fit(self):
         for k in tqdm(range(self.k), position=0):
-            best_basis, best_column = None, None
+            best_basis, best_column, best_idx = None, None, None
             best_cover = 0 if k == 0 else best_cover # inherit from coverage of previous factors
             basis_num = self.basis.shape[0] # number of basis candidates
 
@@ -95,6 +95,7 @@ class AssoOri(BaseModel):
                     best_cover = score
                     best_basis = self.basis[i].T
                     best_column = column
+                    best_idx = i
             
             if best_basis is None:
                 self.early_stop(msg="Coverage stops improving.", k=k)
@@ -105,7 +106,7 @@ class AssoOri(BaseModel):
             self.U[:, k] = best_column
 
             # remove this basis
-            idx = np.array([j for j in range(basis_num) if i != j])
+            idx = np.array([j for j in range(basis_num) if best_idx != j])
             self.basis = self.basis[idx]
 
             # show matrix at every step, when verbose=True and display=True

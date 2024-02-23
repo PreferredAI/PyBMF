@@ -32,11 +32,12 @@ class RatioSplit(BaseSplit):
 
 
     def negative_sample(self, train_size=None, test_size=None, val_size=None, seed=None, type='uniform'):
-        '''Select and append negative samples onto train, val and test set
+        '''Select and append negative samples onto train, val and test set.
 
         Used with RatioSplit.
 
-        type: how negative item will be sampled, should be 'uniform' or 'popularity'.
+        type : str in {'uniform', 'popularity'}
+            How negative records are sampled.
         '''
         print("[I] RatioSplit, sampling negatives")        
         self.check_params(seed=seed)
