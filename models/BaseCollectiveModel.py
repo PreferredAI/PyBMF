@@ -58,7 +58,9 @@ class BaseCollectiveModel(BaseModel):
         self.factor_dims = get_factor_dims(Xs_train, factors)
         self.row_factors, self.col_factors = split_factor_list(factors)
         self.row_starts, self.col_starts = get_factor_starts(Xs_train, factors)
+
         self.n_factors = len(self.factor_list)
+        self.n_matrices = len(Xs_train)
         
 
     def init_model(self):
@@ -86,10 +88,16 @@ class BaseCollectiveModel(BaseModel):
         pixels = self.pixels if pixels is None else pixels
 
         if settings is None:
-            Xs = []
-            for a, b in self.factors:
-                X = matmul(U=self.Us[a], V=self.Us[b].T, boolean=True, sparse=True)
-                Xs.append(X)
-            settings = get_settings(Xs=Xs, factors=self.factors, Us=self.Us)
+            self.update_Xs()
+            settings = get_settings(Xs=self.Xs, factors=self.factors, Us=self.Us)
 
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, **kwargs)
+
+
+    def update_Xs(self):
+        if not hasattr(self, 'Xs'):
+            self.Xs = [None] * self.n_matrices
+        for i, factors in enumerate(self.factors):
+            a, b = factors
+            X = matmul(U=self.Us[a], V=self.Us[b].T, boolean=True, sparse=True)
+            self.Xs[i] = X

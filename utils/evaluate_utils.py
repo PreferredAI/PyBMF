@@ -7,19 +7,25 @@ from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_sc
 
 
 def get_metrics(gt: Union[np.ndarray, spmatrix], pd: Union[np.ndarray, spmatrix], metrics: List[str], axis=None):
-    """Get results of metrics all at once
+    """Get results of the metrics all at once.
 
-    Metrics from sklearn.metrics are included as sanity check.
-    The input must be binary array, which makes them slow and less flexible.
+    Metrics from sklearn.metrics are included as sanity check. Their input must be binary ``array``, which makes them slow and less flexible.
 
-    gt, pd: 
-        ground truth and prediction.
-        these can be 1d array, 2d dense or sparse matrix.
-        when the input are matrices, row and column-wise measurement can be conducted by defining axis.
-    metrics:
-        string list containing matric names.
-    axis:
-        0 for row-wise measurement. a result array is returned which has the same length as rows.
+    Parameters
+    ----------
+    gt : array, spmatrix
+        Ground truth, can be 1d array, 2d dense or sparse matrix.
+    pd : array, spmatrix
+        Prediction, can be 1d array, 2d dense or sparse matrix.
+        When the input are matrices, row and column-wise measurement can be conducted by defining `axis`.
+    metrics : list of str
+        The name of metrics.
+    axis : int in {0, 1}
+        When `axis` == 0, The `result` containing the column-wise measurement has the same length as columns.
+
+    Returns
+    -------
+    results : list
     """
     if np.isnan(to_dense(pd, squeeze=True)).any():
         raise TypeError("NaN is found in prediction.")
@@ -140,16 +146,18 @@ def cover(gt, pd, w, axis=None):
     w : float in [0, 1], optional
         The weights [1 - `w`, `w`] are the reward for coverage and the penalty for over-coverage. It can also be considered as the lower-bound of true positive ratio when `cover` is used as a factorization criteria.
     axis : int in {0, 1}, default: None
-        To return the overall or the row/column-wise coverage score.
+        The dimension of the basis.
+        When `axis` is None, return the overall coverage score. When `axis` is 0, the basis is at dimension 0, thus return the column-wise coverage scores.
 
     Returns
     -------
-    result : float, ndarray
-        The overall or the row/column-wise coverage score.
+    score : float, array
+        The overall or the column/row-wise coverage score.
     '''
     covered = TP(gt, pd, axis=axis)
     overcovered = FP(gt, pd, axis=axis)
-    return (1 - w) * covered - w * overcovered
+    score = (1 - w) * covered - w * overcovered
+    return score
 
 
 def invert(X):

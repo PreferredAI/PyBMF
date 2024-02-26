@@ -10,7 +10,7 @@ from .AssoTrans import AssoTrans
 from .AssoOpt import AssoOpt
 from .AssoIter import AssoIter
 
-# from .AssoExCollective import AssoExCollective
+from .AssoExCollective import AssoExCollective
 from .AssoExIterate import AssoExIterate
 
 from .NMF import NMF

@@ -43,7 +43,7 @@ class AssoExIterate(Asso):
                 ###### original Asso ######
                 for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
                     score, column = self.get_optimal_column(i)
-                    score, column = self.get_vector
+                    score, column = self.get_vector()
                     # debug
                     self.logs['scores'][k][i].append(score)
                     self.columns[i] = column.T

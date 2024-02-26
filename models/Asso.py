@@ -114,7 +114,9 @@ class Asso(BaseModel):
                     X_gt=self.X_train, 
                     X_before=X_before, 
                     cover_before=cover_before, 
-                    basis=row, dim=1, w=self.w)
+                    basis=row, 
+                    basis_dim=1, 
+                    w=self.w)
                 if score > best_score:
                     best_score, best_row, best_col, best_idx = score, row, col, i
 
@@ -150,7 +152,7 @@ class Asso(BaseModel):
 
 
     @staticmethod
-    def get_vector(X_gt, X_before, cover_before, basis, dim, w):
+    def get_vector(X_gt, X_before, cover_before, basis, basis_dim, w):
         '''Return the optimal column/row vector given a row/column basis candidate.
 
         Parameters
@@ -158,9 +160,9 @@ class Asso(BaseModel):
         X_gt : spmatrix
         X_before : spmatrix
         basis : (1, n) spmatrix
-        dim : int
+        basis_dim : int
             The dimension which `basis` belongs to.
-            If `dim` == 0, `basis` is treated as a column vector and `vector` as a row vector.
+            If `basis_dim == 0`, a pattern is considered `basis.T * vector`. Otherwise, it's considered `vector.T * basis`. Note that both `basis` and `vector` are row vectors.
         w : float in [0, 1]
 
         Returns
@@ -169,12 +171,13 @@ class Asso(BaseModel):
             The coverage score.
         vector : (1, n) spmatrix
         '''
-        vector = lil_matrix(np.ones((1, X_gt.shape[1-dim])))
+        vector_dim = 1 - basis_dim
+        vector = lil_matrix(np.ones((1, X_gt.shape[vector_dim])))
         X_after = matmul(basis.T, vector, sparse=True, boolean=True)
-        X_after = X_after if dim == 0 else X_after.T
+        X_after = X_after if basis_dim == 0 else X_after.T
         X_after = add(X_before, X_after)
 
-        cover_after = cover(gt=X_gt, pd=X_after, w=w, axis=dim)
+        cover_after = cover(gt=X_gt, pd=X_after, w=w, axis=basis_dim)
 
         vector = lil_matrix(np.array(cover_after > cover_before, dtype=int))
 

@@ -88,9 +88,9 @@ class BaseModel():
 
         Please implement your own fit method.
         
-        X_train : ndarray, spmatrix
+        X_train : array, spmatrix
             Data for matrix factorization.
-        X_val : ndarray, spmatrix
+        X_val : array, spmatrix
             Data for model selection.
         kwargs :
             Common parameters that are checked and set in `BaseModel.check_params()` and the model-specific parameters included in `self.check_params()`.
@@ -104,8 +104,8 @@ class BaseModel():
         For matrices that are modified frequently, lil (LIst of List) or coo is preferred.
         For matrices that are not getting modified, csr or csc is preferred.
 
-        X_train : ndarray, spmatrix
-        X_val : ndarray, spmatrix
+        X_train : array, spmatrix
+        X_val : array, spmatrix
         """
         if X_train is None:
             raise TypeError("Missing training data.")
@@ -146,7 +146,7 @@ class BaseModel():
 
         Returns
         -------
-        result : float, ndarray
+        result : float, array
             The overall or the row/column-wise coverage score.
         '''
         if X is None:
@@ -162,7 +162,7 @@ class BaseModel():
 
         Returns
         -------
-        result : float, ndarray
+        result : float, array
             The overall or the row/column-wise error.
         '''
         if X is None:
@@ -181,7 +181,7 @@ class BaseModel():
     def eval(self, X_gt, metrics, task):
         """Evaluation with given metrics.
 
-        X_gt : ndarray, spmatrix
+        X_gt : array, spmatrix
             The ground-truth matrix.
         metrics : list of str
             List of metric names.
@@ -213,7 +213,7 @@ class BaseModel():
     def evaluate(self, X_gt, df_name, task, metrics=[], extra_metrics=[], extra_results=[], **kwargs):
         """Evaluate metrics with given ground-truth data and save results to a dataframe.
 
-        X_gt : ndarray, spmatrix
+        X_gt : array, spmatrix
         df_name : str
             Name of the dataframe that the results are going to be saved under.
         task : str
