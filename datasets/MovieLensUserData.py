@@ -56,7 +56,7 @@ class MovieLensUserData(MovieLensData):
 
         profile_order = np.arange(len(profile_alias))
         profile_idmap = np.arange(len(profile_alias))
-        profile_info = (profile_order, profile_idmap, profile_alias)
+        profile_info = [profile_order, profile_idmap, profile_alias]
 
         self.Xs = [X, Y]
         self.factors = [[0, 1], [0, 2]]

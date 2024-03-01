@@ -1,5 +1,7 @@
 import numpy as np
-from utils import cover, matmul, add, to_dense, invert, collective_cover
+import pandas as pd
+from utils import cover, matmul, add, to_dense, invert
+from utils import collective_cover, weighted_score, harmonic_score
 from .Asso import Asso
 from .BaseCollectiveModel import BaseCollectiveModel
 from scipy.sparse import lil_matrix, vstack, hstack
@@ -7,6 +9,7 @@ from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 from itertools import accumulate
 import time
+from utils import show_matrix
 
 
 class AssoExCollective(BaseCollectiveModel, Asso):
@@ -37,10 +40,10 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                 return
             self.p = p
             print("[I] p            :", self.p)
-        if "n_basis" in kwargs:
+        if not hasattr(self, "n_basis") or "n_basis" in kwargs:
             n_basis = kwargs.get("n_basis")
             if n_basis is None:
-                print("[W] Missing n_basis. Will be using all basis.")
+                print("[W] Missing n_basis, using all basis.")
             self.n_basis = n_basis
             print("[I] n_basis      :", self.n_basis)
 
@@ -51,7 +54,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         self.init_model()
 
         # the starting factor and the root vertex for BFS
-        self.root = 0
+        self.root = 1 # Asso is 1
         self.init_basis()
         self._fit()
 
@@ -66,13 +69,19 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         X = self.X_train[a:b, :] if is_row else self.X_train[:, a:b]
         A = self.build_assoc(X=X, dim=0 if is_row else 1)
         B = self.build_basis(assoc=A, tau=self.tau)
+
+        # # debug
+        # X = self.Xs_train[0]
+        # A = self.build_assoc(X=X, dim=0 if is_row else 1)
+        # B = self.build_basis(assoc=A, tau=self.tau)
+
         r = B.shape[0]
 
         if self.n_basis is None or self.n_basis > r:
             self.n_basis = r
             print("[I] n_basis is updated to: {}".format(r))
 
-        self.basis = [lil_matrix(np.zeros((self.n_basis, d)), dtype=int) for d in self.factor_dims]
+        self.basis = [lil_matrix(np.zeros((self.n_basis, d))) for d in self.factor_dims]
 
         if self.n_basis == r:
             self.basis[self.root] = B
@@ -81,36 +90,6 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             self.basis[self.root] = B[idx]
         self.scores = np.zeros((self.n_matrices, self.n_basis))
 
-
-    @staticmethod
-    def weighted_sum_score(scores, weights):
-        '''Weighted score(s) of the `n` scores and weights.
-
-        Parameters
-        ----------
-        scores : (n, k) array
-        weights : (1, n) array
-
-        Returns
-        -------
-        s : float or (1, k) array
-        '''
-        n = scores.shape[0]
-        weights = np.array(weights).reshape(1, n)
-        s = matmul(U=weights, V=scores)
-        return s
-
-
-    @staticmethod
-    def harmonic_mean_score(scores):
-        n = scores.shape[0]
-        if (scores == 0).any():
-            print("[W] Zero score encountered.")
-            return 0
-        s = (1 / scores).sum(axis=0)
-        s = n / s
-        return s
-    
 
     def set_init_order(self, order='bfs'):
         '''Use a known factor `f0` to update the neighboring factor `f1` in matrix `m`.
@@ -156,64 +135,77 @@ class AssoExCollective(BaseCollectiveModel, Asso):
     def _fit(self):
         for k in tqdm(range(self.k), position=0):
             best_idx = None
-            best_weighted_score = 0 if k == 0 else best_weighted_score
-            best_harmonic_score = 0 if k == 0 else best_harmonic_score
+            best_ws = 0 if k == 0 else best_ws
+            best_hs = 0 if k == 0 else best_hs
             
             self.update_Xs()
             self.set_init_order()
             self.set_update_order()
 
             n_iter = 0
+            break_counter = 0
             while True:
-                print("[I] k:{}, iter:{}".format(k+1, n_iter+1))
+                print("[I] k: {}, n_iter: {}".format(k, n_iter))
                 update_order = self.init_order if n_iter == 0 else self.update_order
 
+                # update each factor
                 for f0, f1, m in update_order:
                     self.update_basis(f0, f1, m)
 
-                    weighted_scores = self.weighted_sum_score(scores=self.scores, weights=self.p)
-                    harmonic_scores = self.harmonic_mean_score(scores=self.scores)
+                    ws_list = weighted_score(scores=self.scores, weights=self.p)
+                    hs_list = harmonic_score(scores=self.scores)
+                    ws = np.max(ws_list)
+                    hs = np.max(hs_list)
+                    has_improved = False
+
+                    if hs > best_hs:
+                        print("[I]     harmonic: {:.2f} ---> {:.2f}".format(best_hs, hs))
+                        best_hs = hs
+
+                    if ws > best_ws:
+                        print("[I]     weighted: {:.2f} ---> {:.2f}".format(best_ws, ws))
+                        best_ws = ws
+                        has_improved = True
+
+                    if has_improved:
+                        best_idx = np.argmax(ws_list)
+                        print("[I]     best_idx: {}".format(best_idx))
+
+                        # debug
+                        for f in range(self.n_factors):
+                            self.Us[f][:, k] = self.basis[f][best_idx].T
+
+                        self._evaluate(k, n_iter, best_idx, prefix='updates')
+
+                        for f in range(self.n_factors):
+                            self.Us[f][:, k] = 0
+
+                        n_iter += 1
+                        break_counter = 0
+                    else:
+                        print("[I]     break_counter: {}".format(break_counter))
+                        break_counter += 1
+                        if break_counter == self.n_factors:
+                            break
                     
-                    weighted_score = np.max(weighted_scores)
-                    harmonic_score = np.max(harmonic_scores)
-
-                if harmonic_score > best_harmonic_score:
-                    print("[I]     harmonic: {:.2f} ---> {:.2f}".format(best_harmonic_score, harmonic_score))
-                    best_harmonic_score = harmonic_score
-
-                if weighted_score > best_weighted_score:
-                    print("[I]     weighted: {:.2f} ---> {:.2f}".format(best_weighted_score, weighted_score))
-                    best_weighted_score = weighted_score
-
-                    best_idx = np.argmax(weighted_score)
-                    print("[I]     best_idx: {}".format(best_idx))
-                    n_iter += 1
-                else:
-                    print("[I] Score stops improving after iter: {}".format(n_iter))
+                if break_counter == self.n_factors:
                     break
 
             # update factors
-            for f in range(self.n_factors):
-                if best_idx is None:
-                    print("[W] Score stops improving at k: {}".format(k))
-                else:
+            if best_idx is None:
+                print("[W] Score stops improving at k: {}".format(k))
+                # todo: early stop
+            else:
+                print("[I] Updating pattern k: {}".format(k))
+                for f in range(self.n_factors):
                     self.Us[f][:, k] = self.basis[f][best_idx].T
 
-                    # # debug: remove this basis
-                    # idx = np.array([j for j in range(self.n_basis) if i != j])
-                    # self.basis = self.basis[idx]
+                # # debug: remove this basis
+                # idx = np.array([j for j in range(self.n_basis) if i != j])
+                # self.basis = self.basis[idx]
 
             # debug
-            self.show_matrix(title="k: {}".format(k+1))
-
-            # debug: validation, and print results when verbose=True
-            # self.evaluate(X_gt=self.X_train, 
-            #     df_name="train_results", 
-            #     verbose=self.verbose, task=self.task, 
-            #     metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-            #     extra_metrics=['cover_score'], 
-            #     extra_results=[self.cover()])
-
+            self._evaluate(k, n_iter, best_idx, prefix='results')
 
     
     def update_basis(self, f0, f1, m):
@@ -225,9 +217,10 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         f1 : int
         m : int or list of int
         '''
-        desc = "[I]   f0 {} ---- m {} ---> f1 {}".format(f0, m, f1)
+        desc = "[I]     [ f0: {} ]====[ m: {} ]===>[ f1: {} ]".format(f0, m, f1)
+        self.update_Xs()
 
-        if isinstance(m, int): # f1 is invloved in only 1 matrix
+        if isinstance(m, int): # f1 is invloved in only 1 matrix, during init basis
             X_gt = self.Xs_train[m]
             X_pd = self.Xs[m]
             basis = self.basis[f0]
@@ -236,7 +229,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             cover_before = cover(gt=X_gt, pd=X_pd, w=w, axis=basis_dim)
 
             for i in tqdm(range(self.n_basis), leave=True, position=0, desc=desc):
-                self.scores[m][i], self.basis[f1][i] = Asso.get_vector(
+                self.scores[m, i], self.basis[f1][i] = Asso.get_vector(
                     X_gt=X_gt, 
                     X_before=X_pd, 
                     cover_before=cover_before, 
@@ -281,8 +274,6 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                 for j, m in enumerate(m_list):
                     self.scores[m][i] = scores[j]
 
-        
-
 
     @staticmethod
     def get_vector(X_gt, X_before, cover_before, basis, basis_dim, w, starts):
@@ -323,6 +314,74 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         cover_before = cover_before[:, to_dense(invert(vector), squeeze=True).astype(bool)]
         cover_after = cover_after[:, to_dense(vector, squeeze=True).astype(bool)]
         score = cover_before.sum(axis=1) + cover_after.sum(axis=1)
-
         return score, vector
+
+        # X_after = matmul(basis.T, vector, sparse=True, boolean=True)
+        # X_after = X_after if basis_dim == 0 else X_after.T
+        # X_after = add(X_before, X_after)
+        # score = cover(gt=X_gt, pd=X_after, w=w[0]) # ?
+        # return [score], vector
         
+
+    def _evaluate(self, k, n_iter, best_idx, prefix='updates'):
+        '''Scripts to run at each update.
+
+        The 4 parts are:
+        1. evaluation of individual training matrices.
+        2. evaluation of individual validation matrices.
+        3. evaluation of collective training matrices.
+        4. evaluation of collective validation matrices.
+        5. display.
+        '''
+        self.update_Xs()    # update the predictions
+        results_train = []  # evaluation outcomes on training matrices
+        results_val = []    # evaluation outcomes on validation matrices
+
+        for m in range(self.n_matrices):
+            # 1
+            score = self.scores[m, best_idx] # cover score of the best basis on m-th matrix
+            results = self.collective_evaluate(
+                X_gt=self.Xs_train[m], m=m, df_name="{}_train_{}".format(prefix, m), 
+                verbose=self.verbose, task=self.task, 
+                metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+                extra_metrics=['k', 'iter', 'score'], 
+                extra_results=[k, n_iter, score])
+            results_train.append([score]+results)
+
+            # 2
+            if self.Xs_val is not None:
+                results = self.collective_evaluate(
+                    X_gt=self.Xs_val[m], m=m, df_name="{}_val_{}".format(prefix, m), 
+                    verbose=self.verbose, task=self.task, 
+                    metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+                    extra_metrics=['k', 'iter'], 
+                    extra_results=[k, n_iter])
+                results_val.append(results)
+        
+        # 3
+        results_train = np.array(results_train).reshape(self.n_matrices, -1)
+        results_train_weighted = list(weighted_score(results_train, self.p).squeeze())
+        results_train_harmonic = list(harmonic_score(results_train).squeeze())
+        columns = pd.MultiIndex.from_tuples([('k'), 
+            ('weighted scores', 'score'), ('weighted scores', 'Recall'), ('weighted scores', 'Precision'), ('weighted scores', 'Accuracy'), ('weighted scores', 'F1'), 
+            ('harmonic scores', 'score'), ('harmonic scores', 'Recall'), ('harmonic scores', 'Precision'), ('harmonic scores', 'Accuracy'), ('harmonic scores', 'F1')])
+        self.add_log(
+            df_name="{}_train_collective".format(prefix), 
+            # metrics=['k', 'w-score', 'w-Recall', 'w-Precision', 'w-Accuracy', 'w-F1', 
+            #               'h-score', 'h-Recall', 'h-Precision', 'h-Accuracy', 'h-F1'], 
+            metrics=columns, 
+            results=[k]+results_train_weighted+results_train_harmonic)
+        
+        # 4
+        if self.Xs_val is not None:
+            results_val = np.array(results_val).reshape(self.n_matrices, -1)
+            results_val_weighted = list(weighted_score(results_val, self.p).squeeze())
+            results_val_harmonic = list(harmonic_score(results_val).squeeze())
+            self.add_log(
+                df_name="{}_val_collective".format(prefix), 
+                metrics=['k', 'w-Recall', 'w-Precision', 'w-Accuracy', 'w-F1', 
+                              'h-Recall', 'h-Precision', 'h-Accuracy', 'h-F1'], 
+                results=[k]+results_val_weighted+results_val_harmonic)
+
+        # 5
+        self.show_matrix(title="k: {}, n_iter: {}".format(k, n_iter))

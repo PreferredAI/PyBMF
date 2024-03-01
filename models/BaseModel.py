@@ -1,10 +1,7 @@
 import numpy as np
-from utils import show_matrix, cover, dot, matmul, TP, FP, ERR, add_log
-from utils import to_dense, to_sparse, to_triplet, get_metrics
+from utils import show_matrix, matmul, to_sparse
 import time
-from scipy.sparse import spmatrix, lil_matrix, isspmatrix
-import pandas as pd
-from tqdm import tqdm
+from scipy.sparse import lil_matrix
 
 
 class BaseModel():
@@ -130,114 +127,6 @@ class BaseModel():
         self.logs = {}
 
 
-    def cover(self, X=None, Y=None, w=None, axis=None):
-        '''Measure the coverage of X using Y.
-
-        Parameters
-        ----------
-        X : spmatrix, optional
-            Ground-truth matrix. If not explicitly assigned, `X` is `self.X_train`.
-        Y : spmatrix, optional
-            Predicted matrix. If not explicitly assigned, `Y` is the Boolean product of `self.U` and `self.V`.
-        w : float in [0, 1], optional
-            The weights [1 - `w`, `w`] are the reward for coverage and the penalty for over-coverage. It can also be considered as the lower-bound of true positive ratio when `cover` is used as a factorization criteria.
-        axis : int in {0, 1}, default: None
-            To return the overall or the row/column-wise coverage score.
-
-        Returns
-        -------
-        result : float, array
-            The overall or the row/column-wise coverage score.
-        '''
-        if X is None:
-            X = self.X_train
-        if Y is None:
-            Y = matmul(self.U, self.V.T, sparse=True, boolean=True)
-        w = self.w if w is None else w
-        return cover(X, Y, w, axis)
-
-
-    def error(self, X=None, Y=None, axis=None):
-        '''Measure the coverage error of X using Y.
-
-        Returns
-        -------
-        result : float, array
-            The overall or the row/column-wise error.
-        '''
-        if X is None:
-            X = self.X_train
-        if Y is None:
-            Y = matmul(self.U, self.V.T, sparse=True, boolean=True)
-        return ERR(X, Y, axis)
-    
-
-    def score(self, U_idx, V_idx):
-        """Predict the scores/ratings of a user for an item.
-        """
-        return dot(self.U[U_idx], self.V[V_idx], boolean=True)
-    
-
-    def eval(self, X_gt, metrics, task):
-        """Evaluation with given metrics.
-
-        X_gt : array, spmatrix
-            The ground-truth matrix.
-        metrics : list of str
-            List of metric names.
-        task : str, {'prediction', 'reconstruction'}
-            prediction: 
-                Ignore the missing values and only use the triplet from the ``spmatrix``. The triplet may contain zeros, depending on whether negative sampling has been used.
-            reconstruction:
-                Use the whole matrix, which considers missing values as zeros in ``spmatrix``.
-        """
-        if task == 'prediction':
-            U_idx, V_idx, gt_data = to_triplet(X_gt)
-            if len(gt_data) < 5000:
-                pd_data = np.zeros(len(gt_data), dtype=int)
-                for i in tqdm(range(len(gt_data)), position=0, desc="[I] Making predictions"):
-                    pd_data[i] = self.score(U_idx=U_idx[i], V_idx=V_idx[i])
-            else:
-                X_pd = matmul(U=self.U, V=self.V.T, sparse=True, boolean=True)
-                pd_data = np.zeros(len(gt_data), dtype=int)
-                for i in tqdm(range(len(gt_data)), position=0, desc="[I] Making predictions"):
-                    pd_data[i] = X_pd[U_idx[i], V_idx[i]]
-        elif task == 'reconstruction':
-            gt_data = to_sparse(X_gt, type='csr')
-            pd_data = matmul(U=self.U, V=self.V.T, sparse=True, boolean=True)
-            
-        results = get_metrics(gt=gt_data, pd=pd_data, metrics=metrics)
-        return results
-    
-
-    def evaluate(self, X_gt, df_name, task, metrics=[], extra_metrics=[], extra_results=[], **kwargs):
-        """Evaluate metrics with given ground-truth data and save results to a dataframe.
-
-        X_gt : array, spmatrix
-        df_name : str
-            Name of the dataframe that the results are going to be saved under.
-        task : str
-        matrics : list of str
-            List of metric names to be evaluated.
-        extra_metrics : list of str
-            List of extra metric names.
-        extra_results : list of int and float
-            List of results of extra metrics.
-        kwargs :
-            Common parameters that are checked and set in `BaseModel.check_params()`.
-        """
-        self.check_params(**kwargs)
-
-        extra_metrics = ['time'] + extra_metrics
-        extra_results = [pd.Timestamp.now().strftime("%d/%m/%y %I:%M:%S")] + extra_results
-
-        if not df_name in self.logs:
-            self.logs[df_name] = pd.DataFrame(columns=extra_metrics+metrics)
-
-        results = self.eval(X_gt, metrics=metrics, task=task)
-        add_log(df=self.logs[df_name], line=extra_results+results, verbose=self.verbose)
-
-
     def early_stop(self, msg: str, k: int=None):
         print("[W] Stopped in advance: " + msg)
         if k is not None:
@@ -246,23 +135,104 @@ class BaseModel():
             self.V = self.V[:, :k]
     
     
-    def print_msg(self, msg):
+    def print_msg(self, msg, type='I'):
         if self.verbose:
-            print("[I] " + msg)
+            print("[{}] {}".format(type, msg))
+
+
+    def predict(self):
+        self.X_pd = matmul(self.U, self.V.T, boolean=True, sparse=True)
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
         """The show_matrix() wrapper for BMF models.
 
-        If `settings` is None, show the factors and their boolean product.
+        If `settings` is missing, show the factors and their boolean product.
         """
-        if not self.display:
-            return
         scaling = self.scaling if scaling is None else scaling
         pixels = self.pixels if pixels is None else pixels
 
         if settings is None:
-            X = matmul(self.U, self.V.T, boolean=True, sparse=True)
-            settings = [(X, [0, 0], "X"), (self.U, [0, 1], "U"), (self.V.T, [1, 0], "V")]
+            self.predict()
+            settings = [(self.X_pd, [0, 0], "X"), 
+                        (self.U, [0, 1], "U"), 
+                        (self.V.T, [1, 0], "V")]
 
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, **kwargs)
+
+
+    # def cover(self, X=None, Y=None, w=None, axis=None):
+    #     '''Measure the coverage of X using Y.
+
+    #     Parameters
+    #     ----------
+    #     X : spmatrix, optional
+    #         Ground-truth matrix. If not explicitly assigned, `X` is `self.X_train`.
+    #     Y : spmatrix, optional
+    #         Predicted matrix. If not explicitly assigned, `Y` is the Boolean product of `self.U` and `self.V`.
+    #     w : float in [0, 1], optional
+    #         The weights [1 - `w`, `w`] are the reward for coverage and the penalty for over-coverage. It can also be considered as the lower-bound of true positive ratio when `cover` is used as a factorization criteria.
+    #     axis : int in {0, 1}, default: None
+    #         To return the overall or the row/column-wise coverage score.
+
+    #     Returns
+    #     -------
+    #     result : float, array
+    #         The overall or the row/column-wise coverage score.
+    #     '''
+    #     if X is None:
+    #         X = self.X_train
+    #     if Y is None:
+    #         Y = matmul(self.U, self.V.T, sparse=True, boolean=True)
+    #     if w is None:
+    #         w = self.w
+    #     return cover(X, Y, w, axis)
+
+
+    # def error(self, X=None, Y=None, axis=None):
+    #     '''Measure the coverage error of X using Y.
+
+    #     Returns
+    #     -------
+    #     result : float, array
+    #         The overall or the row/column-wise error.
+    #     '''
+    #     if X is None:
+    #         X = self.X_train
+    #     if Y is None:
+    #         Y = matmul(self.U, self.V.T, sparse=True, boolean=True)
+        # return ERR(X, Y, axis)
+    
+
+    # def evaluate(self, X_gt, df_name, task, metrics=[], extra_metrics=[], extra_results=[], **kwargs):
+    #     """Evaluate metrics with given ground-truth data and save results to a dataframe.
+
+    #     X_gt : array, spmatrix
+    #     df_name : str
+    #         Name of the dataframe that the results are going to be saved under.
+    #     task : str
+    #     matrics : list of str
+    #         List of metric names to be evaluated.
+    #     extra_metrics : list of str
+    #         List of extra metric names.
+    #     extra_results : list of int and float
+    #         List of results of extra metrics.
+    #     kwargs :
+    #         Common parameters that are checked and set in `BaseModel.check_params()`.
+    #     """
+    #     self.check_params(**kwargs)
+
+    #     if X_gt is None:
+    #         return
+
+    #     extra_metrics = ['time'] + extra_metrics
+    #     extra_results = [pd.Timestamp.now().strftime("%d/%m/%y %I:%M:%S")] + extra_results
+
+    #     if not df_name in self.logs:
+    #         self.logs[df_name] = pd.DataFrame(columns=extra_metrics+metrics)
+
+    #     results = self.eval(X_gt, metrics=metrics, task=task)
+
+    #     add_log(df=self.logs[df_name], line=extra_results+results, verbose=self.verbose, caption=df_name)
+
+

@@ -1,6 +1,7 @@
 from .evaluate_utils import cover
 import numpy as np
-from scipy.sparse import vstack, hstack
+from .boolean_utils import matmul
+import pandas as pd
 
 
 def collective_cover(gt, pd, w, axis, starts=None):
@@ -27,3 +28,45 @@ def collective_cover(gt, pd, w, axis, starts=None):
         scores[i] = s
 
     return scores
+
+
+def weighted_score(scores, weights):
+    '''Weighted score(s) of `n` sets of scores.
+
+    Parameters
+    ----------
+    scores : (n, k) array
+    weights : (1, n) array
+
+    Returns
+    -------
+    s : float or (1, k) array
+    '''
+    n = scores.shape[0]
+    weights = np.array(weights).reshape(1, n)
+    s = matmul(U=weights, V=scores)
+    return s
+
+
+def harmonic_score(scores):
+    '''Harmonic score(s) of `n` sets of scores.
+
+    Parameters
+    ----------
+    scores : (n, k) array
+
+    Returns
+    -------
+    s : float or (1, k) array
+    '''
+    # print(scores.shape)
+    n, k = scores.shape
+    s = np.zeros((1, k))
+    for i in range(k):
+        if pd.isnull(scores[:, i]).any():
+            s[0, i] = np.nan
+            print("[W] Zero encountered in harmonic score.")
+        else:
+            s[0, i] = n / (1 / scores[:, i]).sum(axis=0)
+    return s
+    

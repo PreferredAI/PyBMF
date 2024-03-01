@@ -1,5 +1,5 @@
 import numpy as np
-from utils import matmul, add, to_sparse, add_log, show_matrix
+from utils import matmul, add, to_sparse, add_log
 from .Asso import Asso
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
@@ -8,7 +8,7 @@ import pandas as pd
 import pickle
 
 
-class AssoExIterate(Asso):
+class AssoExInterleave(Asso):
     '''The Asso algorithm with iterative update among the factors (experimental)
     '''
     def _fit(self):
@@ -16,7 +16,7 @@ class AssoExIterate(Asso):
         self.logs['scores'] = [None] * self.k
         
         for k in tqdm(range(self.k), position=0):
-            best_basis, best_column, best_idx = None, None, None
+            best_basis, best_column = None, None
             best_cover = 0 if k == 0 else best_cover
             n_basis = self.basis.shape[0]
 
@@ -40,7 +40,6 @@ class AssoExIterate(Asso):
 
                 last_cover = best_cover
 
-                N_ITER = 1
 
                 ###### original Asso ######
                 for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
@@ -52,33 +51,26 @@ class AssoExIterate(Asso):
                         best_cover = score
                         best_basis = self.basis[i].T
                         best_column = self.columns[i].T
-                        best_idx = i
-
-                show_matrix([(self.columns, [0, 0], 'basis[0]'), (self.basis, [0, 1], 'basis[1]')], title="iter: {}".format(n_iter))
-                if n_iter == N_ITER:
-                    return
-                
-
                 if last_cover == best_cover:
-                    print("[I] k: {}, break_counter: {}".format(k, break_counter))
+                    print(f"k = {k+1} break_counter = {break_counter}")
                     break_counter += 1
                     if break_counter == 2:
                         break
                 else:
-                    print("[I] k: {}, updated cols: {} => {}, best_idx: {}".format(k, last_cover, best_cover, best_idx))
+                    print(f"k = {k+1} updated cols: {last_cover} -> {best_cover}")
                     break_counter = 0
                     last_cover = best_cover
 
                     self.U[:, k], self.V[:, k] = best_column, best_basis
 
-                    self._evaluate(k, n_iter, best_cover, prefix='updates')
+                    self._evaluate_at_each_update(k, n_iter, best_cover)
                     n_iter += 1
 
                     self.U[:, k], self.V[:, k] = 0, 0 # reset
                 # recorder
                 candidates.append([self.columns.copy(), self.basis.copy()])
                 
-                                
+
                 ###### iterative update ######
                 for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
                     score, basis = self.get_optimal_row(i)
@@ -89,32 +81,24 @@ class AssoExIterate(Asso):
                         best_cover = score
                         best_basis = self.basis[i].T
                         best_column = self.columns[i].T
-                        best_idx = i
-                
-                # show_matrix([(self.columns, [0, 0], 'basis[0]'), (self.basis, [0, 1], 'basis[1]')], title="iter: {}".format(n_iter))
-                # if n_iter == N_ITER:
-                #     return
-                
                 if last_cover == best_cover:
-                    print("[I] k: {}, break_counter: {}".format(k, break_counter))
+                    print(f"k = {k+1} break_counter = {break_counter}")
                     break_counter += 1
                     if break_counter == 2:
                         break
                 else:
-                    print("[I] k: {}, updated rows: {} => {}, best_idx: {}".format(k, last_cover, best_cover, best_idx))
+                    print(f"k = {k+1} updated rows: {last_cover} -> {best_cover}")
                     break_counter = 0
                     last_cover = best_cover
 
                     self.U[:, k], self.V[:, k] = best_column, best_basis
                     
-                    self._evaluate(k, n_iter, best_cover, prefix='updates')
+                    self._evaluate_at_each_update(k, n_iter, best_cover)
                     n_iter += 1
 
                     self.U[:, k], self.V[:, k] = 0, 0
                 # recorder
                 candidates.append([self.columns.copy(), self.basis.copy()])
-
-
 
 
             # recorder
@@ -137,39 +121,46 @@ class AssoExIterate(Asso):
             self.basis = self.basis[idx]
             self.columns = self.columns[idx]
 
-            self._evaluate(k, n_iter, best_cover, prefix='results')
+            # show matrix at every step, when verbose=True and display=True
+            if self.verbose:
+                self.show_matrix(title="step: {}, tau: {}, w: {}".format(k+1, self.tau, self.w))
+
+            # evaluation, and print the last few results when verbose=True
+            self._evaluate_at_each_pattern(k, best_cover)
             
 
-    def _evaluate(self, k, n_iter, score, prefix='updates'):
-        '''Scripts to run at each update.
-
-        The 4 parts are:
-        1. evaluation of individual training matrices.
-        2. evaluation of individual validation matrices.
-        3. evaluation of collective training matrices.
-        4. evaluation of collective validation matrices.
-        5. display.
-        '''
-        # 1
-        # score = self.scores[m, best_idx] # cover score of the best basis on m-th matrix
+    def _evaluate_at_each_update(self, k, n_iter, score):
         self.evaluate(
-            X_gt=self.X_train, df_name="{}_train".format(prefix), 
+            X_gt=self.X_train, 
+            df_name="updates_X_train", 
             verbose=self.verbose, task=self.task, 
             metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
             extra_metrics=['k', 'iter', 'score'], 
             extra_results=[k, n_iter, score])
+        self.evaluate(
+            X_gt=self.X_val, 
+            df_name="updates_X_val", 
+            verbose=self.verbose, task=self.task, 
+            metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+            extra_metrics=['k', 'iter'], 
+            extra_results=[k, n_iter])
+            
 
-        # 2
-        if self.X_val is not None:
-            self.evaluate(
-                X_gt=self.X_val, df_name="{}_val".format(prefix), 
-                verbose=self.verbose, task=self.task, 
-                metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-                extra_metrics=['k', 'iter'], 
-                extra_results=[k, n_iter])
-        
-        # 3
-        self.show_matrix(title="k: {}, n_iter: {}".format(k, n_iter))
+    def _evaluate_at_each_pattern(self, k, score):
+        self.evaluate(
+            X_gt=self.X_train, 
+            df_name="results_X_train", 
+            verbose=self.verbose, task=self.task, 
+            metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+            extra_metrics=['k', 'score'], 
+            extra_results=[k, score])
+        self.evaluate(
+            X_gt=self.X_val, 
+            df_name="results_X_val", 
+            verbose=self.verbose, task=self.task, 
+            metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+            extra_metrics=['k'], 
+            extra_results=[k])
 
 
     def get_optimal_column(self, i):
@@ -200,16 +191,12 @@ class AssoExIterate(Asso):
     
     def get_optimal_row(self, i):
         X_before = matmul(self.U, self.V.T, sparse=True, boolean=True)
-
+        
         U = self.columns[i].T
         V = lil_matrix(np.ones((1, self.n)))
 
         X_after = matmul(U, V, sparse=True, boolean=True)
         X_after = add(X_before, X_after)
-
-        # # show_matrix([(X_before, [0, 0], 'X_before')])
-        # show_matrix([(X_after, [0, 0], 'X_after')])
-        # return
 
         cover_before = self.cover(Y=X_before, axis=0)
         cover_after = self.cover(Y=X_after, axis=0)

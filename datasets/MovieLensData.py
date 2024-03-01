@@ -64,12 +64,12 @@ class MovieLensData(BaseData):
         u_order = df_user['row_idx'].values.astype(int)
         u_idmap = df_user['uid'].values.astype(int)
         u_alias = df_user['uid'].values.astype(str)
-        u_info = (u_order, u_idmap, u_alias)
+        u_info = [u_order, u_idmap, u_alias]
 
         i_order = df_item['col_idx'].values.astype(int)
         i_idmap = df_item['iid'].values.astype(int)
         i_alias = df_item['title'].values.astype(str)
-        i_info = (i_order, i_idmap, i_alias)
+        i_info = [i_order, i_idmap, i_alias]
 
         # ratings matrix
         rows = df_triplet['row_idx'].values.astype(int)
@@ -98,5 +98,5 @@ class MovieLensData(BaseData):
         f_idmap = safe_indexing(f_idmap, idx)
         f_alias = safe_indexing(f_alias, idx)
         X = X[idx, :] if dim == 0 else X[:, idx]
-        factor_info = (f_order, f_idmap, f_alias)
+        factor_info = [f_order, f_idmap, f_alias]
         return X, factor_info

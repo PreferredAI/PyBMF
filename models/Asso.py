@@ -1,11 +1,13 @@
 import numpy as np
-from utils import matmul, add, to_sparse, to_dense, binarize, invert, show_matrix, cover, binarize
+from utils import matmul, add, to_sparse, to_dense, binarize, binarize
+from utils import invert, cover, eval, record, header
 from .BaseModel import BaseModel
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 import pandas as pd
 from p_tqdm import p_map
+from itertools import product
 
 class Asso(BaseModel):
     '''The Asso algorithm.
@@ -51,13 +53,10 @@ class Asso(BaseModel):
         self.assoc = self.build_assoc(X=self.X_train, dim=1)
         # binary-valued basis candidates
         self.basis = self.build_basis(assoc=self.assoc, tau=self.tau)
-
-        if self.display:
-            show_matrix([(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')], 
-                        colorbar=True, clim=[0, 1], title='tau: {}'.format(self.tau))
+        if self.verbose:
+            self.show_matrix([(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')], colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
 
         self._fit()
-        self.show_matrix(title="result")
 
 
     @staticmethod
@@ -97,69 +96,73 @@ class Asso(BaseModel):
     def _fit(self):
         for k in tqdm(range(self.k), position=0):
             best_row, best_col, best_idx = None, None, None
-            best_score = 0 if k == 0 else best_score # best coverage score is inherited from previous factors
-            n_basis = self.basis.shape[0] # number of basis candidates
-
+            # best coverage score inherited from previous factors
+            best_score = 0 if k == 0 else best_score
+            # number of basis candidates
+            n_basis = self.basis.shape[0]
             # early stop detection
             if n_basis == 0:
                 self.early_stop(msg="No basis left.", k=k)
                 break
 
-            X_before = matmul(self.U, self.V.T, sparse=True, boolean=True)
-            cover_before = cover(gt=self.X_train, pd=X_before, w=self.w, axis=1)
-
-            for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k+1}"):
+            self.predict()
+            s_old = cover(gt=self.X_train, pd=self.X_pd, w=self.w, axis=1)
+            for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k}"):
                 row = self.basis[i]
                 score, col = self.get_vector(
-                    X_gt=self.X_train, 
-                    X_before=X_before, 
-                    cover_before=cover_before, 
-                    basis=row, 
-                    basis_dim=1, 
-                    w=self.w)
+                    X_gt=self.X_train, X_old=self.X_pd, s_old=s_old, 
+                    basis=row, basis_dim=1, w=self.w)
                 if score > best_score:
                     best_score, best_row, best_col, best_idx = score, row, col, i
-
+            # early stop detection
             if best_idx is None:
                 self.early_stop(msg="Coverage stops improving.", k=k)
                 break
-
             # update factors
             self.U[:, k], self.V[:, k] = best_col.T, best_row.T
-
             # remove this basis
             idx = np.array([j for j in range(n_basis) if j != best_idx])
             self.basis = self.basis[idx]
+            # show matrix at every step
+            if self.verbose and self.display:
+                self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
+                
+            self.evaluate(k=k, score=best_score, title='updates')
 
-            # show matrix at every step, when verbose=True and display=True
-            if self.verbose:
-                self.show_matrix(title="step: {}, tau: {}, w: {}".format(k+1, self.tau, self.w))
 
-            self.evaluate(X_gt=self.X_train, 
-                df_name="train_results", 
-                verbose=self.verbose, task=self.task, 
-                metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-                extra_metrics=['cover_score'], 
-                extra_results=[self.cover()])
-            
-            if self.X_val is not None:
-                self.evaluate(X_gt=self.X_val, 
-                    df_name="val_results", 
-                    verbose=self.verbose, task=self.task, 
-                    metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-                    extra_metrics=['cover_score'], 
-                    extra_results=[self.cover()])
+    def evaluate(self, **kwargs):
+        k = kwargs.get('k')
+        score = kwargs.get('score')
+        title = kwargs.get('title')
+
+        self.predict()
+        metrics = ['Recall', 'Precision', 'Accuracy', 'F1']
+        results_train = eval(metrics=metrics, task=self.task, X_gt=self.X_train, X_pd=self.X_pd)
+        columns = header(['k', 'score']) + list(product(['train'], metrics))
+        results = [k, score] + results_train
+        
+        if self.X_val is not None:
+            results_val = eval(metrics=metrics, task=self.task, X_gt=self.X_val, X_pd=self.X_pd)
+            columns = columns + list(product(['val'], metrics))
+            results = results + results_val
+
+        record(df_dict=self.logs, df_name=title, columns=columns, records=results, verbose=self.verbose, caption=title)
 
 
     @staticmethod
-    def get_vector(X_gt, X_before, cover_before, basis, basis_dim, w):
+    def get_vector(X_gt, X_old, s_old, basis, basis_dim, w):
         '''Return the optimal column/row vector given a row/column basis candidate.
 
         Parameters
         ----------
         X_gt : spmatrix
-        X_before : spmatrix
+            The ground-truth matrix.
+        X_old : spmatrix
+            The prediction matrix before adding the current pattern.
+        s_old : array
+            The column/row-wise cover scores of previous prediction `X_pd`.
         basis : (1, n) spmatrix
+            The basis vector.
         basis_dim : int
             The dimension which `basis` belongs to.
             If `basis_dim == 0`, a pattern is considered `basis.T * vector`. Otherwise, it's considered `vector.T * basis`. Note that both `basis` and `vector` are row vectors.
@@ -170,20 +173,18 @@ class Asso(BaseModel):
         score : float
             The coverage score.
         vector : (1, n) spmatrix
+            The matched vector.
         '''
         vector_dim = 1 - basis_dim
         vector = lil_matrix(np.ones((1, X_gt.shape[vector_dim])))
-        X_after = matmul(basis.T, vector, sparse=True, boolean=True)
-        X_after = X_after if basis_dim == 0 else X_after.T
-        X_after = add(X_before, X_after)
+        pattern = matmul(basis.T, vector, sparse=True, boolean=True)
+        pattern = pattern if basis_dim == 0 else pattern.T
+        X_new = add(X_old, pattern)
+        s_new = cover(gt=X_gt, pd=X_new, w=w, axis=basis_dim)
 
-        cover_after = cover(gt=X_gt, pd=X_after, w=w, axis=basis_dim)
-
-        vector = lil_matrix(np.array(cover_after > cover_before, dtype=int))
-
-        cover_before = cover_before[to_dense(invert(vector), squeeze=True).astype(bool)]
-        cover_after = cover_after[to_dense(vector, squeeze=True).astype(bool)]
-        score = cover_before.sum() + cover_after.sum()
-
+        vector = lil_matrix(np.array(s_new > s_old, dtype=int))
+        s_old = s_old[to_dense(invert(vector), squeeze=True).astype(bool)]
+        s_new = s_new[to_dense(vector, squeeze=True).astype(bool)]
+        score = s_old.sum() + s_new.sum()
         return score, vector
         

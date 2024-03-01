@@ -87,12 +87,12 @@ class NetflixGenreData(NetflixData):
         genre_order = self.df_genres_genre['row_idx'].values.astype(int)
         genre_idmap = self.df_genres_genre['row_idx'].values.astype(int)
         genre_alias = self.df_genres_genre['genre'].values.astype(str)
-        genre_info = (genre_order, genre_idmap, genre_alias)
+        genre_info = [genre_order, genre_idmap, genre_alias]
 
         movie_order = self.df_genres_movie['col_idx'].values.astype(int)
         movie_idmap = self.df_genres_movie['iid'].values.astype(int)
         movie_alias = self.df_genres_movie['title'].values.astype(str)
-        movie_info = (movie_order, movie_idmap, movie_alias)
+        movie_info = [movie_order, movie_idmap, movie_alias]
 
         rows = self.df_genres_triplet['row_idx'].values.astype(int)
         cols = self.df_genres_triplet['col_idx'].values.astype(int)

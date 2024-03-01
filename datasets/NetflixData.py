@@ -8,9 +8,9 @@ from .BaseData import BaseData
 class NetflixData(BaseData):
     '''Load Netflix dataset
 
-    full:
-        False, size 15MB, users ~10k, items 4945, ratings ~608k
-        True, size 2.43GB, users ~480k, items 17770, ratings ~100M
+    size:
+        small, size 15MB, users ~10k, items 4945, ratings ~608k
+        full, size 2.43GB, users ~480k, items 17770, ratings ~100M
     '''
     def __init__(self, path=None, size='small'):
         super().__init__(path=path)
@@ -51,12 +51,12 @@ class NetflixData(BaseData):
         u_order = df_user['row_idx'].values.astype(int)
         u_idmap = df_user['uid'].values.astype(int)
         u_alias = df_user['uid'].values.astype(str)
-        u_info = (u_order, u_idmap, u_alias)
+        u_info = [u_order, u_idmap, u_alias]
 
         i_order = df_item['col_idx'].values.astype(int)
         i_idmap = df_item['iid'].values.astype(int)
         i_alias = df_item['title'].values.astype(str)
-        i_info = (i_order, i_idmap, i_alias)
+        i_info = [i_order, i_idmap, i_alias]
 
         # ratings matrix
         rows = df_triplet['row_idx'].values.astype(int)

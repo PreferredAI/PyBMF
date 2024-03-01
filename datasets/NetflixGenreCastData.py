@@ -48,11 +48,11 @@ class NetflixGenreCastData(NetflixData):
         
         genre_order = np.arange(len(genre_alias))
         genre_idmap = np.arange(len(genre_alias))
-        genre_info = (genre_order, genre_idmap, genre_alias)
+        genre_info = [genre_order, genre_idmap, genre_alias]
 
         cast_order = np.arange(len(cast_alias))
         cast_idmap = cast_alias.astype(int)
-        cast_info = (cast_order, cast_idmap, cast_alias)
+        cast_info = [cast_order, cast_idmap, cast_alias]
 
         # align the 3 matrices
         movie_ids = self.df_info['netflix_id'].values

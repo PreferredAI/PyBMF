@@ -131,16 +131,16 @@ class CrossValidation(BaseSplit):
     @staticmethod
     def get_indices(data_idx, partition, current_fold):
         print("[I] CrossValidation, get indices for current fold")
-        a = partition[current_fold - 1] # start of val
-        b = partition[current_fold] # end of val
+        a = partition[current_fold] # start of val
+        b = partition[current_fold+1] # end of val
         c = partition[-1] # start of test
 
-        if current_fold < 1 or current_fold > len(data_idx) - 1:
-            print("[E]   current_fold should lie in [1, n_fold]")
-        else:
+        if current_fold >= 0 and current_fold < len(data_idx):
             print("[I]   current fold         :", current_fold)
             print("[I]   current train size   :", c - b + a)
             print("[I]   current val size     :", b - a)
+        else:
+            print("[E]   current_fold should lie in [1, n_fold]")
 
         train_idx = np.concatenate((data_idx[:a], data_idx[b:c]))
         test_idx = data_idx[c:]

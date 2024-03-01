@@ -92,7 +92,7 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
         seed for down-sampling.
     '''
     if idx is not None:
-        print("[I] sampling axis {} with given indices".format(axis))
+        print("[I] Sampling axis {} with given indices".format(axis))
         assert X.shape[axis] >= len(idx), "[E] Target length exceeds the original."
     elif n_samples is not None:
         print("[I] Sampling axis {} to size {}".format(axis, n_samples))
@@ -119,7 +119,7 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
             factor_info[i] = factor_info[i][idx]        
         factor_info[0] = sort_order(factor_info[0])
         factor_info = tuple(factor_info)
-    return (idx, factor_info, X)
+    return idx, factor_info, X
 
 
 def sort_order(order):

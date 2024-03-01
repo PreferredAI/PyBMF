@@ -1,9 +1,11 @@
-from .boolean_utils import multiply
-from .sparse_utils import to_dense
+from .boolean_utils import multiply, matmul, dot
+from .sparse_utils import to_dense, to_triplet, to_sparse
 from scipy.sparse import spmatrix, issparse, csr_matrix
 import numpy as np
+import pandas as pd
 from typing import Union, List
 from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score
+from tqdm import tqdm
 
 
 def get_metrics(gt: Union[np.ndarray, spmatrix], pd: Union[np.ndarray, spmatrix], metrics: List[str], axis=None):
@@ -170,7 +172,84 @@ def invert(X):
     return X
 
 
-def add_log(df, line, verbose=False):
-    df.loc[len(df.index)] = line
-    if verbose: # print the last 5 records upon update
-        display(df.tail())
+def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
+    """Evaluate with given metrics.
+
+    X_gt : array or spmatrix
+    X_pd : array or spmatrix, optional
+    U : spmatrix, optional
+    V : spmatrix, optional
+    metrics : list of str
+        List of metric names.
+    task : str in {'prediction', 'reconstruction'}
+        If `task` == 'prediction', it ignores the missing values and only use the triplet from the ``spmatrix``. The triplet may contain zeros, depending on whether negative sampling has been used.
+        If `task` == 'reconstruction', it uses the whole matrix, which considers all missing values as zeros in ``spmatrix``.
+    """
+    using_matrix = X_pd is not None
+    using_factors = U is not None and V is not None
+    assert using_matrix or using_factors, "[E] User should provide either `U`, `V` or `X_pd`."
+    if task == 'prediction':
+        U_idx, V_idx, gt_data = to_triplet(X_gt)
+        if using_factors and len(gt_data) < 5000: # faster only for a small amount of samples
+            pd_data = np.zeros(len(gt_data), dtype=int)
+            for i in tqdm(range(len(gt_data)), leave=False, position=0, desc="[I] Making predictions"):
+                pd_data[i] = dot(U[U_idx], V[V_idx], boolean=True)
+        else:
+            if not using_matrix:
+                X_pd = matmul(U=U, V=V.T, sparse=True, boolean=True)
+            pd_data = np.zeros(len(gt_data), dtype=int)
+            for i in tqdm(range(len(gt_data)), leave=False, position=0, desc="[I] Making predictions"):
+                pd_data[i] = X_pd[U_idx[i], V_idx[i]]
+    elif task == 'reconstruction':
+        gt_data = to_sparse(X_gt, type='csr')
+        if not using_matrix:
+            pd_data = matmul(U=U, V=V.T, sparse=True, boolean=True)
+        else:
+            pd_data = to_sparse(X_pd, type='csr')
+        
+    results = get_metrics(gt=gt_data, pd=pd_data, metrics=metrics)
+    return results
+
+
+def record(df_dict, df_name, columns, records, verbose=False, caption=None):
+    '''Create and add records to a dataframe in a logs dict.
+
+    Parameters
+    ----------
+    df_dict : dict
+    df_name : str
+    columns : list of str or str tuple
+    records : list
+    verbose : bool, default: False
+    caption : str, optional
+    '''
+    if not df_name in df_dict: # create a dataframe in a logs dict
+        if isinstance(columns[0], tuple): # using multi-level headers
+            time = header('time', levels=len(columns[0]))
+            columns = pd.MultiIndex.from_tuples(time + columns)
+        else:
+            columns = ['time'] + columns
+        df_dict[df_name] = pd.DataFrame(columns=columns)
+
+    records = [pd.Timestamp.now().strftime("%d/%m/%y %I:%M:%S")] + records # add timestamp
+    df_dict[df_name].loc[len(df_dict[df_name].index)] = records # add a line of records
+
+    if verbose: # print the last 5 lines
+        if caption is None:
+            display(df_dict[df_name].tail())
+        else:
+            styles = [dict(selector="caption", props=[("font-size", "100%"), ("font-weight", "bold")])]
+            display(df_dict[df_name].tail().style.set_caption(caption).set_table_styles(styles))
+
+
+def header(name, levels=2, depth=None):
+    if isinstance(name, str):
+        name = [name]
+    if depth is None:
+        depth = levels
+    output = []
+    for n in name:
+        list = [''] * levels
+        list[depth-1] = n
+        output.append(tuple(list))
+    return output

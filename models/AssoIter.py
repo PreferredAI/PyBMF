@@ -76,8 +76,11 @@ class AssoIter(Asso):
         X_after = matmul(U, V.T, sparse=True, boolean=True)
         X_after = add(X_before, X_after)
 
-        cover_before = self.cover(Y=X_before, axis=1, w=[1, 1])
-        cover_after = self.cover(Y=X_after, axis=1, w=[1, 1])
+        # cover_before = self.cover(Y=X_before, axis=1, w=0.5)
+        # cover_after = self.cover(Y=X_after, axis=1, w=0.5)
+
+        cover_before = self.cover(Y=X_before, axis=1, w=self.w)
+        cover_after = self.cover(Y=X_after, axis=1, w=self.w)
 
         U = lil_matrix(np.array(cover_after > cover_before, dtype=int)).T
 

@@ -224,14 +224,15 @@ class BaseGenerator:
     def set_factor_info(self):
         """Set factor_info
         """
-        U_info = (self.U_order, self.U_order, self.U_order.astype(str))
-        V_info = (self.V_order, self.V_order, self.V_order.astype(str))
+        U_info = [self.U_order, self.U_order, self.U_order.astype(str)]
+        V_info = [self.V_order, self.V_order, self.V_order.astype(str)]
         self.factor_info = [U_info, V_info]
         
 
     def add_noise(self, noise=None, seed=None):
         self.check_params(noise=noise, seed=seed)
         self.X, self.rng = add_noise(X=self.X, noise=self.noise, rng=self.rng)
+        self.to_sparse() # debug
 
     
     def boolean_matmul(self):
