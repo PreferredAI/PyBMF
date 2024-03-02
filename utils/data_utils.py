@@ -100,14 +100,14 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
         
         seed = int(time.time()) if seed is None else seed
         rng = np.random.RandomState(seed)
-        print("[I]   sampling seed    :", seed)
+        print("[I]   sampling seed:", seed)
         
         idx = [True] * n_samples + [False] * (X.shape[axis] - n_samples)
         rng.shuffle(idx)
 
-    print("[I]   sampling from    :", X.shape)
+    print("[I]   sampling from:", X.shape)
     X = X[idx, :] if axis == 0 else X[:, idx]
-    print("[I]              to    :", X.shape)
+    print("[I]   sampling to  :", X.shape)
 
     if isinstance(factor_info, list): # single matrix
         for i in [0, 1, 2]: # order, idmap, alias

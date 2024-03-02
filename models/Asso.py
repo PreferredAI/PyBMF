@@ -58,6 +58,9 @@ class Asso(BaseModel):
 
         self._fit()
 
+        display(self.logs['updates'])
+        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
+
 
     @staticmethod
     def build_assoc(X, dim):
@@ -127,26 +130,25 @@ class Asso(BaseModel):
             if self.verbose and self.display:
                 self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
                 
-            self.evaluate(k=k, score=best_score, title='updates')
+            self.evaluate(names=['k', 'score'], values=[k, best_score], df_name='updates')
 
 
-    def evaluate(self, **kwargs):
-        k = kwargs.get('k')
-        score = kwargs.get('score')
-        title = kwargs.get('title')
-
+    def evaluate(self, df_name, names=[], values=[]):
         self.predict()
         metrics = ['Recall', 'Precision', 'Accuracy', 'F1']
-        results_train = eval(metrics=metrics, task=self.task, X_gt=self.X_train, X_pd=self.X_pd)
-        columns = header(['k', 'score']) + list(product(['train'], metrics))
-        results = [k, score] + results_train
+        
+        results_train = eval(X_gt=self.X_train, X_pd=self.X_pd, 
+            metrics=metrics, task=self.task)
+        columns = header(names) + list(product(['train'], metrics))
+        results = values + results_train
         
         if self.X_val is not None:
-            results_val = eval(metrics=metrics, task=self.task, X_gt=self.X_val, X_pd=self.X_pd)
+            results_val = eval(X_gt=self.X_val, X_pd=self.X_pd, 
+                metrics=metrics, task=self.task)
             columns = columns + list(product(['val'], metrics))
             results = results + results_val
-
-        record(df_dict=self.logs, df_name=title, columns=columns, records=results, verbose=self.verbose, caption=title)
+        
+        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)
 
 
     @staticmethod
@@ -186,5 +188,6 @@ class Asso(BaseModel):
         s_old = s_old[to_dense(invert(vector), squeeze=True).astype(bool)]
         s_new = s_new[to_dense(vector, squeeze=True).astype(bool)]
         score = s_old.sum() + s_new.sum()
+
         return score, vector
         

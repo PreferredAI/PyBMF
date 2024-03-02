@@ -1,9 +1,9 @@
 from .Asso import Asso
 import numpy as np
 import time
-from utils import matmul, ERR
+from utils import matmul, cover
 from scipy.sparse import csr_matrix, lil_matrix
-from tqdm import tqdm
+from p_tqdm import p_map
 from typing import Union
 from multiprocessing import Pool, cpu_count
 
@@ -18,53 +18,48 @@ class AssoOpt(Asso):
     def fit(self, X_train, X_val=None, **kwargs):
         super().fit(X_train, X_val, **kwargs)
         self.exhaustive_search()
-        self.show_matrix(title="result after exhaustive search")
+
+        display(self.logs['refinements'])
+        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="exhaustive search results")
 
 
     def exhaustive_search(self):
-        '''Using exhaustive search to refine U
+        '''Using exhaustive search to refine U.
         '''
-        self.Us = self.get_candidate_rows(k=self.k) 
-        self.Xs = matmul(U=self.Us, V=self.V.T, sparse=True, boolean=True)
+        tic = time.perf_counter()
 
-        start_time = time.perf_counter()
-        with Pool() as pool:
-            result = pool.map(self.get_optimal_row, range(self.m))
-        finish_time = time.perf_counter()
-        print("[I] Exhaustive search finished in {}s.".format(finish_time - start_time))
+        # with Pool() as pool:
+        #     pool.map(self.set_optimal_row, range(self.m))
 
-        self.U = self.Us[result, :] # refine U
+        results = p_map(self.set_optimal_row, range(self.m))
+
+        toc = time.perf_counter()
+        print("[I] Exhaustive search finished in {}s.".format(toc-tic))
+
+        for i in range(self.m):
+            self.U[i] = self.int2bin(results[i], self.k)
+
+        self.predict()
+        score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
+        self.evaluate(names=['score'], values=[score], df_name='refinements')
 
 
     @staticmethod
-    def get_candidate_rows(k):
-        '''Return all possible choices for a latent factor
-
-        E.g: when k == 2, the output will be
-            0   0
-            0   1
-            1   0
-            1   1
+    def int2bin(i, bits):
+        '''Turn `i` into (1, `bits`) binary sparse matrix.
         '''
-        n_rows, n_cols = 2 ** k, k
-        candidates = lil_matrix(np.zeros((n_rows, n_cols)))
-        for i in range(n_rows):
-            # convert i to binary strings with length k
-            binary = bin(i)[2:].zfill(n_cols)
-            for j in range(n_cols):
-                # fill each row with binary digits
-                candidates[i, j] = np.uint8(binary[j])
-        return candidates
+        return csr_matrix(list(bin(i)[2:].zfill(bits)), dtype=int)
 
 
-    def get_optimal_row(self, i):
-        '''Returns the index of the optimal row for i-th row
+    def set_optimal_row(self, i):
+        '''Update the i-th row in U.
         '''
         trials = 2 ** self.k
         scores = np.zeros(trials)
-        X = self.X_train[i, :].astype(int)
-        for t in range(trials):
-            Y = self.Xs[t, :]
-            scores[t] = self.cover(X, Y)
-        return np.argmax(scores)
-
+        X_gt = self.X_train[i, :]
+        for j in range(trials):
+            U = self.int2bin(j, self.k)
+            X_pd = matmul(U, self.V.T, sparse=True, boolean=True)
+            scores[j] = cover(gt=X_gt, pd=X_pd, w=self.w)
+        idx = np.argmax(scores)
+        return idx

@@ -6,6 +6,7 @@ import pandas as pd
 from typing import Union, List
 from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score
 from tqdm import tqdm
+from p_tqdm import t_imap
 
 
 def get_metrics(gt: Union[np.ndarray, spmatrix], pd: Union[np.ndarray, spmatrix], metrics: List[str], axis=None):
@@ -192,13 +193,13 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
         U_idx, V_idx, gt_data = to_triplet(X_gt)
         if using_factors and len(gt_data) < 5000: # faster only for a small amount of samples
             pd_data = np.zeros(len(gt_data), dtype=int)
-            for i in tqdm(range(len(gt_data)), leave=False, position=0, desc="[I] Making predictions"):
+            for i in tqdm(range(len(gt_data)), leave=False, position=1, desc="[I] Making predictions"):
                 pd_data[i] = dot(U[U_idx], V[V_idx], boolean=True)
         else:
             if not using_matrix:
                 X_pd = matmul(U=U, V=V.T, sparse=True, boolean=True)
             pd_data = np.zeros(len(gt_data), dtype=int)
-            for i in tqdm(range(len(gt_data)), leave=False, position=0, desc="[I] Making predictions"):
+            for i in tqdm(range(len(gt_data)), leave=False, position=1, desc="[I] Making predictions"):
                 pd_data[i] = X_pd[U_idx[i], V_idx[i]]
     elif task == 'reconstruction':
         gt_data = to_sparse(X_gt, type='csr')
@@ -206,12 +207,13 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
             pd_data = matmul(U=U, V=V.T, sparse=True, boolean=True)
         else:
             pd_data = to_sparse(X_pd, type='csr')
-        
+    
     results = get_metrics(gt=gt_data, pd=pd_data, metrics=metrics)
+    
     return results
 
 
-def record(df_dict, df_name, columns, records, verbose=False, caption=None):
+def record(df_dict, df_name, columns, records, verbose=False):
     '''Create and add records to a dataframe in a logs dict.
 
     Parameters
@@ -223,33 +225,27 @@ def record(df_dict, df_name, columns, records, verbose=False, caption=None):
     verbose : bool, default: False
     caption : str, optional
     '''
-    if not df_name in df_dict: # create a dataframe in a logs dict
+    if not df_name in df_dict: # create dataframe in logs dict
         if isinstance(columns[0], tuple): # using multi-level headers
-            time = header('time', levels=len(columns[0]))
+            time = header(['time'], levels=len(columns[0]))
             columns = pd.MultiIndex.from_tuples(time + columns)
         else:
             columns = ['time'] + columns
         df_dict[df_name] = pd.DataFrame(columns=columns)
 
     records = [pd.Timestamp.now().strftime("%d/%m/%y %I:%M:%S")] + records # add timestamp
-    df_dict[df_name].loc[len(df_dict[df_name].index)] = records # add a line of records
+    df_dict[df_name].loc[len(df_dict[df_name].index)] = records # add record
 
     if verbose: # print the last 5 lines
-        if caption is None:
-            display(df_dict[df_name].tail())
-        else:
-            styles = [dict(selector="caption", props=[("font-size", "100%"), ("font-weight", "bold")])]
-            display(df_dict[df_name].tail().style.set_caption(caption).set_table_styles(styles))
+        display(df_dict[df_name].tail())
 
 
-def header(name, levels=2, depth=None):
-    if isinstance(name, str):
-        name = [name]
+def header(names, levels=2, depth=None):
     if depth is None:
         depth = levels
     output = []
-    for n in name:
+    for name in names:
         list = [''] * levels
-        list[depth-1] = n
+        list[depth-1] = name
         output.append(tuple(list))
     return output

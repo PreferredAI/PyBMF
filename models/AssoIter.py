@@ -2,7 +2,7 @@ from .Asso import Asso
 import numpy as np
 from multiprocessing import Pool
 import time
-from utils import matmul, add
+from utils import matmul, add, ERR, cover
 from copy import deepcopy
 from scipy.sparse import issparse, lil_matrix
 from functools import reduce
@@ -18,7 +18,9 @@ class AssoIter(Asso):
     def fit(self, X_train, X_val=None, **kwargs):
         super().fit(X_train, X_val, **kwargs)
         self.iterative_search()
-        self.show_matrix(title="after iterative search")
+
+        display(self.logs['refinements'])
+        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="assoiter results")
 
 
     def iterative_search(self):
@@ -26,67 +28,46 @@ class AssoIter(Asso):
 
         In the paper, the algorithm uses cover (with w=[1, 1]) as updating criteria, and uses error as stopping criteria.
         '''
-        best_cover = 0
-        best_error = 0
-        this_cover = 0
-        this_error = 0
-
-        self.Xs = [] # build k overlapping matrices
-        for k in range(self.k):
-            X = matmul(self.U[:, k], self.V[:, k].T, boolean=True, sparse=True)
-            self.Xs.append(X)
+        self.predict()
+        best_score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
+        best_error = ERR(gt=self.X_train, pd=self.X_pd)
+        counter = 0
 
         while True:
-            best_error = self.error()
+            for k in range(self.k):
+                score, col = self.get_refined_column(k)
+                self.U[:, k] = col.T
 
-            for i in range(self.k):
-                best_cover = self.cover()
+                self.predict()
+                error = ERR(gt=self.X_train, pd=self.X_pd)
+                if error < best_error:
+                    print("[I] Refined column i: {}, error: {:.4f} ---> {:.4f}, score: {:.2f} ---> {:.2f}.".format(k, best_error, error, best_score, score))
+                    best_error = error
+                    best_score = score
 
-                score, column = self.get_refined_column(i)
+                    self.evaluate(names=['k', 'error', 'score'], values=[k, best_error, best_score], df_name='refinements')
 
-                # update factors
-                self.U[:, i] = column
-                X = matmul(self.U[:, i], self.V[:, i].T, boolean=True, sparse=True)
-                self.Xs[i] = X
-
-                this_cover = score
-                this_error = self.error()
-                print("[I] Refined column i = {}, cover: {} -> {}, error: {} -> {}.".format(i, best_cover, this_cover, best_error, this_error))
-
-            if this_error < best_error:
-                best_error = this_error
-            else:
+                    counter = 0
+                else:
+                    counter += 1
+                    print("[I] Skipped column i: {}.".format(k))
+                    if counter == self.k:
+                        break
+            if counter == self.k:
                 print("[I] Error stops decreasing.")
                 break
 
 
-    def get_refined_column(self, i):
+    def get_refined_column(self, k):
         '''Return the optimal column given i-th basis
         
         The other k-1 basis remains unchanged.
         '''
-        X_before = lil_matrix(np.zeros((self.m, self.n)))
-        for idx in range(self.k):
-            if idx != i: # without i-th basis
-                X_before = add(X_before, self.Xs[idx])
-        
-        U = lil_matrix(np.ones([self.m, 1]))
-        V = self.V[:, i]
+        idx = [i for i in range(self.k) if k != i]
+        X_old = matmul(self.U[:, idx], self.V[:, idx].T, sparse=True, boolean=True)
+        s_old = cover(gt=self.X_train, pd=X_old, w=self.w, axis=1)
+        basis = self.V[:, k].T
 
-        X_after = matmul(U, V.T, sparse=True, boolean=True)
-        X_after = add(X_before, X_after)
+        score, col = self.get_vector(X_gt=self.X_train, X_old=X_old, s_old=s_old, basis=basis, basis_dim=1, w=self.w)
 
-        # cover_before = self.cover(Y=X_before, axis=1, w=0.5)
-        # cover_after = self.cover(Y=X_after, axis=1, w=0.5)
-
-        cover_before = self.cover(Y=X_before, axis=1, w=self.w)
-        cover_after = self.cover(Y=X_after, axis=1, w=self.w)
-
-        U = lil_matrix(np.array(cover_after > cover_before, dtype=int)).T
-
-        X_after = matmul(U, V.T, sparse=True, boolean=True)
-        X_after = add(X_before, X_after)
-
-        cover = self.cover(Y=X_after)
-
-        return cover, U
+        return score, col

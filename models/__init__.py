@@ -2,13 +2,16 @@ from .BaseModel import BaseModel
 from .BaseCollectiveModel import BaseCollectiveModel
 
 from .Asso import Asso
+from .AssoIter import AssoIter
+from .AssoOpt import AssoOpt
+from .AssoTrans import AssoTrans
+
 # from .AssoOri import AssoOri
 # from .Panda import Panda
 # from .MEBF import MEBF
 
-# from .AssoTrans import AssoTrans
-# from .AssoOpt import AssoOpt
-# from .AssoIter import AssoIter
+
+
 
 # from .AssoExCollective import AssoExCollective
 # from .AssoExIterate import AssoExIterate
