@@ -1,5 +1,5 @@
 import numpy as np
-from utils import matmul, add, to_sparse, add_log, show_matrix
+from utils import matmul, add, to_sparse, cover, show_matrix
 from .Asso import Asso
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
@@ -71,7 +71,7 @@ class AssoExIterate(Asso):
 
                     self.U[:, k], self.V[:, k] = best_column, best_basis
 
-                    self._evaluate(k, n_iter, best_cover, prefix='updates')
+                    self.evaluate(names=['k', 'iter', 'score'], values=[k, n_iter, best_cover], df_name='updates')
                     n_iter += 1
 
                     self.U[:, k], self.V[:, k] = 0, 0 # reset
@@ -107,22 +107,19 @@ class AssoExIterate(Asso):
 
                     self.U[:, k], self.V[:, k] = best_column, best_basis
                     
-                    self._evaluate(k, n_iter, best_cover, prefix='updates')
+                    self.evaluate(names=['k', 'iter', 'score'], values=[k, n_iter, best_cover], df_name='updates')
                     n_iter += 1
 
                     self.U[:, k], self.V[:, k] = 0, 0
                 # recorder
                 candidates.append([self.columns.copy(), self.basis.copy()])
 
-
-
-
-            # recorder
-            from datetime import datetime
-            now = datetime.now()
-            current_time = now.strftime("%H_%M_%S")
-            with open(f'{current_time}_tau{self.tau}_candidates_{k}.pkl', 'wb') as f:  # open a text file
-                pickle.dump(candidates, f) # serialize the list
+            # # recorder
+            # from datetime import datetime
+            # now = datetime.now()
+            # current_time = now.strftime("%H_%M_%S")
+            # with open(f'{current_time}_tau{self.tau}_candidates_{k}.pkl', 'wb') as f:  # open a text file
+            #     pickle.dump(candidates, f) # serialize the list
 
             if best_basis is None or best_column is None:
                 self.early_stop(msg="Coverage stops improving.", k=k)
@@ -137,39 +134,39 @@ class AssoExIterate(Asso):
             self.basis = self.basis[idx]
             self.columns = self.columns[idx]
 
-            self._evaluate(k, n_iter, best_cover, prefix='results')
+            self.evaluate(names=['k', 'iter', 'score'], values=[k, n_iter, best_cover], df_name='results')
             
 
-    def _evaluate(self, k, n_iter, score, prefix='updates'):
-        '''Scripts to run at each update.
+    # def _evaluate(self, k, n_iter, score, prefix='updates'):
+    #     '''Scripts to run at each update.
 
-        The 4 parts are:
-        1. evaluation of individual training matrices.
-        2. evaluation of individual validation matrices.
-        3. evaluation of collective training matrices.
-        4. evaluation of collective validation matrices.
-        5. display.
-        '''
-        # 1
-        # score = self.scores[m, best_idx] # cover score of the best basis on m-th matrix
-        self.evaluate(
-            X_gt=self.X_train, df_name="{}_train".format(prefix), 
-            verbose=self.verbose, task=self.task, 
-            metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-            extra_metrics=['k', 'iter', 'score'], 
-            extra_results=[k, n_iter, score])
+    #     The 4 parts are:
+    #     1. evaluation of individual training matrices.
+    #     2. evaluation of individual validation matrices.
+    #     3. evaluation of collective training matrices.
+    #     4. evaluation of collective validation matrices.
+    #     5. display.
+    #     '''
+    #     # 1
+    #     # score = self.scores[m, best_idx] # cover score of the best basis on m-th matrix
+    #     self.evaluate(
+    #         X_gt=self.X_train, df_name="{}_train".format(prefix), 
+    #         verbose=self.verbose, task=self.task, 
+    #         metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+    #         extra_metrics=['k', 'iter', 'score'], 
+    #         extra_results=[k, n_iter, score])
 
-        # 2
-        if self.X_val is not None:
-            self.evaluate(
-                X_gt=self.X_val, df_name="{}_val".format(prefix), 
-                verbose=self.verbose, task=self.task, 
-                metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-                extra_metrics=['k', 'iter'], 
-                extra_results=[k, n_iter])
+    #     # 2
+    #     if self.X_val is not None:
+    #         self.evaluate(
+    #             X_gt=self.X_val, df_name="{}_val".format(prefix), 
+    #             verbose=self.verbose, task=self.task, 
+    #             metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+    #             extra_metrics=['k', 'iter'], 
+    #             extra_results=[k, n_iter])
         
-        # 3
-        self.show_matrix(title="k: {}, n_iter: {}".format(k, n_iter))
+    #     # 3
+    #     self.show_matrix(title="k: {}, n_iter: {}".format(k, n_iter))
 
 
     def get_optimal_column(self, i):
@@ -185,17 +182,17 @@ class AssoExIterate(Asso):
         X_after = matmul(U, V, sparse=True, boolean=True)
         X_after = add(X_before, X_after)
 
-        cover_before = self.cover(Y=X_before, axis=1)
-        cover_after = self.cover(Y=X_after, axis=1)
+        cover_before = cover(gt=self.X_train, pd=X_before, w=self.w, axis=1)
+        cover_after = cover(gt=self.X_train, pd=X_after, w=self.w, axis=1)
 
         U = lil_matrix(np.array(cover_after > cover_before, dtype=int)).T
 
         X_after = matmul(U, V, sparse=True, boolean=True)
         X_after = add(X_before, X_after)
 
-        cover = self.cover(Y=X_after)
+        score = cover(gt=self.X_train, pd=X_after, w=self.w)
 
-        return cover, U
+        return score, U
     
     
     def get_optimal_row(self, i):
@@ -207,18 +204,14 @@ class AssoExIterate(Asso):
         X_after = matmul(U, V, sparse=True, boolean=True)
         X_after = add(X_before, X_after)
 
-        # # show_matrix([(X_before, [0, 0], 'X_before')])
-        # show_matrix([(X_after, [0, 0], 'X_after')])
-        # return
-
-        cover_before = self.cover(Y=X_before, axis=0)
-        cover_after = self.cover(Y=X_after, axis=0)
+        cover_before = cover(gt=self.X_train, pd=X_before, w=self.w, axis=0)
+        cover_after = cover(gt=self.X_train, pd=X_after, w=self.w, axis=0)
 
         V = lil_matrix(np.array(cover_after > cover_before, dtype=int)).T
 
         X_after = matmul(U, V.T, sparse=True, boolean=True)
         X_after = add(X_before, X_after)
 
-        cover = self.cover(Y=X_after)
+        score = cover(gt=self.X_train, pd=X_after, w=self.w)
 
-        return cover, V
+        return score, V

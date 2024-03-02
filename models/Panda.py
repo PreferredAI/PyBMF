@@ -1,7 +1,9 @@
 from .BaseModel import BaseModel
 from tqdm import tqdm
 import numpy as np
-from utils import sum, invert, multiply, to_dense, matmul, bool_to_index, show_matrix
+from utils import sum, invert, multiply, to_dense, matmul, bool_to_index
+from utils import header, record, eval
+from itertools import product
 from scipy.sparse import lil_matrix
 
 
@@ -15,15 +17,17 @@ class Panda(BaseModel):
     """
     def __init__(self, k, rho=None, w=None, method=None):
         """
-        k:
-            rank.
-        rho:
-            regularization parameter.
-        w: 
-            penalty weights for under-coverage and over-coverage.
-            this is not included in Panda or Panda+.
-        method:
-            how items are sorted.
+        Parameters
+        ----------
+        k : int
+            The rank.
+        rho : float
+            The regularization parameter.
+        w : list
+            The penalty weights for under-coverage and over-coverage.
+            This is not included in original works of Panda or Panda+.
+        method : str
+            How items are sorted.
         """
         self.check_params(k=k, rho=rho, w=w, method=method)
 
@@ -52,42 +56,45 @@ class Panda(BaseModel):
 
 
     def fit(self, X_train, X_val=None, **kwargs):
-        self.load_dataset(X_train=X_train, X_val=X_val)
         self.check_params(**kwargs)
+        self.load_dataset(X_train=X_train, X_val=X_val)
+        self.init_model()
+        
         self._fit()
+
+        display(self.logs['updates'])
+        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
 
 
     def _fit(self):
         """
-        X_res:
-            X_train but covered cells are set to 0
-        X_cover:
-            X_train but covered cells are set to 1
-        E: 
-            item extension list
-        I: 
-            item list
-        T: 
-            user or transaction list
+        X_residual : spmatrix
+            X_train but covered cells are set to 0.
+        X_covered : spmatrix
+            X_train but covered cells are set to 1.
+        E : list
+            The item extension list.
+        I : list
+            The item list.
+        T : list
+            The user or transaction list.
         """
-        self.X_res = self.X_train.copy()
-        self.X_cover = self.X_train.copy()
+        self.X_residual = self.X_train.copy()
+        self.X_covered = self.X_train.copy()
 
         self.I = lil_matrix(np.zeros((self.n, 1)))
         self.T = lil_matrix(np.zeros((self.m, 1)))
         cost_before = self.cost(self.I, self.T)
 
         for k in range(self.k): # tqdm(range(self.k), position=0):
-
-            print(f"[I] {k}\tinit cost\t: {cost_before}")
+            print(f"[I] k            : {k}")
+            print(f"[I]   init cost  : {cost_before}")
 
             self.find_core()
-
-            print(f"[I] {k}\tfind core\t: {self.cost(self.I, self.T)} ({self.current_cost})")
+            print(f"[I]   find core  : {self.current_cost}") # self.cost(self.I, self.T)
 
             self.extend_core()
-
-            print(f"[I] {k}\textension\t: {self.cost(self.I, self.T)} ({self.current_cost})")
+            print(f"[I]   extension  : {self.current_cost}") # self.cost(self.I, self.T)
 
             if self.current_cost > cost_before:
                 self.early_stop(msg="Cost stops improving", k=k)
@@ -100,18 +107,10 @@ class Panda(BaseModel):
 
                 # update residual and coverage
                 pattern = matmul(self.T, self.I.T, sparse=True, boolean=True).astype(bool)
-                self.X_res[pattern] = 0
-                self.X_cover[pattern] = 1
+                self.X_residual[pattern] = 0
+                self.X_covered[pattern] = 1
 
-                # display
-                print(f"[I] \tpattern shape\t: {(self.T.sum(), self.I.sum())}")
-                if self.display:
-                    settings = [
-                        (to_dense(self.X_res), [0, 0], 'residual'), 
-                        (to_dense(self.X_cover), [0, 1], 'coverage'), 
-                        (to_dense(pattern), [0, 2], 'new pattern'), 
-                        (matmul(self.U, self.V.T, sparse=False, boolean=True), [0, 3], 'X')]
-                    show_matrix(settings=settings, title=str(k), scaling=self.scaling)
+                self.evaluate(names=['cost'], values=[self.current_cost], df_name='updates')
 
 
     def find_core(self):
@@ -133,7 +132,7 @@ class Panda(BaseModel):
 
         # add the first item from E to I
         self.I[self.E[0]] = 1
-        self.T = self.X_res[:, self.E[0]]
+        self.T = self.X_residual[:, self.E[0]]
         self.E.pop(0)
 
         cost_before = self.cost(self.I, self.T)
@@ -144,10 +143,10 @@ class Panda(BaseModel):
             if self.method == 'correlation':
                 self.sort_items(method='correlation') # re-order extension list
                 I[self.E[0]] = 1 # use item with highest correlation
-                T = multiply(self.T, self.X_res[:, self.E[0]])
+                T = multiply(self.T, self.X_residual[:, self.E[0]])
             else:
                 I[self.E[i]] = 1
-                T = multiply(self.T, self.X_res[:, self.E[i]])
+                T = multiply(self.T, self.X_residual[:, self.E[i]])
 
             # check cost: it's more expensive
             # cost_after = self.cost(I, T)
@@ -193,8 +192,8 @@ class Panda(BaseModel):
             # faster T update check by computing cost difference
             idx_I = bool_to_index(self.I) # indices of items in itemset
             idx_T = bool_to_index(invert(self.T)) # indices of transactions outside T
-            d_fn = -self.X_res[idx_T][:, idx_I].sum(axis=1) # newly added false negatives
-            d_fp = self.I.sum() - self.X_cover[idx_T][:, idx_I].sum(axis=1) # newly added false positives
+            d_fn = -self.X_residual[idx_T][:, idx_I].sum(axis=1) # newly added false negatives
+            d_fp = self.I.sum() - self.X_covered[idx_T][:, idx_I].sum(axis=1) # newly added false positives
             d_cost = 1 + self.rho * (self.w[0] * d_fn + self.w[1] * d_fp) # cost difference
 
             # update T
@@ -224,17 +223,17 @@ class Panda(BaseModel):
             tbd.
         """
         if method == 'frequency':
-            scores = sum(self.X_res[:, self.E], axis=0)
+            scores = sum(self.X_residual[:, self.E], axis=0)
         elif method == 'couples-frequency':
             scores = np.zeros(len(self.E))
             for i in range(len(self.E)):
-                T = self.X_res[:, self.E[i]] # T of i-th item in E
+                T = self.X_residual[:, self.E[i]] # T of i-th item in E
                 idx_T = bool_to_index(T) # indices of transactions
-                scores[i] = sum(self.X_res[idx_T, :], axis=0).sum() # sum of 1 and 2-itemset frequency
-            scores = scores - sum(self.X_res[:, self.E], axis=0) # sum of 2-itemset frequency
+                scores[i] = sum(self.X_residual[idx_T, :], axis=0).sum() # sum of 1 and 2-itemset frequency
+            scores = scores - sum(self.X_residual[:, self.E], axis=0) # sum of 2-itemset frequency
         elif method == 'correlation':
             idx_T = bool_to_index(self.T)
-            scores = sum(self.X_res[idx_T][:, self.E], axis=0)
+            scores = sum(self.X_residual[idx_T][:, self.E], axis=0)
         elif method == 'prefix-child':
             pass
 
@@ -254,9 +253,27 @@ class Panda(BaseModel):
         cost_width = self.U.sum() + width
         cost_height = self.V.sum() + height
 
-        fn = self.X_res.sum() - self.X_res[idx_T][:, idx_I].sum()
-        fp = width * height - self.X_cover[idx_T][:, idx_I].sum()
+        fn = self.X_residual.sum() - self.X_residual[idx_T][:, idx_I].sum()
+        fp = width * height - self.X_covered[idx_T][:, idx_I].sum()
 
         cost_noise = self.w[0] * fn + self.w[1] * fp
         cost = (cost_width + cost_height) + self.rho * cost_noise
         return cost
+
+
+    def evaluate(self, df_name, names=[], values=[]):
+        self.predict()
+        metrics = ['Recall', 'Precision', 'Accuracy', 'F1']
+        
+        results_train = eval(X_gt=self.X_train, X_pd=self.X_pd, 
+            metrics=metrics, task=self.task)
+        columns = header(names) + list(product(['train'], metrics))
+        results = values + results_train
+        
+        if self.X_val is not None:
+            results_val = eval(X_gt=self.X_val, X_pd=self.X_pd, 
+                metrics=metrics, task=self.task)
+            columns = columns + list(product(['val'], metrics))
+            results = results + results_val
+        
+        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)

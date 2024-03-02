@@ -7,14 +7,14 @@ from .AssoOpt import AssoOpt
 from .AssoTrans import AssoTrans
 
 # from .AssoOri import AssoOri
-# from .Panda import Panda
-# from .MEBF import MEBF
+from .Panda import Panda
+from .MEBF import MEBF
 
 
 
 
 # from .AssoExCollective import AssoExCollective
-# from .AssoExIterate import AssoExIterate
+from .AssoExIterate import AssoExIterate
 
 # from .NMF import NMF
 # from .WeightedNMF import WeightedNMF

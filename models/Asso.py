@@ -21,7 +21,7 @@ class Asso(BaseModel):
         Parameters
         ----------
         k : int
-            Rank.
+            The rank.
         tau : float
             The binarization threshold when building basis.
         w : float in [0, 1]
