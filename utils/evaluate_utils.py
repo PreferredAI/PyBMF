@@ -113,7 +113,7 @@ def PPV(gt, pd, axis=None):
 
 
 def ACC(gt, pd, axis=None):
-    """accuracy
+    """Accuracy.
     """
     if len(pd.shape) == 2:
         n = pd.shape[0] * pd.shape[1] if axis is None else pd.shape[axis]
@@ -123,13 +123,13 @@ def ACC(gt, pd, axis=None):
 
 
 def ERR(gt, pd, axis=None):
-    """error
+    """Error rate.
     """
     return 1 - ACC(gt, pd, axis)
 
 
 def F1(gt, pd, axis=None):
-    """F1 score
+    """F1 score.
 
     tp = TP(gt, pd, axis)
     fp = FP(gt, pd, axis)

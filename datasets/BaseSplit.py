@@ -105,7 +105,7 @@ class BaseSplit:
         self.X_val.eliminate_zeros()
         self.X_test.eliminate_zeros()
         
-        self.X_train[U_neg[train_idx], V_neg[train_idx]] = 0
+        self.X_train[U_neg[train_idx], V_neg[train_idx]] = 0 # SparseEfficiencyWarning
         self.X_val[U_neg[val_idx], V_neg[val_idx]] = 0
         self.X_test[U_neg[test_idx], V_neg[test_idx]] = 0
 
