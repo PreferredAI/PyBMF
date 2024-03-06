@@ -4,10 +4,7 @@ from utils import invert, cover, eval, record, header
 from .BaseModel import BaseModel
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
-from multiprocessing import Pool, cpu_count
-import pandas as pd
-from p_tqdm import p_map
-from itertools import product
+
 
 class Asso(BaseModel):
     '''The Asso algorithm.
@@ -131,24 +128,6 @@ class Asso(BaseModel):
                 self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
                 
             self.evaluate(names=['k', 'score'], values=[k, best_score], df_name='updates')
-
-
-    def evaluate(self, df_name, names=[], values=[]):
-        self.predict()
-        metrics = ['Recall', 'Precision', 'Accuracy', 'F1']
-        
-        results_train = eval(X_gt=self.X_train, X_pd=self.X_pd, 
-            metrics=metrics, task=self.task)
-        columns = header(names) + list(product(['train'], metrics))
-        results = values + results_train
-        
-        if self.X_val is not None:
-            results_val = eval(X_gt=self.X_val, X_pd=self.X_pd, 
-                metrics=metrics, task=self.task)
-            columns = columns + list(product(['val'], metrics))
-            results = results + results_val
-        
-        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)
 
 
     @staticmethod

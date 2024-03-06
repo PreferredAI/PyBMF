@@ -175,7 +175,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                         for f in range(self.n_factors):
                             self.Us[f][:, k] = self.basis[f][best_idx].T
 
-                        self._evaluate(k, n_iter, best_idx, prefix='updates')
+                        self.evaluate(names=['k', 'iter', 'index'], values=[k, n_iter, best_idx], df_name='updates')
 
                         for f in range(self.n_factors):
                             self.Us[f][:, k] = 0
@@ -200,12 +200,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                 for f in range(self.n_factors):
                     self.Us[f][:, k] = self.basis[f][best_idx].T
 
-                # # debug: remove this basis
-                # idx = np.array([j for j in range(self.n_basis) if i != j])
-                # self.basis = self.basis[idx]
-
-            # debug
-            self._evaluate(k, n_iter, best_idx, prefix='results')
+            self.evaluate(names=['k', 'iter', 'index'], values=[k, n_iter, best_idx], df_name='results')
 
     
     def update_basis(self, f0, f1, m):

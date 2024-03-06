@@ -1,7 +1,11 @@
 import numpy as np
 from utils import show_matrix, matmul, to_sparse
+from utils import header, record, eval
 import time
 from scipy.sparse import lil_matrix
+from itertools import product
+import pandas as pd
+from itertools import product
 
 
 class BaseModel():
@@ -161,78 +165,18 @@ class BaseModel():
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, **kwargs)
 
 
-    # def cover(self, X=None, Y=None, w=None, axis=None):
-    #     '''Measure the coverage of X using Y.
-
-    #     Parameters
-    #     ----------
-    #     X : spmatrix, optional
-    #         Ground-truth matrix. If not explicitly assigned, `X` is `self.X_train`.
-    #     Y : spmatrix, optional
-    #         Predicted matrix. If not explicitly assigned, `Y` is the Boolean product of `self.U` and `self.V`.
-    #     w : float in [0, 1], optional
-    #         The weights [1 - `w`, `w`] are the reward for coverage and the penalty for over-coverage. It can also be considered as the lower-bound of true positive ratio when `cover` is used as a factorization criteria.
-    #     axis : int in {0, 1}, default: None
-    #         To return the overall or the row/column-wise coverage score.
-
-    #     Returns
-    #     -------
-    #     result : float, array
-    #         The overall or the row/column-wise coverage score.
-    #     '''
-    #     if X is None:
-    #         X = self.X_train
-    #     if Y is None:
-    #         Y = matmul(self.U, self.V.T, sparse=True, boolean=True)
-    #     if w is None:
-    #         w = self.w
-    #     return cover(X, Y, w, axis)
-
-
-    # def error(self, X=None, Y=None, axis=None):
-    #     '''Measure the coverage error of X using Y.
-
-    #     Returns
-    #     -------
-    #     result : float, array
-    #         The overall or the row/column-wise error.
-    #     '''
-    #     if X is None:
-    #         X = self.X_train
-    #     if Y is None:
-    #         Y = matmul(self.U, self.V.T, sparse=True, boolean=True)
-        # return ERR(X, Y, axis)
-    
-
-    # def evaluate(self, X_gt, df_name, task, metrics=[], extra_metrics=[], extra_results=[], **kwargs):
-    #     """Evaluate metrics with given ground-truth data and save results to a dataframe.
-
-    #     X_gt : array, spmatrix
-    #     df_name : str
-    #         Name of the dataframe that the results are going to be saved under.
-    #     task : str
-    #     matrics : list of str
-    #         List of metric names to be evaluated.
-    #     extra_metrics : list of str
-    #         List of extra metric names.
-    #     extra_results : list of int and float
-    #         List of results of extra metrics.
-    #     kwargs :
-    #         Common parameters that are checked and set in `BaseModel.check_params()`.
-    #     """
-    #     self.check_params(**kwargs)
-
-    #     if X_gt is None:
-    #         return
-
-    #     extra_metrics = ['time'] + extra_metrics
-    #     extra_results = [pd.Timestamp.now().strftime("%d/%m/%y %I:%M:%S")] + extra_results
-
-    #     if not df_name in self.logs:
-    #         self.logs[df_name] = pd.DataFrame(columns=extra_metrics+metrics)
-
-    #     results = self.eval(X_gt, metrics=metrics, task=task)
-
-    #     add_log(df=self.logs[df_name], line=extra_results+results, verbose=self.verbose, caption=df_name)
-
-
+    def evaluate(self, df_name, names=[], values=[], metrics=['Recall', 'Precision', 'Accuracy', 'F1']):
+        self.predict()
+        
+        results_train = eval(X_gt=self.X_train, X_pd=self.X_pd, 
+            metrics=metrics, task=self.task)
+        columns = header(names) + list(product(['train'], metrics))
+        results = values + results_train
+        
+        if self.X_val is not None:
+            results_val = eval(X_gt=self.X_val, X_pd=self.X_pd, 
+                metrics=metrics, task=self.task)
+            columns = columns + list(product(['val'], metrics))
+            results = results + results_val
+        
+        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)

@@ -9,8 +9,8 @@ from .AssoTrans import AssoTrans
 # from .AssoOri import AssoOri
 from .Panda import Panda
 from .MEBF import MEBF
-
-
+from .Hyper import Hyper
+from .HyperPlus import HyperPlus
 
 
 # from .AssoExCollective import AssoExCollective

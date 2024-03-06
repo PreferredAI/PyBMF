@@ -10,6 +10,8 @@ from scipy.sparse import lil_matrix
 class Panda(BaseModel):
     """PaNDa and PaNDa+ algorithm.
 
+    When rho = 1 and w = [1, 1], PaNDa+ becomes PaNDa algorithm.
+
     Reference
     ---------
     Mining Top-K Patterns from Binary Datasets in presence of Noise.
@@ -262,21 +264,3 @@ class Panda(BaseModel):
         cost_noise = self.w[0] * fn + self.w[1] * fp
         cost = (cost_width + cost_height) + self.rho * cost_noise
         return cost
-
-
-    def evaluate(self, df_name, names=[], values=[]):
-        self.predict()
-        metrics = ['Recall', 'Precision', 'Accuracy', 'F1']
-        
-        results_train = eval(X_gt=self.X_train, X_pd=self.X_pd, 
-            metrics=metrics, task=self.task)
-        columns = header(names) + list(product(['train'], metrics))
-        results = values + results_train
-        
-        if self.X_val is not None:
-            results_val = eval(X_gt=self.X_val, X_pd=self.X_pd, 
-                metrics=metrics, task=self.task)
-            columns = columns + list(product(['val'], metrics))
-            results = results + results_val
-        
-        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)

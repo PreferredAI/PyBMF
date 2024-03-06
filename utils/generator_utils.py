@@ -15,7 +15,7 @@ def shuffle_by_dim(X, dim, seed=None, rng=None):
     rng = get_rng(seed, rng)
     idx = rng.rand(X.shape[dim]).argsort()
     X = X[idx, :] if dim == 0 else X[:, idx]
-    return (idx, X, rng)
+    return idx, X, rng
 
 
 def shuffle_matrix(X, seed=None, rng=None):
@@ -24,7 +24,7 @@ def shuffle_matrix(X, seed=None, rng=None):
     rng = get_rng(seed, rng)
     U_idx, X, rng = shuffle_by_dim(X=X, dim=0, rng=rng)
     V_idx, X, rng = shuffle_by_dim(X=X, dim=0, rng=rng)
-    return (U_idx, V_idx, X, rng)
+    return U_idx, V_idx, X, rng
 
 
 def add_noise(X, noise, seed=None, rng=None):
@@ -38,7 +38,7 @@ def add_noise(X, noise, seed=None, rng=None):
     X = np.maximum(X - n, 0)
     n = rng.binomial(size=X.shape, n=1, p=p_neg)
     X = np.minimum(X + n, 1)
-    return (X, rng)
+    return X, rng
 
     
 def reverse_index(idx):
