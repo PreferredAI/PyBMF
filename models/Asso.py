@@ -11,7 +11,7 @@ class Asso(BaseModel):
     
     Reference
     ---------
-    The discrete basis problem.
+    The discrete basis problem. Zhang et al. 2007.
     '''
     def __init__(self, k, tau=None, w=None):
         """

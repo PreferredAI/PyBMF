@@ -6,6 +6,7 @@ from utils import matmul, add, ERR, cover
 from copy import deepcopy
 from scipy.sparse import issparse, lil_matrix
 from functools import reduce
+from .BaseModel import BaseModel
 
 
 class AssoIter(Asso):
@@ -13,10 +14,36 @@ class AssoIter(Asso):
     
     Reference
     ---------
-    The discrete basis problem.
+    The discrete basis problem. Zhang et al. 2007.
     '''
+    def __init__(self, model, w=None):
+        self.check_params(model=model, w=w)
+
+
+    def check_params(self, **kwargs):
+        super().check_params(**kwargs)
+        if 'model' in kwargs:
+            model = kwargs.get('model')
+            assert isinstance(model, BaseModel), "[E] Import a BaseModel."
+            self.k = model.k
+            self.U = model.U
+            self.V = model.V
+            self.logs = model.logs
+            print("[I] k from model :", self.k)
+        if 'w' in kwargs:
+            w = kwargs.get('w')
+            if w is None and hasattr(model, 'w'):
+                self.w = model.w
+                print("[I] w from model :", self.w)
+            else:
+                self.w = w
+                print("[I] w            :", self.w)
+
+
     def fit(self, X_train, X_val=None, **kwargs):
-        super().fit(X_train, X_val, **kwargs)
+        self.check_params(**kwargs)
+        self.load_dataset(X_train=X_train, X_val=X_val)
+
         self.iterative_search()
 
         display(self.logs['refinements'])

@@ -72,7 +72,7 @@ class Hyper(BaseModel):
         i = 0
         progress = tqdm(range(len(self.I)), position=0, desc="[I] Initializing transactions")
         for _ in progress:
-            t, c = find_hyper(I=self.I[i], X_gt=self.X_train, X_uncovered=self.X_train)
+            t, c = self.find_hyper(I=self.I[i], X_gt=self.X_train, X_uncovered=self.X_train)
             if t == []:
                 self.I.pop(i)
                 # progress.reset(total=len(self.I))
@@ -98,7 +98,7 @@ class Hyper(BaseModel):
         k = 0
         progress = tqdm(range(len(self.I)), position=0, desc=f"[I] Finding exact decomposition")
         for _ in progress:
-            self.T[0], self.c[0] = find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
+            self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
             while self.T[0] == []:
                 self.T.pop(0)
                 self.I.pop(0)
@@ -108,7 +108,7 @@ class Hyper(BaseModel):
             n_iter = 0
             while self.c[0] > self.c[1]:
                 self.sort_by_cost()
-                self.T[0], self.c[0] = find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
+                self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
                 n_iter += 1
 
             # record lists T, I
@@ -136,48 +136,50 @@ class Hyper(BaseModel):
             if self.X_uncovered.sum() == 0:
                 break
 
-            self.T[0], self.c[0] = find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
+            self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
             self.sort_by_cost()
             k += 1
 
         self.k = self.U.shape[1]
 
 
-def find_hyper(I, X_gt, X_uncovered):
-    '''
-    queue : list
-        The indices of rows with non-zero uncoverage, in descending order. Row must be a support of I.
-    '''
-    covered = X_gt[:, I].sum(axis=1)
-    covered = np.array(covered).flatten()
+    @staticmethod
+    def find_hyper(I, X_gt, X_uncovered):
+        '''
+        queue : list
+            The indices of rows with non-zero uncoverage, in descending order. Row must be a support of I.
+        '''
+        covered = X_gt[:, I].sum(axis=1)
+        covered = np.array(covered).flatten()
 
-    uncovered = X_uncovered[:, I].sum(axis=1)
-    uncovered = np.array(uncovered).flatten()
+        uncovered = X_uncovered[:, I].sum(axis=1)
+        uncovered = np.array(uncovered).flatten()
 
-    idx = np.argsort(uncovered)[::-1]
-    exact = (covered == len(I)) & (uncovered > 0)
-    exact = exact[idx]
-    queue = idx[exact].tolist()
+        idx = np.argsort(uncovered)[::-1]
+        exact = (covered == len(I)) & (uncovered > 0)
+        exact = exact[idx]
+        queue = idx[exact].tolist()
 
-    if len(queue) == 0:
-        return [], np.inf
-    t = queue.pop(0)
-    T = [t]
-    cost_old = cost(T, I, X_uncovered)
-    while len(queue) > 0:
+        if len(queue) == 0:
+            return [], np.inf
         t = queue.pop(0)
-        cost_new = cost(T + [t], I, X_uncovered)
-        if cost_new <= cost_new:
-            T.append(t)
-            cost_old = cost_new
-        else:
-            break
-    return T, cost_old
+        T = [t]
+        cost_old = Hyper.cost(T, I, X_uncovered)
+        while len(queue) > 0:
+            t = queue.pop(0)
+            cost_new = Hyper.cost(T + [t], I, X_uncovered)
+            if cost_new <= cost_new:
+                T.append(t)
+                cost_old = cost_new
+            else:
+                break
+        return T, cost_old
 
 
-def cost(T, I, X_uncovered):
-    '''The cost function (gamma) in Hyper.
-    '''
-    cost = len(T) + len(I)
-    cost = cost / X_uncovered[T, :][:, I].sum()
-    return cost
+    @staticmethod
+    def cost(T, I, X_uncovered):
+        '''The cost function (gamma) in Hyper.
+        '''
+        cost = len(T) + len(I)
+        cost = cost / X_uncovered[T, :][:, I].sum()
+        return cost

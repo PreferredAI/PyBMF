@@ -10,8 +10,8 @@ class HyperPlus(Hyper):
     
     Hyper+ is used after fitting a Hyper model. It's a relaxation of the exact decomposition algorithm.
     
-    References
-    ----------
+    Reference
+    ---------
     Summarizing Transactional Databases with Overlapped Hyperrectangles. Xiang et al. SIGKDD 2011.
     '''
     def __init__(self, model=None, beta=None, samples=None, target_k=None):

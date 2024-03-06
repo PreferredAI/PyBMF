@@ -7,7 +7,7 @@ class AssoTrans(Asso):
     
     Reference
     ---------
-        The discrete basis problem.
+    The discrete basis problem. Zhang et al. 2007.
     '''
     def fit(self, X_train, X_val=None, **kwargs):
         X_train = X_train.T
