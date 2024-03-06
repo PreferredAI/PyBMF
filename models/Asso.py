@@ -105,7 +105,7 @@ class Asso(BaseModel):
                 self.early_stop(msg="No basis left.", k=k)
                 break
 
-            self.predict()
+            self.predict_X()
             s_old = cover(gt=self.X_train, pd=self.X_pd, w=self.w, axis=1)
             for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k}"):
                 row = self.basis[i]

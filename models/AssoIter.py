@@ -16,7 +16,7 @@ class AssoIter(Asso):
     ---------
     The discrete basis problem. Zhang et al. 2007.
     '''
-    def __init__(self, model, w=None):
+    def __init__(self, model, w):
         self.check_params(model=model, w=w)
 
 
@@ -30,14 +30,6 @@ class AssoIter(Asso):
             self.V = model.V
             self.logs = model.logs
             print("[I] k from model :", self.k)
-        if 'w' in kwargs:
-            w = kwargs.get('w')
-            if w is None and hasattr(model, 'w'):
-                self.w = model.w
-                print("[I] w from model :", self.w)
-            else:
-                self.w = w
-                print("[I] w            :", self.w)
 
 
     def fit(self, X_train, X_val=None, **kwargs):
@@ -55,7 +47,7 @@ class AssoIter(Asso):
 
         In the paper, the algorithm uses cover (with w=[1, 1]) as updating criteria, and uses error as stopping criteria.
         '''
-        self.predict()
+        self.predict_X()
         best_score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
         best_error = ERR(gt=self.X_train, pd=self.X_pd)
         counter = 0
@@ -65,7 +57,7 @@ class AssoIter(Asso):
                 score, col = self.get_refined_column(k)
                 self.U[:, k] = col.T
 
-                self.predict()
+                self.predict_X()
                 error = ERR(gt=self.X_train, pd=self.X_pd)
                 if error < best_error:
                     print("[I] Refined column i: {}, error: {:.4f} ---> {:.4f}, score: {:.2f} ---> {:.2f}.".format(k, best_error, error, best_score, score))

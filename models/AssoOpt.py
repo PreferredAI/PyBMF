@@ -18,7 +18,7 @@ class AssoOpt(Asso):
     ---------
     The discrete basis problem. Zhang et al. 2007.
     '''
-    def __init__(self, model, w=None):
+    def __init__(self, model, w):
         self.check_params(model=model, w=w)
 
 
@@ -32,15 +32,7 @@ class AssoOpt(Asso):
             self.V = model.V
             self.logs = model.logs
             print("[I] k from model :", self.k)
-        if 'w' in kwargs:
-            w = kwargs.get('w')
-            if w is None and hasattr(model, 'w'):
-                self.w = model.w
-                print("[I] w from model :", self.w)
-            else:
-                self.w = w
-                print("[I] w            :", self.w)
-    
+
 
     def fit(self, X_train, X_val=None, **kwargs):
         self.check_params(**kwargs)
@@ -68,7 +60,7 @@ class AssoOpt(Asso):
         for i in range(self.m):
             self.U[i] = self.int2bin(results[i], self.k)
 
-        self.predict()
+        self.predict_X()
         score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
         self.evaluate(names=['score'], values=[score], df_name='refinements')
 

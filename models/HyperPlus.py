@@ -77,7 +77,7 @@ class HyperPlus(Hyper):
 
 
     def _fit(self):
-        self.predict()
+        self.predict_X()
         fpr = FPR(gt=self.X_train, pd=self.X_pd)
         self.X_covered = self.X_train.copy().tolil()
 

@@ -233,7 +233,8 @@ def record(df_dict, df_name, columns, records, verbose=False):
             columns = ['time'] + columns
         df_dict[df_name] = pd.DataFrame(columns=columns)
 
-    records = [pd.Timestamp.now().strftime("%d/%m/%y %I:%M:%S")] + records # add timestamp
+    ts = [pd.Timestamp.now().strftime("%d/%m/%y %I:%M:%S")]
+    records = ts + records # add timestamp
     df_dict[df_name].loc[len(df_dict[df_name].index)] = records # add record
 
     if verbose: # print the last 5 lines

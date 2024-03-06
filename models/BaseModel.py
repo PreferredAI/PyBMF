@@ -144,7 +144,7 @@ class BaseModel():
             print("[{}] {}".format(type, msg))
 
 
-    def predict(self):
+    def predict_X(self):
         self.X_pd = matmul(self.U, self.V.T, boolean=True, sparse=True)
 
 
@@ -157,7 +157,7 @@ class BaseModel():
         pixels = self.pixels if pixels is None else pixels
 
         if settings is None:
-            self.predict()
+            self.predict_X()
             settings = [(self.X_pd, [0, 0], "X"), 
                         (self.U, [0, 1], "U"), 
                         (self.V.T, [1, 0], "V")]
@@ -166,7 +166,7 @@ class BaseModel():
 
 
     def evaluate(self, df_name, names=[], values=[], metrics=['Recall', 'Precision', 'Accuracy', 'F1']):
-        self.predict()
+        self.predict_X()
         
         results_train = eval(X_gt=self.X_train, X_pd=self.X_pd, 
             metrics=metrics, task=self.task)

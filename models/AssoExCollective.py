@@ -138,7 +138,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             best_ws = 0 if k == 0 else best_ws
             best_hs = 0 if k == 0 else best_hs
             
-            self.update_Xs()
+            self.predict_Xs()
             self.set_init_order()
             self.set_update_order()
 
@@ -156,35 +156,32 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                     hs_list = harmonic_score(scores=self.scores)
                     ws = np.max(ws_list)
                     hs = np.max(hs_list)
-                    has_improved = False
 
                     if hs > best_hs:
-                        print("[I]     harmonic: {:.2f} ---> {:.2f}".format(best_hs, hs))
+                        print("[I]     harmonic     : {:.2f} ---> {:.2f}".format(best_hs, hs))
                         best_hs = hs
 
                     if ws > best_ws:
-                        print("[I]     weighted: {:.2f} ---> {:.2f}".format(best_ws, ws))
+                        print("[I]     weighted     : {:.2f} ---> {:.2f}".format(best_ws, ws))
                         best_ws = ws
-                        has_improved = True
-
-                    if has_improved:
                         best_idx = np.argmax(ws_list)
-                        print("[I]     best_idx: {}".format(best_idx))
+                        print("[I]     best_idx     : {}".format(best_idx))
 
-                        # debug
+                        # evaluate
                         for f in range(self.n_factors):
                             self.Us[f][:, k] = self.basis[f][best_idx].T
-
-                        self.evaluate(names=['k', 'iter', 'index'], values=[k, n_iter, best_idx], df_name='updates')
-
+                        self.evaluate(
+                            names=['k', 'iter', 'index', 'weighted score'], 
+                            values=[k, n_iter, best_idx, best_ws], 
+                            df_name='updates')
                         for f in range(self.n_factors):
                             self.Us[f][:, k] = 0
 
                         n_iter += 1
                         break_counter = 0
                     else:
-                        print("[I]     break_counter: {}".format(break_counter))
                         break_counter += 1
+                        print("[I] iter: {}, break_counter: {}".format(n_iter, break_counter))
                         if break_counter == self.n_factors:
                             break
                     
@@ -194,13 +191,14 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             # update factors
             if best_idx is None:
                 print("[W] Score stops improving at k: {}".format(k))
-                # todo: early stop
             else:
-                print("[I] Updating pattern k: {}".format(k))
                 for f in range(self.n_factors):
                     self.Us[f][:, k] = self.basis[f][best_idx].T
 
-            self.evaluate(names=['k', 'iter', 'index'], values=[k, n_iter, best_idx], df_name='results')
+            self.evaluate(
+                names=['k', 'iter', 'index', 'weighted score'], 
+                values=[k, n_iter, best_idx, best_ws], 
+                df_name='results')
 
     
     def update_basis(self, f0, f1, m):
@@ -212,22 +210,22 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         f1 : int
         m : int or list of int
         '''
-        desc = "[I]     [ f0: {} ]====[ m: {} ]===>[ f1: {} ]".format(f0, m, f1)
-        self.update_Xs()
+        desc = "[I]     [ f0: {} ]----[ m: {} ]--->[ f1: {} ]".format(f0, m, f1)
+        self.predict_Xs()
 
         if isinstance(m, int): # f1 is invloved in only 1 matrix, during init basis
             X_gt = self.Xs_train[m]
-            X_pd = self.Xs[m]
+            X_pd = self.Xs_pd[m]
             basis = self.basis[f0]
             basis_dim = self.factors[m].index(f0)
             w = self.w[m]
-            cover_before = cover(gt=X_gt, pd=X_pd, w=w, axis=basis_dim)
+            s_old = cover(gt=X_gt, pd=X_pd, w=w, axis=basis_dim)
 
             for i in tqdm(range(self.n_basis), leave=True, position=0, desc=desc):
                 self.scores[m, i], self.basis[f1][i] = Asso.get_vector(
                     X_gt=X_gt, 
-                    X_before=X_pd, 
-                    cover_before=cover_before, 
+                    X_old=X_pd, 
+                    s_old=s_old, 
                     basis=basis[i], 
                     basis_dim=basis_dim, 
                     w=w)
@@ -240,7 +238,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             for f0, m in zip(f0_list, m_list):
                 f0_dim = self.factors[m].index(f0)
                 gt = self.Xs_train[m].T if f0_dim else self.Xs_train[m]
-                pd = self.Xs[m].T if f0_dim else self.Xs[m]
+                pd = self.Xs_pd[m].T if f0_dim else self.Xs_pd[m]
 
                 gt_list.append(gt)
                 pd_list.append(pd)
@@ -254,13 +252,13 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             basis_dim = 0
             w = w_list
             starts = [0] + list(accumulate(starts))
-            cover_before = collective_cover(gt=X_gt, pd=X_pd, w=w, axis=basis_dim, starts=starts)
+            s_old = collective_cover(gt=X_gt, pd=X_pd, w=w, axis=basis_dim, starts=starts)
 
             for i in tqdm(range(self.n_basis), leave=True, position=0, desc=desc):
                 scores, self.basis[f1][i] = self.get_vector(
                     X_gt=X_gt, 
-                    X_before=X_pd, 
-                    cover_before=cover_before, 
+                    X_old=X_pd, 
+                    s_old=s_old, 
                     basis=basis[i], 
                     basis_dim=basis_dim, 
                     w=w, 
@@ -271,13 +269,13 @@ class AssoExCollective(BaseCollectiveModel, Asso):
 
 
     @staticmethod
-    def get_vector(X_gt, X_before, cover_before, basis, basis_dim, w, starts):
+    def get_vector(X_gt, X_old, s_old, basis, basis_dim, w, starts):
         '''CMF wrapper for Asso.get_vector()
 
         Parameters
         ----------
         X_gt : spmatrix
-        X_before : spmatrix
+        X_old : spmatrix
         basis : (1, n) spmatrix
         basis_dim : int
             The dimension which `basis` belongs to.
@@ -292,29 +290,29 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         vector : (1, n) spmatrix
         '''
         if starts is None: # non-collective
-            score, vector = Asso.get_vector(X_gt, X_before, cover_before, basis, basis_dim, w)
+            score, vector = Asso.get_vector(X_gt, X_old, s_old, basis, basis_dim, w)
             return score, vector
         
         vector_dim = 1 - basis_dim
         vector = lil_matrix(np.ones((1, X_gt.shape[vector_dim])))
-        X_after = matmul(basis.T, vector, sparse=True, boolean=True)
-        X_after = X_after if basis_dim == 0 else X_after.T
-        X_after = add(X_before, X_after)
+        X_new = matmul(basis.T, vector, sparse=True, boolean=True)
+        X_new = X_new if basis_dim == 0 else X_new.T
+        X_new = add(X_old, X_new)
 
         # collective cover
-        cover_after = collective_cover(gt=X_gt, pd=X_after, w=w, axis=basis_dim, starts=starts)
+        s_new = collective_cover(gt=X_gt, pd=X_new, w=w, axis=basis_dim, starts=starts)
 
-        vector = lil_matrix(np.array(cover_after.sum(axis=0) > cover_before.sum(axis=0), dtype=int))
+        vector = lil_matrix(np.array(s_new.sum(axis=0) > s_old.sum(axis=0), dtype=int))
+        s_old = s_old[:, to_dense(invert(vector), squeeze=True).astype(bool)]
+        s_new = s_new[:, to_dense(vector, squeeze=True).astype(bool)]
+        score = s_old.sum(axis=1) + s_new.sum(axis=1)
 
-        cover_before = cover_before[:, to_dense(invert(vector), squeeze=True).astype(bool)]
-        cover_after = cover_after[:, to_dense(vector, squeeze=True).astype(bool)]
-        score = cover_before.sum(axis=1) + cover_after.sum(axis=1)
         return score, vector
 
-        # X_after = matmul(basis.T, vector, sparse=True, boolean=True)
-        # X_after = X_after if basis_dim == 0 else X_after.T
-        # X_after = add(X_before, X_after)
-        # score = cover(gt=X_gt, pd=X_after, w=w[0]) # ?
+        # X_new = matmul(basis.T, vector, sparse=True, boolean=True)
+        # X_new = X_new if basis_dim == 0 else X_new.T
+        # X_new = add(X_old, X_new)
+        # score = cover(gt=X_gt, pd=X_new, w=w[0]) # ?
         # return [score], vector
         
 
@@ -328,7 +326,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         4. evaluation of collective validation matrices.
         5. display.
         '''
-        self.update_Xs()    # update the predictions
+        self.predict_Xs()    # update the predictions
         results_train = []  # evaluation outcomes on training matrices
         results_val = []    # evaluation outcomes on validation matrices
 
