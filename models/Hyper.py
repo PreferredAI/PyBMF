@@ -105,12 +105,13 @@ class Hyper(BaseModel):
                 self.c.pop(0)
                 # progress.reset(total=len(self.I))
             
-            i = 0
+            n_iter = 0
             while self.c[0] > self.c[1]:
                 self.sort_by_cost()
                 self.T[0], self.c[0] = find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
-                i += 1
+                n_iter += 1
 
+            # record lists T, I
             self.T_final.append(self.T[0])
             self.I_final.append(self.I[0])
 
@@ -129,7 +130,7 @@ class Hyper(BaseModel):
 
             self.evaluate(
                 names=['k', 'iter', 'size', 'uncovered'], 
-                values=[k, i, pattern.sum(), self.X_uncovered.sum()], 
+                values=[k, n_iter, pattern.sum(), self.X_uncovered.sum()], 
                 df_name='updates')
 
             if self.X_uncovered.sum() == 0:

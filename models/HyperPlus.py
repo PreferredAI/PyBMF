@@ -6,10 +6,24 @@ from scipy.sparse import lil_matrix, hstack
 
 
 class HyperPlus(Hyper):
+    '''The Hyper+ algorithm.
+    
+    Hyper+ is used after fitting a Hyper model. It's a relaxation of the exact decomposition algorithm.
+    
+    References
+    ----------
+    Summarizing Transactional Databases with Overlapped Hyperrectangles. Xiang et al. SIGKDD 2011.
+    '''
     def __init__(self, model=None, beta=None, samples=None, target_k=None):
         '''
         model : Hyper class
+            The fitted Hyper model.
         beta : float
+            The upper bound of the false positive rate.
+        samples : int, default: all possible samples
+            Number of pairs to be merged during trials. 
+        target_k : int, default: half of the original `k`
+            The target number of factors.
         '''
         self.check_params(model=model, beta=beta, samples=samples, target_k=target_k)
 
@@ -21,6 +35,7 @@ class HyperPlus(Hyper):
             if model is None:
                 print("[E] Missing Hyper class.")
                 return
+            assert isinstance(model, Hyper), "[E] Import a Hyper model."
             self.U = model.U.tolil()
             self.V = model.V.tolil()
             self.T = model.T_final
@@ -108,22 +123,23 @@ class HyperPlus(Hyper):
                     best_U, best_V = U, V
                     best_savings = savings
 
-            # update
+            # update T, I
             idx = [i for i in range(self.k) if i not in [best_m, best_n]]
             self.T = [self.T[i] for i in idx]
             self.I = [self.I[i] for i in idx]
             self.T.append(best_T)
             self.I.append(best_I)
             
+            # update U, V
             self.U = self.U[:, idx]
             self.V = self.V[:, idx]
             self.U = hstack([self.U, best_U], format='lil')
             self.V = hstack([self.V, best_V], format='lil')
 
+            # update X_covered, fpr and k
             pattern = matmul(best_U, best_V.T, sparse=True, boolean=True).astype(bool)
             self.X_covered[pattern] = 1
             fpr = FPR(gt=self.X_train, pd=self.X_covered)
-
             self.k -= 1
 
             self.evaluate(
@@ -133,8 +149,9 @@ class HyperPlus(Hyper):
             
 
 def cost_savings(T_0, I_0, T_1, I_1, X_covered):
-    '''
-    H_i = [T_0, I_0], H_j = [T_1, I_1]
+    '''Compute the cost savings of merging `H_0` and `H_1`.
+
+    `H_0` = [`T_0`, `I_0`], `H_1` = [`T_1`, `I_1`]
     '''
     T = list(set(T_0 + T_1))
     I = list(set(I_0 + I_1))
