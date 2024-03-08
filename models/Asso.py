@@ -127,7 +127,7 @@ class Asso(BaseModel):
             if self.verbose and self.display:
                 self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
                 
-            self.evaluate(names=['k', 'score'], values=[k, best_score], df_name='updates')
+            self.evaluate(df_name='updates', info={'k': k}, t_info={'score': best_score})
 
 
     @staticmethod

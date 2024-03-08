@@ -199,7 +199,8 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
             if not using_matrix:
                 X_pd = matmul(U=U, V=V.T, sparse=True, boolean=True)
             pd_data = np.zeros(len(gt_data), dtype=int)
-            for i in tqdm(range(len(gt_data)), leave=False, position=1, desc="[I] Making predictions"):
+            # for i in tqdm(range(len(gt_data)), leave=False, position=1, desc="[I] Making predictions"):
+            for i in range(len(gt_data)):
                 pd_data[i] = X_pd[U_idx[i], V_idx[i]]
     elif task == 'reconstruction':
         gt_data = to_sparse(X_gt, type='csr')
@@ -209,7 +210,6 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
             pd_data = to_sparse(X_pd, type='csr')
     
     results = get_metrics(gt=gt_data, pd=pd_data, metrics=metrics)
-    
     return results
 
 

@@ -165,18 +165,46 @@ class BaseModel():
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, **kwargs)
 
 
-    def evaluate(self, df_name, names=[], values=[], metrics=['Recall', 'Precision', 'Accuracy', 'F1']):
+    def evaluate(self, df_name, info={}, t_info={}, v_info={}, metrics=['Recall', 'Precision', 'Accuracy', 'F1'], t_metrics=None, v_metrics=None):
+        '''Evaluate a BMF model.
+
+        Parameters
+        ----------
+        df_name : str
+            The name of the dataframe to be created in `record`.
+        info : dict
+            The names and values of shared information.
+        t_info : dict
+            The names and values of external information measured on training data.
+        v_info : dict
+            The names and values of external information measured on validation data.
+        metrics : list of str
+            The metrics to be measured. For names check `utils.get_metrics`.
+        t_metrics : list of str, optional
+            The metrics to be measured on training data. Will use `metrics` instead if it's `None`.
+        v_metrics : list of str, optional
+            The metrics to be measured on validation data. Will use `metrics` instead if it's `None`.
+        '''
         self.predict_X()
-        
-        results_train = eval(X_gt=self.X_train, X_pd=self.X_pd, 
-            metrics=metrics, task=self.task)
-        columns = header(names) + list(product(['train'], metrics))
-        results = values + results_train
-        
+        t_metrics = metrics if t_metrics is None else t_metrics
+        v_metrics = metrics if v_metrics is None else v_metrics
+        columns = header(list(info.keys()), levels=2)
+        results = list(info.values())
+
+        c, r = self._evaluate('train', t_info, t_metrics)
+        columns += c
+        results += r
+
         if self.X_val is not None:
-            results_val = eval(X_gt=self.X_val, X_pd=self.X_pd, 
-                metrics=metrics, task=self.task)
-            columns = columns + list(product(['val'], metrics))
-            results = results + results_val
+            c, r = self._evaluate('val', v_info, v_metrics)
+            columns += c
+            results += r
         
         record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)
+
+
+    def _evaluate(self, name, info, metrics):
+        results = eval(X_gt=self.X_val, X_pd=self.X_pd, metrics=metrics, task=self.task)
+        columns = list(product([name], list(info.keys()) + metrics))
+        results = list(info.values()) + results
+        return columns, results
