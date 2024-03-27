@@ -4,12 +4,12 @@ from typing import Union
 
 
 def to_sparse(X, type='csr'):
-    '''Convert to sparse matrix
+    '''Convert to sparse matrix.
 
     Guide for choosing sparsity types:
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.lil_matrix.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.lil_matrix.html
     '''
-    assert type in ['coo', 'csr', 'csc', 'lil'], "Not an available sparse matrix format"
+    assert type in ['coo', 'csr', 'csc', 'lil'], "Matrix type not available"
     if type == 'coo':
         X = coo_matrix(X)
     elif type == 'csr':
@@ -41,11 +41,9 @@ def to_triplet(X):
     '''Convert a dense or sparse matrix to a UIR triplet
     '''
     coo = coo_matrix(X)
-    X = (
-        np.asarray(coo.row, dtype='int'),
-        np.asarray(coo.col, dtype='int'),
-        np.asarray(coo.data, dtype='float')
-    )
+    X = (np.asarray(coo.row, dtype='int'),
+         np.asarray(coo.col, dtype='int'),
+         np.asarray(coo.data, dtype='float'))
     return X
 
     
@@ -69,8 +67,12 @@ def sparse_indexing(X, indices):
     return X
 
 
-def bool_to_index(x):
+def bool2index(x):
     bool_array = to_dense(x, squeeze=True).astype(bool)
     idx = np.arange(len(bool_array))
     idx = idx[bool_array]
     return idx
+
+
+def index2bool(x):
+    pass

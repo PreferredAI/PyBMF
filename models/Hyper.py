@@ -35,12 +35,6 @@ class Hyper(BaseModel):
         self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
 
 
-    def init_model(self):
-        self.U = None
-        self.V = None
-        self.logs = {}
-
-
     def init_itemsets(self):
         '''Initialize candidate itemsets with Apriori.
 
@@ -121,8 +115,8 @@ class Hyper(BaseModel):
             U[self.T[0]] = 1
             V[self.I[0]] = 1
 
-            self.U = U if k == 0 else hstack([self.U, U])
-            self.V = V if k == 0 else hstack([self.V, V])
+            self.U = U if k == 0 else hstack([self.U, U], format='lil')
+            self.V = V if k == 0 else hstack([self.V, V], format='lil')
                 
             # update residual X_uncovered
             pattern = matmul(U, V.T, sparse=True, boolean=True).astype(bool)
@@ -141,6 +135,8 @@ class Hyper(BaseModel):
             k += 1
 
         self.k = self.U.shape[1]
+        self.T = self.T_final
+        self.I = self.I_final
 
 
     @staticmethod

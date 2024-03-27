@@ -13,7 +13,7 @@ class Asso(BaseModel):
     ---------
     The discrete basis problem. Zhang et al. 2007.
     '''
-    def __init__(self, k, tau=None, w=None):
+    def __init__(self, k, tau, w):
         """
         Parameters
         ----------
@@ -22,41 +22,34 @@ class Asso(BaseModel):
         tau : float
             The binarization threshold when building basis.
         w : float in [0, 1]
-            The ratio of true positives.
+            The lower bound of true positive ratio.
         """
         self.check_params(k=k, tau=tau, w=w)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        if "tau" in kwargs:
-            tau = kwargs.get("tau")
-            assert tau is not None, "Missing tau."
-            self.tau = tau
-            print("[I] tau          :", self.tau)
-        if "w" in kwargs:
-            w = kwargs.get("w")
-            assert w is not None, "Missing w."
-            self.w = w
-            print("[I] weights      :", self.w)
+        self.set_params(['k', 'tau', 'w'], **kwargs)
 
 
-    def fit(self, X_train, X_val=None, **kwargs):
-        self.check_params(**kwargs)
-        self.load_dataset(X_train=X_train, X_val=X_val)
-        self.init_model()
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super().fit(X_train, X_val, X_test, **kwargs)
 
+        self._fit()
+        self._finish()
+
+
+    def init_model(self):
+        super().init_model()
+        
         # real-valued association matrix
         self.assoc = self.build_assoc(X=self.X_train, dim=1)
         # binary-valued basis candidates
         self.basis = self.build_basis(assoc=self.assoc, tau=self.tau)
+
         if self.verbose:
-            self.show_matrix([(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')], colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
-
-        self._fit()
-
-        display(self.logs['updates'])
-        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
+            self.show_matrix([(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')], 
+                colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
 
 
     @staticmethod
@@ -90,6 +83,8 @@ class Asso(BaseModel):
         '''
         basis = binarize(assoc, tau)
         basis = to_sparse(basis, 'lil').astype(int)
+        nonzero_idx = np.array(basis.sum(axis=1) != 0).squeeze()
+        basis = basis[nonzero_idx]
         return basis
 
 
@@ -100,6 +95,7 @@ class Asso(BaseModel):
             best_score = 0 if k == 0 else best_score
             # number of basis candidates
             n_basis = self.basis.shape[0]
+
             # early stop detection
             if n_basis == 0:
                 self.early_stop(msg="No basis left.", k=k)
@@ -107,6 +103,7 @@ class Asso(BaseModel):
 
             self.predict_X()
             s_old = cover(gt=self.X_train, pd=self.X_pd, w=self.w, axis=1)
+
             for i in tqdm(range(n_basis), leave=False, position=0, desc=f"[I] k = {k}"):
                 row = self.basis[i]
                 score, col = self.get_vector(
@@ -114,20 +111,23 @@ class Asso(BaseModel):
                     basis=row, basis_dim=1, w=self.w)
                 if score > best_score:
                     best_score, best_row, best_col, best_idx = score, row, col, i
+
             # early stop detection
             if best_idx is None:
                 self.early_stop(msg="Coverage stops improving.", k=k)
                 break
+
             # update factors
             self.U[:, k], self.V[:, k] = best_col.T, best_row.T
-            # remove this basis
+            # remove this basis (unnecessary)
             idx = np.array([j for j in range(n_basis) if j != best_idx])
             self.basis = self.basis[idx]
             # show matrix at every step
             if self.verbose and self.display:
                 self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
-                
-            self.evaluate(df_name='updates', info={'k': k}, t_info={'score': best_score})
+
+            self.predict_X()
+            self.evaluate(df_name='updates', head_info={'k': k}, train_info={'score': best_score})
 
 
     @staticmethod

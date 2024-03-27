@@ -68,3 +68,10 @@ def add(X, Y):
 
 def subtract(X, Y):
     return np.subtract(X, Y).astype(bool).astype(int)
+
+
+def power(X, n):
+    if issparse(X):
+        return X.power(n)
+    else:
+        return np.power(X, n)

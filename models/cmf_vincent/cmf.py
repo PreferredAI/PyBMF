@@ -5,7 +5,27 @@ import scipy.sparse
 import argparse
 from .anewton import *
 from .utils import *
-from utils import show_matrix, check_sparse, matmul, FPR, ACC, PPV, F1, TPR
+from utils import show_matrix, binarize, matmul, FPR, ACC, PPV, F1, TPR
+import numpy as np
+import sys
+sys.path.append('../../')
+
+from models import BaseCollectiveModel
+from utils import sigmoid, binarize
+
+class cmf_vincent(BaseCollectiveModel):
+     def __init__(self) -> None:
+          pass
+     
+     def predict_Xs(self):
+        if not hasattr(self, 'Xs'):
+            self.Xs_pd = [None] * self.n_matrices
+        for i, factors in enumerate(self.factors):
+            a, b = factors
+            X = matmul(U=self.Us[a], V=self.Us[b].T, boolean=False, sparse=False)
+
+            X = sigmoid(X)
+            self.Xs_pd[i] = binarize(X)
 
 # def parse_args():
 #     parser = argparse.ArgumentParser(description = 'Collective Matrix Factorization')
@@ -30,7 +50,7 @@ from utils import show_matrix, check_sparse, matmul, FPR, ACC, PPV, F1, TPR
 
 #     return parser.parse_args()
 
-def learn(Xs, Xstst, rc_schema, modes, alphas, K, reg, learn_rate, max_iter, tol, logger):
+def learn(Xs, Xstst, rc_schema, modes, alphas, K, reg, learn_rate, max_iter, tol, logger, model):
     assert(rc_schema.shape[0] == len(Xs) and rc_schema.shape[1] == 2) # schema match data
     assert(numpy.all(rc_schema[:, 0] != rc_schema[:, 1])) # should not have symmetric relations
     assert(rc_schema.shape[0] == len(alphas))
@@ -51,6 +71,9 @@ def learn(Xs, Xstst, rc_schema, modes, alphas, K, reg, learn_rate, max_iter, tol
     Us = [None] * S
     for i in range(S):
         Us[i] = numpy.random.rand(Ns[i], K) * numpy.sqrt(1/K)  # so initial prediction will be in [0, 5]
+
+    print(S, K)
+
 
     Ys = predict(Us, Xs, rc_schema, modes)
     prev_loss = loss(Us, Xs, Ys, rc_schema, modes, alphas, reg, S)
@@ -75,69 +98,63 @@ def learn(Xs, Xstst, rc_schema, modes, alphas, K, reg, learn_rate, max_iter, tol
 
         # ===============================================================
 
-        toc = time.time()
-        logger.info('Iter {}/{}. Time: {:.1f}'.format(i, max_iter, toc - tic))
-        # logger.info('Training Loss: {:.1f} (change {:.2f}%). Training RMSE: {:.2f}. Testing RMSE: {:.2f}'.format(training_loss, change_rate, train_rmse, test_rmse))
+        model.Us=[scipy.sparse.lil_matrix(U) for U in Us]
+        model.predict_Xs()
+        model.evaluate(df_name='updates')
 
-        train_gt = (Xs[0] > 0.5) * 1
-        train_pd = (Ys[0] > 0.5) * 1
+        # toc = time.time()
+        # logger.info('Iter {}/{}. Time: {:.1f}'.format(i, max_iter, toc - tic))
+        # # logger.info('Training Loss: {:.1f} (change {:.2f}%). Training RMSE: {:.2f}. Testing RMSE: {:.2f}'.format(training_loss, change_rate, train_rmse, test_rmse))
 
-        test_gt = (Xstst[0] > 0.5) * 1
-        test_pd = (Ystst[0] > 0.5) * 1
+        # train_gt = (Xs[0] > 0.5) * 1
+        # train_pd = (Ys[0] > 0.5) * 1
 
-        logger.info('trn rmse: {:.2f} tpr: {:.2f} ppv: {:.2f} acc: {:.2f} f1: {:.2f} loss: {:.1f} (change {:.2f}%)'.format(
-             train_rmse, TPR(train_gt, train_pd), PPV(train_gt, train_pd), 
-             ACC(train_gt, train_pd), F1(train_gt, train_pd), 
-             training_loss, change_rate))
-        logger.info('tst rmse: {:.2f} tpr: {:.2f} ppv: {:.2f} acc: {:.2f} f1: {:.2f}'.format(
-             test_rmse, TPR(test_gt, test_pd), PPV(test_gt, test_pd), 
-             ACC(test_gt, test_pd), F1(test_gt, test_pd)))
+        # test_gt = (Xstst[0] > 0.5) * 1
+        # test_pd = (Ystst[0] > 0.5) * 1
+
+        # logger.info('trn rmse: {:.2f} tpr: {:.2f} ppv: {:.2f} acc: {:.2f} f1: {:.2f} loss: {:.1f} (change {:.2f}%)'.format(
+        #      train_rmse, TPR(train_gt, train_pd), PPV(train_gt, train_pd), 
+        #      ACC(train_gt, train_pd), F1(train_gt, train_pd), 
+        #      training_loss, change_rate))
+        # logger.info('tst rmse: {:.2f} tpr: {:.2f} ppv: {:.2f} acc: {:.2f} f1: {:.2f}'.format(
+        #      test_rmse, TPR(test_gt, test_pd), PPV(test_gt, test_pd), 
+        #      ACC(test_gt, test_pd), F1(test_gt, test_pd)))
+
+
 
         # plot ==========================================================
 
-        if i % 5 == 0:
 
-            U = Us[0]
-            V = Us[1]
-            W = Us[2]
+        # if i % 5 == 0:
+        #     for U in Us:
+        #         print(U.shape)
+        #     U, V, W = Us
+        
+        #     X = U @ V.T
+        #     Z = W @ V.T
+        #     # display(U.shape, V.shape, W.shape)
 
-            # display(U.shape, V.shape, W.shape)
+        #     # Y = numpy.dot(U, V.T)
+        #     # Y = logistic(Y)
 
-            # Y = numpy.dot(U, V.T)
-            # Y = logistic(Y)
+        #     X_logit = Ystst[0] # = logistic(U @ V.T)
+        #     Z_logit = logistic(W @ V.T)
 
-            X_pred = Ystst[0] # = logistic(U @ V.T)
-            Z_pred = logistic(W @ V.T)
-
-            U_bool = (U > 0.5) * 1
-            V_bool = (V > 0.5) * 1
-            W_bool = (W > 0.5) * 1
+        #     # U_bool = binarize(U, np.mean(U))
+        #     # V_bool = binarize(V, np.mean(U))
+        #     # W_bool = binarize(W, np.mean(U))
             
-            X_bool = matmul(U_bool, V_bool.T, sparse=False, boolean=True)
-            Z_bool = matmul(W_bool, V_bool.T, sparse=False, boolean=True)
+        #     # X_bool = matmul(U_bool, V_bool.T, sparse=False, boolean=True)
+        #     # Z_bool = matmul(W_bool, V_bool.T, sparse=False, boolean=True)
             
-            settings = [(logistic(U @ V.T), [0, 0], "X logistic of inner product"), 
-                        (logistic(W @ V.T), [2, 0], "Z logistic of inner product"), 
-                        (U, [0, 1], "U real"), 
-                        (V.T, [1, 0], "V real"), 
-                        (W, [2, 1], "W real"), 
-
-                        ((X_pred > 0.5) * 1, [0, 2], "X thresholded"), 
-                        ((Z_pred > 0.5) * 1, [2, 2], "Z thresholded"), 
-                        (U_bool, [0, 3], "U thresholded"), 
-                        (V_bool.T, [1, 2], "V thresholded"), 
-                        (W_bool, [2, 3], "W thresholded"), 
-
-                        (X_bool, [0, 4], "X bool"), 
-                        (Z_bool, [2, 4], "Z bool"), 
-                        (U_bool, [0, 5], "U bool"), 
-                        (V_bool.T, [1, 4], "V bool"), 
-                        (W_bool, [2, 5], "W bool"), 
-
-                        (Xs[0], [0, 6], "X gt"), 
-                        (Xs[1].T, [2, 6], "Z gt"), 
-                        ]
-            show_matrix(settings, title='Iter {}/{}'.format(i, max_iter), colorbar=True, scaling=2, clim=[0, 1])
+        #     settings = [(X, [0, 0], "X inner"), 
+        #                 (Z, [1, 0], "Z inner"), 
+        #                 (X_logit, [0, 1], "X logit"), 
+        #                 (Z_logit, [1, 1], "Z logit"), 
+        #                 # (X_bool, [0, 2], "X bool"), 
+        #                 # (Z_bool, [1, 2], "Z bool"), 
+        #                 ]
+        #     show_matrix(settings, title='Iter {}/{}'.format(i, max_iter), colorbar=True, scaling=2, clim=[0, 1])
 
         # ===============================================================
 
@@ -232,13 +249,13 @@ def predict(Us, Xs, rc_schema, modes):
 
     return Ys
 
-def run_cmf(Xs_trn, Xs_tst, rc_schema, modes, alphas, args, logger):
+def run_cmf(Xs_trn, Xs_tst, rc_schema, modes, alphas, args, logger, cmf_model):
     '''
     run cmf
     '''
     start_time = time.time()
 
-    Us = learn(Xs_trn, Xs_tst, rc_schema, modes, alphas, args.k, args.reg, args.lr, args.iter, args.tol, logger)
+    Us = learn(Xs_trn, Xs_tst, rc_schema, modes, alphas, args.k, args.reg, args.lr, args.iter, args.tol, logger, cmf_model)
     Ys_tst = predict(Us, Xs_tst, rc_schema, modes)
     rmse = RMSE(Xs_tst[0], Ys_tst[0])
 
@@ -248,7 +265,7 @@ def run_cmf(Xs_trn, Xs_tst, rc_schema, modes, alphas, args, logger):
     
     save_result(args, rmse)
 
-    return 
+    return Us
 
 
 # if __name__ == "__main__":

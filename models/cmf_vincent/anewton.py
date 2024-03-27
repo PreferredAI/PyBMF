@@ -73,6 +73,7 @@ def newton_update(Us, Xs, Xts, rc_schema, alphas, modes, K, reg, learn_rate, Ns,
 						Hes = numpy.dot(numpy.multiply(V.T, UiVt), V)
 
 					elif modes[j] == 'log_dense':
+						V = V[inds_i, :] ############
 						UiVt = numpy.dot(U, V.T) # (1 * n2)
 						UiVtV = numpy.dot(logistic(UiVt), V) # (1 * k)
 						Hes = numpy.dot(numpy.multiply(V.T, d_logistic(UiVt)), V)

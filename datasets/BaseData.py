@@ -34,7 +34,7 @@ class BaseData:
         plt = platform.system()
 
         self.root = os.path.abspath("D:/OneDrive - Singapore Management University/datasets" if plt == 'Windows' else "~/datasets")
-        self.cache_path = os.path.abspath("../cache")
+        self.cache_path = os.path.abspath('D:/Dropbox/PyBMF/cache') # os.path.abspath("../cache")
         self.pickle_path = path
 
 

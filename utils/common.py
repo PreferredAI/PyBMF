@@ -5,6 +5,7 @@ from scipy.sparse import isspmatrix
 from .sparse_utils import sparse_indexing
 from scipy.sparse import spmatrix
 from .sparse_utils import to_sparse
+from .boolean_utils import multiply
 
 
 def get_rng(seed, rng):
@@ -74,5 +75,11 @@ def binarize(X, threshold=0.5):
 def sigmoid(X):
     '''Sigmoid function
     '''
-    X = 1 / (1 + np.exp(-X))
-    return X
+    Y = 1.0 / (1.0 + np.exp(-X))
+    return Y
+
+
+def d_sigmoid(X):
+    Y = sigmoid(X)
+    Z = multiply(Y, 1 - Y)
+    return Z

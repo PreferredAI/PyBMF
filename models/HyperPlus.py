@@ -19,7 +19,7 @@ class HyperPlus(Hyper):
         model : Hyper class
             The fitted Hyper model.
         beta : float
-            The upper bound of the false positive rate.
+            The upper limit of the false positive rate.
         samples : int, default: all possible samples
             Number of pairs to be merged during trials. 
         target_k : int, default: half of the original `k`
@@ -32,16 +32,8 @@ class HyperPlus(Hyper):
         super().check_params(**kwargs)
         if 'model' in kwargs:
             model = kwargs.get('model')
-            if model is None:
-                print("[E] Missing Hyper class.")
-                return
             assert isinstance(model, Hyper), "[E] Import a Hyper model."
-            self.U = model.U.tolil()
-            self.V = model.V.tolil()
-            self.T = model.T_final
-            self.I = model.I_final
-            self.k = model.k
-            self.logs = model.logs
+            self.init_model(U=model.U, V=model.V, T=model.T, I=model.I, k=model.k, logs=model.logs)
             print("[I] k from Hyper :", self.k)
         if 'beta' in kwargs:
             beta = kwargs.get('beta')
@@ -60,7 +52,7 @@ class HyperPlus(Hyper):
         if 'target_k' in kwargs:
             target_k = kwargs.get('target_k')
             if target_k is None:
-                print("[W] Missing target_k. Using half of original k.")
+                print("[W] Missing target_k. Using half of the original k as target k.")
                 target_k = self.k / 2
             self.target_k = int(target_k)
             print("[I] target k     :", self.target_k)

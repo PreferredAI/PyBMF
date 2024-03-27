@@ -24,27 +24,20 @@ class AssoOpt(Asso):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        if 'model' in kwargs:
-            model = kwargs.get('model')
-            assert isinstance(model, BaseModel), "[E] Import a BaseModel."
-            self.k = model.k
-            self.U = model.U
-            self.V = model.V
-            self.logs = model.logs
-            print("[I] k from model :", self.k)
+        self.set_params(['model', 'w'], **kwargs)
 
 
-    def fit(self, X_train, X_val=None, **kwargs):
-        self.check_params(**kwargs)
-        self.load_dataset(X_train=X_train, X_val=X_val)
-
-        self.exhaustive_search()
-
-        display(self.logs['refinements'])
-        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="assoopt results")
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super(Asso, self).fit(X_train, X_val, X_test, **kwargs)
+        self._fit()
+        self._finish()
 
 
-    def exhaustive_search(self):
+    def init_model(self):
+        self.import_model(k=self.model.k, U=self.model.U, V=self.model.V, logs=self.model.logs)
+
+
+    def _fit(self):
         '''Using exhaustive search to refine U.
         '''
         tic = time.perf_counter()
@@ -62,7 +55,7 @@ class AssoOpt(Asso):
 
         self.predict_X()
         score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
-        self.evaluate(names=['score'], values=[score], df_name='refinements')
+        self.evaluate(df_name='refinements', train_info={'score': score})
 
 
     def set_optimal_row(self, i):

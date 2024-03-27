@@ -1,5 +1,5 @@
 import numpy as np
-from utils import matmul, multiply, sum, bool_to_index, multiply, ERR
+from utils import matmul, multiply, sum, bool2index, multiply, ERR
 from .BaseModel import BaseModel
 from scipy.sparse import issparse, lil_matrix, csr_matrix
 
@@ -142,7 +142,7 @@ class MEBF(BaseModel):
         idx = idx[scores > 0]
         mid = idx[int(len(idx) / 2)]
         a = self.X_res[:, mid] if axis == 0 else self.X_res[mid, :]
-        idx = bool_to_index(a)
+        idx = bool2index(a)
         X_sub = self.X_res[idx, :] if axis == 0 else self.X_res[:, idx]
         b = sum(X=X_sub, axis=axis) > self.t * a.sum()
         b = csr_matrix(b)
@@ -167,7 +167,7 @@ class MEBF(BaseModel):
             a = multiply(self.X_res[:, first], self.X_res[:, second], boolean=True)
         else:
             a = multiply(self.X_res[first, :], self.X_res[second, :], boolean=True)
-        idx = bool_to_index(a)
+        idx = bool2index(a)
         X_sub = self.X_res[idx, :] if axis == 0 else self.X_res[:, idx]
         b = sum(X=X_sub, axis=axis) > self.t * a.sum()
         b = csr_matrix(b)

@@ -2,14 +2,14 @@ from sklearn import decomposition
 from .BaseModel import BaseModel
 
 
-class NMF(BaseModel):
+class NMFSklearn(BaseModel):
     def __init__(self, k, init='nndsvd', max_iter=1000, seed=None):
         self.check_params(k=k, init=init, max_iter=max_iter, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['init'], **kwargs)
+        self.set_params(['k', 'init', 'max_iter', 'seed'], **kwargs)
         assert self.init in ['random', 'nndsvd', 'nndsvda', 'nndsvdar', 'custom']
         
     

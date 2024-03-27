@@ -1,6 +1,6 @@
 import numpy as np
 from utils import show_matrix, matmul, to_sparse
-from utils import header, record, eval
+from utils import header, record, eval, binarize
 import time
 from scipy.sparse import lil_matrix
 from itertools import product
@@ -14,53 +14,49 @@ class BaseModel():
     
 
     def check_params(self, **kwargs):
-        '''Check parameters.
-
-        Used in model initialization, fitting and evaluation.
+        '''Shared parameters called upon model initialization, fitting and evaluation.
 
         Parameters
         ----------
-        k : int
-        seed : int
         task : str, {'prediction', 'reconstruction'}
+        seed : int
         display : bool, default: False
         verbose : bool, default: False
         scaling : float, default: 1.0
         pixels : int, default: 2
         '''
-        # trigger when it's mentioned in kwargs
+        # frequently used
+        self.set_params(['k', 'W', 'lr', 'reg', 'tol', 'min_diff', 'max_iter', 'init_method'], **kwargs)
+        # triggered when it's mentioned in kwargs
         if "task" in kwargs:
             task = kwargs.get("task")
-            assert task in ['prediction', 'reconstruction'], "Eval task is either 'prediction' or 'reconstruction'."
+            assert task in ['prediction', 'reconstruction'], "Eval task must be 'prediction' or 'reconstruction'."
             self.task = task
             print("[I] task         :", self.task)
-        if "k" in kwargs:
-            k = kwargs.get("k")
-            if k is None:
-                print("[I] Running without k.")
-            self.k = k
-            print("[I] k            :", self.k)
         if "seed" in kwargs:
             seed = kwargs.get("seed")
-            if seed is None and not hasattr(self,'seed'): # use time as self.seed
+            if seed is None and not hasattr(self,'seed'):
+                # use time as self.seed
                 seed = int(time.time())
                 self.seed = seed
                 self.rng = np.random.RandomState(seed)
                 print("[I] seed         :", self.seed)
-            elif seed is not None: # overwrite self.seed
+            elif seed is not None:
+                # overwrite self.seed
                 self.seed = seed
                 self.rng = np.random.RandomState(seed)
                 print("[I] seed         :", self.seed)
-            else: # self.rng remains unchanged
+            else:
+                # self.rng remains unchanged
                 pass
-        # trigger during initialization
+        # triggered upon initialization
         if not hasattr(self, 'verbose'):
             self.verbose = False
             print("[I] verbose      :", self.verbose)
         if not hasattr(self, 'display'):
             self.display = False
             print("[I] display      :", self.display)
-        # trigger when it's getting changed
+        # triggered when it's getting changed
         if "verbose" in kwargs:
             verbose = kwargs.get("verbose")
             if verbose != self.verbose:
@@ -71,7 +67,7 @@ class BaseModel():
             if display != self.display:
                 self.display = display
                 print("[I] display      :", self.display)
-        # trigger no matter if it's mantioned or not
+        # triggered no matter if it's mantioned or not
         if "scaling" in kwargs and self.display:
             self.scaling = kwargs.get("scaling")
             print("[I]   scaling    :", self.scaling)
@@ -84,54 +80,115 @@ class BaseModel():
             self.pixels = 2
 
 
-    def fit(self, X_train, X_val=None, **kwargs):
-        """Fit the model to observations, with validation if necessary.
+    def set_params(self, params, **kwargs):
+        '''Set parameters without checking.
 
-        Please implement your own fit method.
-        
-        X_train : array, spmatrix
-            Data for matrix factorization.
-        X_val : array, spmatrix
-            Data for model selection.
-        kwargs :
-            Common parameters that are checked and set in `BaseModel.check_params()` and the model-specific parameters included in `self.check_params()`.
+        Parameters
+        ----------
+        params : str or list of str
+        '''
+        for param in list(params):
+            if param in kwargs:
+                value = kwargs.get(param)
+                setattr(self, param, value)
+                print("[I] {:<12} : {}".format(param, value.shape if hasattr(value, 'shape') else value))
+
+
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        """Fit the model to observations, with validation and prediction if necessary.
         """
-        raise NotImplementedError("Missing fit method.")
+        self.check_params(**kwargs)
+        self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
+        self.init_model()
+
+
+
+
+    def _finish(self):
+        for log in self.logs.values():
+            if isinstance(log, pd.DataFrame):
+                display(log)
+        # self.show_matrix(colorbar=True, discrete=True, center=True, clim=[0, 1], title="result")
     
 
-    def load_dataset(self, X_train, X_val=None):
+    def load_dataset(self, X_train, X_val=None, X_test=None):
         """Load train and validation data.
 
         For matrices that are modified frequently, lil (LIst of List) or coo is preferred.
         For matrices that are not getting modified, csr or csc is preferred.
 
         X_train : array, spmatrix
+            Data for matrix factorization.
         X_val : array, spmatrix
+            Data for model selection.
+        X_test : ndarray, spmatrix
+            Data for prediction.
         """
         if X_train is None:
             raise TypeError("Missing training data.")
         if X_val is None:
             print("[I] Missing validation data.")
+        if X_test is None:
+            print("[W] Missing testing data.")
+
         self.X_train = to_sparse(X_train, 'csr')
         self.X_val = None if X_val is None else to_sparse(X_val, 'csr')
+        self.X_test = None if X_test is None else to_sparse(X_test, 'csr')
 
         self.m, self.n = self.X_train.shape
+
+
+    def import_model(self, **kwargs):
+        """Import or inherit variables and parameters from another model.
+        """
+        for attr in kwargs:
+            setattr(self, attr, kwargs.get(attr))
+            action = "Overwrote" if hasattr(self, attr) else "Imported"
+            self.print_msg("{} model parameter: {}".format(action, attr))
 
 
     def init_model(self):
         """Initialize factors and logging variables.
 
-        U : spmatrix
-        V : spmatrix
         logs : dict
-            The dict containing dataframes, arrays and lists.
+            The ``dict`` containing the logging data recorded in ``dataframe``, ``array`` or ``list``.
         """
-        self.U = lil_matrix(np.zeros((self.m, self.k)))
-        self.V = lil_matrix(np.zeros((self.n, self.k)))
-        self.logs = {}
+        if not hasattr(self, 'U') or not hasattr(self, 'V'):
+            self.U = lil_matrix(np.zeros((self.m, self.k)))
+            self.V = lil_matrix(np.zeros((self.n, self.k)))
+
+        if not hasattr(self, 'logs'):
+            self.logs = {}
 
 
-    def early_stop(self, msg: str, k: int=None):
+    def early_stop(self, error=None, diff=None, n_iter=None):
+        """Early stop detection.
+        """
+        should_continue = True
+
+        if error is not None and hasattr(self, 'tol') and error < self.tol:
+            self._early_stop("Error lower than tolerance")
+            should_continue = False
+        if n_iter is not None and hasattr(self, 'max_iter') and n_iter > self.max_iter:
+            self._early_stop("Reach maximum iteration")
+            should_continue = False
+        if diff is not None and hasattr(self, 'min_diff') and diff < self.min_diff:
+            self._early_stop("Difference lower than threshold")
+            should_continue = False
+
+        return should_continue
+        
+
+    def _early_stop(self, msg: str, k: int=None):
+        '''To deal with early covergence or stop.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be displayed.
+        k : int, optional
+            The number of factors obtained.
+        '''
         print("[W] Stopped in advance: " + msg)
         if k is not None:
             print("[W]   got {} factor(s).".format(k))
@@ -144,8 +201,12 @@ class BaseModel():
             print("[{}] {}".format(type, msg))
 
 
-    def predict_X(self):
-        self.X_pd = matmul(self.U, self.V.T, boolean=True, sparse=True)
+    def predict_X(self, U=None, V=None, u=None, v=None, boolean=True):
+        U = self.U if U is None else U
+        V = self.V if V is None else V
+        U = binarize(U, u) if u is not None else U
+        V = binarize(V, v) if v is not None else V
+        self.X_pd = matmul(U, V.T, boolean=boolean, sparse=True)
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
@@ -157,46 +218,56 @@ class BaseModel():
         pixels = self.pixels if pixels is None else pixels
 
         if settings is None:
-            self.predict_X()
-            settings = [(self.X_pd, [0, 0], "X"), 
-                        (self.U, [0, 1], "U"), 
-                        (self.V.T, [1, 0], "V")]
+            settings = [(self.X_pd, [0, 0], "X"), (self.U, [0, 1], "U"), (self.V.T, [1, 0], "V")]
 
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, **kwargs)
 
 
-    def evaluate(self, df_name, info={}, t_info={}, v_info={}, metrics=['Recall', 'Precision', 'Accuracy', 'F1'], t_metrics=None, v_metrics=None):
-        '''Evaluate a BMF model.
+    def evaluate(self, df_name, 
+            head_info={}, train_info={}, val_info={}, test_info={}, 
+            metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+            train_metrics=None, val_metrics=None, test_metrics=None):
+        '''Evaluate a BMF model on the given train, val and test daatset.
 
         Parameters
         ----------
         df_name : str
-            The name of the dataframe to be created in `record`.
-        info : dict
-            The names and values of shared information.
-        t_info : dict
+            The name of ``dataframe`` to record with.
+        head_info : dict
+            The names and values of shared information at the head of each record.
+        train_info : dict
             The names and values of external information measured on training data.
-        v_info : dict
+        val_info : dict
             The names and values of external information measured on validation data.
-        metrics : list of str
-            The metrics to be measured. For names check `utils.get_metrics`.
-        t_metrics : list of str, optional
+        test_info : dict
+            The names and values of external information measured on testing data.
+        metrics : list of str, default: ['Recall', 'Precision', 'Accuracy', 'F1']
+            The metrics to be measured. For metric names check `utils.get_metrics`.
+        train_metrics : list of str, optional
             The metrics to be measured on training data. Will use `metrics` instead if it's `None`.
-        v_metrics : list of str, optional
+        val_metrics : list of str, optional
             The metrics to be measured on validation data. Will use `metrics` instead if it's `None`.
+        test_metrics : list of str, optional
+            The metrics to be measured on testing data. Will use `metrics` instead if it's `None`.
         '''
-        self.predict_X()
-        t_metrics = metrics if t_metrics is None else t_metrics
-        v_metrics = metrics if v_metrics is None else v_metrics
-        columns = header(list(info.keys()), levels=2)
-        results = list(info.values())
+        train_metrics = metrics if train_metrics is None else train_metrics
+        val_metrics = metrics if val_metrics is None else val_metrics
+        test_metrics = metrics if test_metrics is None else test_metrics
 
-        c, r = self._evaluate('train', t_info, t_metrics)
+        columns = header(list(head_info.keys()), levels=3)
+        results = list(head_info.values())
+
+        c, r = self._evaluate('train', train_info, train_metrics)
         columns += c
         results += r
 
         if self.X_val is not None:
-            c, r = self._evaluate('val', v_info, v_metrics)
+            c, r = self._evaluate('val', val_info, val_metrics)
+            columns += c
+            results += r
+            
+        if self.X_test is not None:
+            c, r = self._evaluate('test', test_info, test_metrics)
             columns += c
             results += r
         
@@ -204,7 +275,17 @@ class BaseModel():
 
 
     def _evaluate(self, name, info, metrics):
-        results = eval(X_gt=self.X_val, X_pd=self.X_pd, metrics=metrics, task=self.task)
-        columns = list(product([name], list(info.keys()) + metrics))
+        '''Evaluate on a given dataset.
+
+        Parameters
+        ----------
+        name : str in ['train', 'val', 'test']
+        info : dict of list
+        metrics : list of str
+        '''
+        X_gt = getattr(self, 'X_' + name)
+        results = eval(X_gt=X_gt, X_pd=self.X_pd, metrics=metrics, task=self.task)
+        columns = list(product([name], [0], list(info.keys()) + metrics))
         results = list(info.values()) + results
+        
         return columns, results

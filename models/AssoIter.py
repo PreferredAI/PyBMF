@@ -22,30 +22,23 @@ class AssoIter(Asso):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        if 'model' in kwargs:
-            model = kwargs.get('model')
-            assert isinstance(model, BaseModel), "[E] Import a BaseModel."
-            self.k = model.k
-            self.U = model.U
-            self.V = model.V
-            self.logs = model.logs
-            print("[I] k from model :", self.k)
+        self.set_params(['model', 'w'], **kwargs)
 
 
-    def fit(self, X_train, X_val=None, **kwargs):
-        self.check_params(**kwargs)
-        self.load_dataset(X_train=X_train, X_val=X_val)
-
-        self.iterative_search()
-
-        display(self.logs['refinements'])
-        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="assoiter results")
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super(Asso, self).fit(X_train, X_val, X_test, **kwargs)
+        self._fit()
+        self._finish()
 
 
-    def iterative_search(self):
+    def init_model(self):
+        self.import_model(k=self.model.k, U=self.model.U, V=self.model.V, logs=self.model.logs)
+
+
+    def _fit(self):
         '''Using iterative search to refine U
 
-        In the paper, the algorithm uses cover (with w=[1, 1]) as updating criteria, and uses error as stopping criteria.
+        In the paper, the algorithm uses cover function with the same weight for coverage and over-coverage (w = [0.5, 0.5]) as updating criteria, and uses error function as stopping criteria. This will not lead to the optimal solution. Change them to improve the performance.
         '''
         self.predict_X()
         best_score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
@@ -64,8 +57,7 @@ class AssoIter(Asso):
                     best_error = error
                     best_score = score
 
-                    self.evaluate(names=['k', 'error', 'score'], values=[k, best_error, best_score], df_name='refinements')
-
+                    self.evaluate(df_name='refinements', head_info={'k': k}, train_info={'score': best_score, 'error': best_error})
                     counter = 0
                 else:
                     counter += 1

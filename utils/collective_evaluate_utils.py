@@ -1,20 +1,29 @@
-from .evaluate_utils import cover
+from .metrics import cover
 import numpy as np
 from .boolean_utils import matmul
 import pandas as pd
 
 
 def collective_cover(gt, pd, w, axis, starts=None):
-    '''
+    '''The collective wrapper for cover function.
 
     Parameters
     ----------
+    gt : spmatrix
+        The concatenated ground-truth matrix.
+    pd : spmatrix
+        The concatenated predicted matrix.
+    w : list of float
+        The allowed ratio of false positives in each matrices.
     axis : int in {0, 1}, default: None
         The dimension of the basis.
+    starts : list of int
+        The starting point of each matrix on the other dimension rather than the dimension of the basis.
 
     Returns
     -------
     scores : (n_submat, n_basis) array
+        The scores of each basis over each submatrix.
     '''
     n_submat = len(w)
     assert len(starts) == n_submat + 1, "[E] Starting points and the number of sub-matrices don't match."
@@ -59,14 +68,18 @@ def harmonic_score(scores):
     -------
     s : float or (1, k) array
     '''
-    # print(scores.shape)
     n, k = scores.shape
     s = np.zeros((1, k))
+    # # debug
+    # zero_counter = 0
     for i in range(k):
-        if pd.isnull(scores[:, i]).any():
-            s[0, i] = np.nan
-            print("[W] Zero encountered in harmonic score.")
+        if (scores[:, i] == 0).any():
+            s[0, i] = 0
+            # zero_counter += 1
         else:
-            s[0, i] = n / (1 / scores[:, i]).sum(axis=0)
+            denom = (1 / scores[:, i]).sum(axis=0)
+            s[0, i] = n / denom
+    # if zero_counter > 0:
+    #     print(f"[W] {zero_counter} out of {k} zeros encountered in harmonic score.")
     return s
     

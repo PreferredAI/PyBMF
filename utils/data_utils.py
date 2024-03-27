@@ -109,16 +109,16 @@ def sample(X, axis, factor_info=None, idx=None, n_samples=None, seed=None):
     X = X[idx, :] if axis == 0 else X[:, idx]
     print("[I]   sampling to  :", X.shape)
 
-    if isinstance(factor_info, list): # single matrix
-        for i in [0, 1, 2]: # order, idmap, alias
-            factor_info[axis][i] = factor_info[axis][i][idx]
-        factor_info[axis][0] = sort_order(factor_info[axis][0])
-    elif isinstance(factor_info, tuple): # collective matrices
-        factor_info = list(factor_info)
-        for i in [0, 1, 2]: # order, idmap, alias
-            factor_info[i] = factor_info[i][idx]        
-        factor_info[0] = sort_order(factor_info[0])
-        factor_info = tuple(factor_info)
+    # if isinstance(factor_info, list): # single matrix
+    #     for i in [0, 1, 2]: # order, idmap, alias
+    #         factor_info[axis][i] = factor_info[axis][i][idx]
+    #     factor_info[axis][0] = sort_order(factor_info[axis][0])
+    # elif isinstance(factor_info, tuple): # collective matrices
+    #     factor_info = list(factor_info)
+    #     for i in [0, 1, 2]: # order, idmap, alias
+    #         factor_info[i] = factor_info[i][idx]        
+    #     factor_info[0] = sort_order(factor_info[0])
+    #     factor_info = tuple(factor_info)
     return idx, factor_info, X
 
 

@@ -1,102 +1,109 @@
 from .BinaryMF import BinaryMF
-from utils import multiply
+from utils import binarize, to_dense, power, multiply
 import numpy as np
+from scipy.sparse import spmatrix
 
 
 class BinaryMFPenalty(BinaryMF):
     '''Binary matrix factorization, Penalty algorithm
     
-    From the papers:
-        'Binary Matrix Factorization with Applications', 
-        'Algorithms for Non-negative Matrix Factorization'.
+    Reference
+    ---------
+    Binary Matrix Factorization with Applications
+    Algorithms for Non-negative Matrix Factorization
     '''
-    def __init__(self, k, reg=None, reg_growth=None, eps=None, max_iter=None):
-        self.check_params(k=k, reg=reg, reg_growth=reg_growth, eps=eps, max_iter=max_iter, algorithm='penalty')
+    def __init__(self, k, W='mask', reg=2, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='sklearn', seed=None):
+        '''
+        Parameters
+        ----------
+        k : int
+        W : np.ndarray, spmatrix or str in {'mask', 'full'}
+            Weight matrix. 
+            For 'mask', it'll use samples in `X_train` (both 1's and 0's) as weight mask. 
+            For 'full', it refers to a full 1's matrix.
+        reg : float
+            The regularization weight 'lambda' in the paper.
+        reg_growth : float
+            The growing rate of regularization weight.
+        tol : float
+            The error tolerance 'epsilon' in the paper.
+        max_iter : int
+        init_method : str
+        '''
+        self.check_params(k=k, W=W, reg=reg, reg_growth=reg_growth, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
 
+    def check_params(self, **kwargs):
+        super().check_params(**kwargs)
+        self.set_params(['reg_growth', 'init_method'], **kwargs)
+        assert self.init_method in ['sklearn', 'random']
+        assert isinstance(self.W, spmatrix) or self.W in ['mask', 'full']
+
+
     def _fit(self):
-        self.initialize()
-        self.normalize()
-        self.penalty_algorithm()
-
-
-    def penalty_algorithm(self):
-        '''An alternative minimization algorithm minimizing J(U, V), or 'J(W, H)' as in BinaryMF paper
+        '''The alternative minimization algorithm.
         '''
-        errors = []
         n_iter = 0
-        while True:
-            error, rec_error, reg_error = self.penalty_error()
-            errors.append(error)
-            print("[I] iter: {}, reg: {:.1e}, err: {:.3f}, rec_err: {:.3f}, reg_err: {:.3f}".format(n_iter, self.reg, error, rec_error, reg_error))
+        should_continue = True
+        error_old, rec_error, reg_error = self.error()
+        self.logs['errors'] = [error_old]
 
+        while should_continue:
+
+            import warnings
+            warnings.filterwarnings('ignore') 
+            self.update_V()
+            self.update_U()
+
+            error_new, rec_error, reg_error = self.error()
+            self.logs['errors'].append(error_new)
+            diff = abs(error_old - error_new)
+
+            # evaluate
+            self.predict_X(u=0.5, v=0.5, boolean=True)
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'reg': self.reg, 'error': error_new, 'rec_error': rec_error, 'reg_error': reg_error})
+
+            # display
+            self.print_msg("iter: {}, reg: {:.2e}, err: {:.2e}, rec_err: {:.2e}, reg_err: {:.2e}".format(n_iter, self.reg, error_new, rec_error, reg_error))
+            if n_iter % 10 == 0:
+                self.show_matrix(u=0.5, v=0.5, title=f"iter {n_iter}")
+
+            # early stop detection
+            should_continue = self.early_stop(error=reg_error, diff=diff, n_iter=n_iter)
+
+            # update reg
+            self.reg *= self.reg_growth
             n_iter += 1
 
-            if error < self.eps:
-                self.early_stop("Error lower than threshold")
-                break
-
-            if n_iter > self.max_iter:
-                self.early_stop("Reached maximum iteration")
-                break
-            
-            self.V = self.V.T
-            self.penalty_update_V()
-            self.penalty_update_U()
-            self.V = self.V.T
-
-            self.reg *= self.reg_growth
-
-            if n_iter % 10 == 0:
-                self.show_matrix(title=f"penalty iter {n_iter}")
-
-        self.show_matrix(title="after penalty function algorithm")
-
-        # self.U = step(self.U, 0.5)
-        # self.V = step(self.V, 0.5)
+        self.show_matrix(u=0.5, v=0.5, title="result")
 
 
-    def penalty_update_U(self):
+    def update_U(self):
         '''Multiplicative update of U
-
-        U: (m, k)
-        V: (k, m)
         '''
-        numerator = self.X_train @ self.V.T + 3 * self.reg * self.U.power(2)
-        denominator = self.U @ (self.V @ self.V.T) + 2 * self.reg * self.U.power(3) + self.reg * self.U
-        denominator_size = denominator.shape[0] * denominator.shape[1]
-        if denominator_size != denominator.nnz: # np.any(denominator == 0.0)
-            print("[W] Zero(s) detected in denominator.")
-            denominator[denominator == 0.0] = np.min(denominator[denominator > 0.0]) # set a non-zero value
-        self.U = multiply(self.U, numerator)
-        self.U = multiply(self.U, denominator.power(-1))
+        num = multiply(self.W, self.X_train) @ self.V + 3 * self.reg * power(self.U, 2)
+        denom = multiply(self.W, self.U @ self.V.T) @ self.V + 2 * self.reg * power(self.U, 3) + self.reg * self.U
+        denom[denom == 0] = np.finfo(np.float64).eps
+        self.U = multiply(self.U, num / denom)
 
 
-    def penalty_update_V(self):
+    def update_V(self):
         '''Multiplicative update of V
-
-        U: (m, k)
-        V: (k, m)
         '''
-        numerator = self.U.T @ self.X_train + 3 * self.reg * self.V.power(2)
-        denominator = (self.U.T @ self.U) @ self.V + 2 * self.reg * self.V.power(3) + self.reg * self.V
-        denominator_size = denominator.shape[0] * denominator.shape[1]
-        if denominator_size != denominator.nnz: # np.any(denominator == 0.0)
-            print("[W] Zero(s) detected in denominator.")
-            denominator[denominator == 0.0] = np.min(denominator[denominator > 0.0]) # set a non-zero value
-        self.V = multiply(self.V, numerator)
-        self.V = multiply(self.V, denominator.power(-1))
+        num = multiply(self.W, self.X_train).T @ self.U + 3 * self.reg * power(self.V, 2)
+        denom = multiply(self.W, self.U @ self.V.T).T @ self.U + 2 * self.reg * power(self.V, 3) + self.reg * self.V
+        denom[denom == 0] = np.finfo(np.float64).eps
+        self.V = multiply(self.V, num / denom)
 
 
-    def penalty_error(self):
+    def error(self):
         '''Error for penalty function algorithm.
-        '''
-        error = 0
-        # reconstrunction error term
-        rec_error = np.sum((self.X_train - self.U @ self.V.T).power(2))
-        # regularization term
-        reg_error = np.sum((self.U.power(2) - self.U).power(2))
-        reg_error += np.sum((self.V.power(2) - self.V).power(2))
 
-        error = 0 * rec_error + 1 * reg_error # choose the error(s) in count
+        In the paper, only reg_error is considered.
+        '''
+        diff = self.X_train - self.U @ self.V.T
+        rec_error = np.sum(power(multiply(self.W, diff), 2))
+        reg_error = np.sum(power(power(self.U, 2) - self.U, 2)) + np.sum(power(power(self.V, 2) - self.V, 2))
+
+        error = 0 * rec_error + 0.5 * self.reg * reg_error
         return error, rec_error, reg_error

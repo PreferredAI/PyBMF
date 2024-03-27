@@ -1,5 +1,5 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from .BinaryMFThresholdExWeighted import BinaryMFThresholdExWeighted
+from ._BinaryMFThresholdExWeighted import BinaryMFThresholdExWeighted
 from utils import multiply, sigmoid, to_dense
 import numpy as np
 from scipy.optimize import line_search

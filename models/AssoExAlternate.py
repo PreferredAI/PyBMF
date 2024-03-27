@@ -3,13 +3,11 @@ from utils import matmul, add, to_sparse, cover, show_matrix
 from .Asso import Asso
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
-from multiprocessing import Pool, cpu_count
 import pandas as pd
-import pickle
 from utils import record
 
 
-class AssoExIterate(Asso):
+class AssoExAlternate(Asso):
     '''The Asso algorithm with iterative update between the two factors (experimental)
     '''
     def _fit(self):
@@ -38,18 +36,13 @@ class AssoExIterate(Asso):
                         # evaluate
                         self.U[:, k] = self.basis[0][best_idx, :].T
                         self.V[:, k] = self.basis[1][best_idx, :].T
-                        self.evaluate(
-                            names=['k', 'iter', 'factor', 'index', 'score'], 
-                            values=[k, n_iter, 1 - basis_dim, best_idx, best_score], 
-                            df_name='updates')
+                        self.predict_X()
+                        self.evaluate(df_name='updates', head_info={'k': k, 'iter': n_iter, 'factor': 1-basis_dim, 'index': best_idx}, train_info={'score': best_score})
                         self.U[:, k] = 0
                         self.V[:, k] = 0
 
                         # record scores
-                        record(
-                            df_dict=self.logs, df_name='scores',
-                            columns=np.arange(self.n_basis).tolist(), 
-                            records=self.scores.tolist(), verbose=self.verbose)
+                        record(df_dict=self.logs, df_name='scores', columns=np.arange(self.n_basis).tolist(), records=self.scores.tolist(), verbose=self.verbose)
 
                         n_iter += 1
                         break_counter = 0
@@ -69,10 +62,7 @@ class AssoExIterate(Asso):
                 self.U[:, k] = self.basis[0][best_idx, :].T
                 self.V[:, k] = self.basis[1][best_idx, :].T
             
-            self.evaluate(
-                names=['k', 'iter', 'index', 'score'], 
-                values=[k, n_iter, best_idx, best_score], 
-                df_name='results')
+            self.evaluate(df_name='results', head_info={'k': k, 'iter': n_iter, 'index': best_idx}, train_info={'score': best_score})
 
 
     def update_basis(self, basis_dim):
