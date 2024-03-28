@@ -1,7 +1,7 @@
 from .BaseModel import BaseModel
 from tqdm import tqdm
 import numpy as np
-from utils import sum, invert, multiply, to_dense, matmul, bool2index
+from utils import sum, invert, multiply, to_dense, matmul, bool_to_index
 from utils import header, record, eval
 from itertools import product
 from scipy.sparse import lil_matrix
@@ -195,8 +195,8 @@ class Panda(BaseModel):
                 continue
 
             # faster T update check by computing cost difference
-            idx_I = bool2index(self.I) # indices of items in itemset
-            idx_T = bool2index(invert(self.T)) # indices of transactions outside T
+            idx_I = bool_to_index(self.I) # indices of items in itemset
+            idx_T = bool_to_index(invert(self.T)) # indices of transactions outside T
             d_fn = -self.X_uncovered[idx_T][:, idx_I].sum(axis=1) # newly added false negatives
             d_fp = self.I.sum() - self.X_covered[idx_T][:, idx_I].sum(axis=1) # newly added false positives
             d_cost = 1 + self.rho * (self.w[0] * d_fn + self.w[1] * d_fp) # cost difference
@@ -233,11 +233,11 @@ class Panda(BaseModel):
             scores = np.zeros(len(self.E))
             for i in range(len(self.E)):
                 T = self.X_uncovered[:, self.E[i]] # T of i-th item in E
-                idx_T = bool2index(T) # indices of transactions
+                idx_T = bool_to_index(T) # indices of transactions
                 scores[i] = sum(self.X_uncovered[idx_T, :], axis=0).sum() # sum of 1 and 2-itemset frequency
             scores = scores - sum(self.X_uncovered[:, self.E], axis=0) # sum of 2-itemset frequency
         elif method == 'correlation':
-            idx_T = bool2index(self.T)
+            idx_T = bool_to_index(self.T)
             scores = sum(self.X_uncovered[idx_T][:, self.E], axis=0)
         elif method == 'prefix-child':
             pass
@@ -252,8 +252,8 @@ class Panda(BaseModel):
         T : (m, 1) boolean spmatrix
         I : (n, 1) boolean spmatrix
         """
-        idx_I = bool2index(I)
-        idx_T = bool2index(T)
+        idx_I = bool_to_index(I)
+        idx_T = bool_to_index(T)
         width, height = I.sum(), T.sum()
         cost_width = self.U.sum() + width
         cost_height = self.V.sum() + height

@@ -12,23 +12,16 @@ class BinaryMFPenalty(BinaryMF):
     Binary Matrix Factorization with Applications
     Algorithms for Non-negative Matrix Factorization
     '''
-    def __init__(self, k, W='mask', reg=2, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='sklearn', seed=None):
+    def __init__(self, k, W='mask', reg=2, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='nmf_sklearn', seed=None):
         '''
         Parameters
         ----------
-        k : int
-        W : np.ndarray, spmatrix or str in {'mask', 'full'}
-            Weight matrix. 
-            For 'mask', it'll use samples in `X_train` (both 1's and 0's) as weight mask. 
-            For 'full', it refers to a full 1's matrix.
         reg : float
             The regularization weight 'lambda' in the paper.
         reg_growth : float
             The growing rate of regularization weight.
         tol : float
             The error tolerance 'epsilon' in the paper.
-        max_iter : int
-        init_method : str
         '''
         self.check_params(k=k, W=W, reg=reg, reg_growth=reg_growth, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
@@ -36,7 +29,7 @@ class BinaryMFPenalty(BinaryMF):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
         self.set_params(['reg_growth', 'init_method'], **kwargs)
-        assert self.init_method in ['sklearn', 'random']
+        assert self.init_method in ['nmf_sklearn', 'nmf', 'normal', 'uniform']
         assert isinstance(self.W, spmatrix) or self.W in ['mask', 'full']
 
 

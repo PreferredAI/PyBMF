@@ -10,23 +10,54 @@ from itertools import product
 
 class BaseModel():
     def __init__(self):
-        raise NotImplementedError("Missing init method.")
+        raise NotImplementedError("This is a template class.")
     
 
     def check_params(self, **kwargs):
         '''Shared parameters called upon model initialization, fitting and evaluation.
 
-        Parameters
-        ----------
+        Model parameters
+        ----------------
+        k : int
+            Rank.
+        W : ndarray, spmatrix or str in {'mask', 'full'}
+            Masking weight matrix. 
+            For 'mask', it'll use all samples in `X_train` (both 1's and 0's) as a mask. 
+            For 'full', it refers to a full 1's matrix.
+        Ws : list of spmatrix, str in {'mask', 'full'}
+            Masking weight matrices.
+        alpha : list of float
+            Importance weights for matrices.
+        lf : float
+            Learning rate.
+        reg : float
+            Regularization weight.
+        tol : float
+            Error tolerance.
+        min_diff : float
+            Minimal difference.
+        max_iter : int
+            Maximal number of iterations.
+        init_method : str
+            Initialization method.
+
+        System parameters
+        -----------------
         task : str, {'prediction', 'reconstruction'}
+            The type of task when evaluating.
         seed : int
+            Model seed.
         display : bool, default: False
+            Switch for visualization.
         verbose : bool, default: False
+            Switch for verbosity.
         scaling : float, default: 1.0
+            Scaling of images in visualization.
         pixels : int, default: 2
+            Resolution of images in visualization.
         '''
         # frequently used
-        self.set_params(['k', 'W', 'lr', 'reg', 'tol', 'min_diff', 'max_iter', 'init_method'], **kwargs)
+        self.set_params(['k', 'W', 'Ws', 'alpha', 'lr', 'reg', 'tol', 'min_diff', 'max_iter', 'init_method'], **kwargs)
         # triggered when it's mentioned in kwargs
         if "task" in kwargs:
             task = kwargs.get("task")
@@ -96,19 +127,18 @@ class BaseModel():
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         """Fit the model to observations, with validation and prediction if necessary.
+
+        Here are the preparations for a normal fitting procedure
         """
         self.check_params(**kwargs)
         self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
         self.init_model()
 
 
-
-
     def _finish(self):
         for log in self.logs.values():
             if isinstance(log, pd.DataFrame):
                 display(log)
-        # self.show_matrix(colorbar=True, discrete=True, center=True, clim=[0, 1], title="result")
     
 
     def load_dataset(self, X_train, X_val=None, X_test=None):

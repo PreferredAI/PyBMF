@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 class BaseCollectiveModel(BaseModel):
     def __init__(self) -> None:
-        raise NotImplementedError("Missing init method.")
+        raise NotImplementedError("This is a template class.")
     
 
     def fit(self, Xs_train, factors, Xs_val=None, Xs_test=None, **kwargs):
@@ -123,7 +123,7 @@ class BaseCollectiveModel(BaseModel):
 
             r_array[m] = m_info + m_results
 
-        w_results = weighted_score(r_array, self.p).flatten()
+        w_results = weighted_score(r_array, self.alpha).flatten()
         h_results = harmonic_score(r_array).flatten()
 
         columns += list(product([name], ['weighted', 'harmonic'], list(info.keys()) + metrics))

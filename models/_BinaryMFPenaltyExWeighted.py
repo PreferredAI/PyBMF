@@ -1,9 +1,9 @@
-from .BinaryMF import BinaryMF
+from .BaseContinuousModel import BaseContinuousModel
 from utils import multiply, binarize
 import numpy as np
 
 
-class BinaryMFPenaltyExWeighted(BinaryMF):
+class BinaryMFPenaltyExWeighted(BaseContinuousModel):
     '''Weighted BMF Penalty algorithm (experimental)
     '''
     def __init__(self, k, reg=None, reg_growth=None, eps=None, max_iter=None):
@@ -17,7 +17,7 @@ class BinaryMFPenaltyExWeighted(BinaryMF):
 
 
     def penalty_algorithm(self):
-        '''An alternative minimization algorithm minimizing J(U, V), or 'J(W, H)' as in BinaryMF paper
+        '''An alternative minimization algorithm minimizing J(U, V), or 'J(W, H)' as in BaseContinuousModel paper
         '''
         errors = []
         n_iter = 0

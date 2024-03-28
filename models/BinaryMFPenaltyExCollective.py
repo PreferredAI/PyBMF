@@ -1,9 +1,9 @@
-from .BinaryMF import BinaryMF
+from .BaseContinuousModel import BaseContinuousModel
 from utils import multiply, binarize
 import numpy as np
 
 
-class BinaryMFPenaltyExt(BinaryMF):
+class BinaryMFPenaltyExt(BaseContinuousModel):
     '''Binary matrix factorization
     
     From the papers:
@@ -21,7 +21,7 @@ class BinaryMFPenaltyExt(BinaryMF):
 
 
     def penalty_algorithm(self):
-        '''An alternative minimization algorithm minimizing J(U, V), or 'J(W, H)' as in BinaryMF paper
+        '''An alternative minimization algorithm minimizing J(U, V), or 'J(W, H)' as in BaseContinuousModel paper
         '''
         errors = []
         n_iter = 0

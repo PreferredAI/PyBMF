@@ -8,31 +8,31 @@ from utils import matmul
 
 
 class Hyper(BaseModel):
-    def __init__(self, alpha):
-        self.check_params(alpha=alpha)
+    def __init__(self, min_support):
+        self.check_params(min_support=min_support)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        if 'alpha' in kwargs:
-            alpha = kwargs.get('alpha')
-            self.alpha = alpha
-            print("[I] alpha        :", self.alpha)
+        self.set_params(['min_support'], **kwargs)
     
 
-    def fit(self, X_train, X_val=None, **kwargs):
-        self.check_params(**kwargs)
-        self.load_dataset(X_train, X_val)
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super().fit(X_train, X_val, X_test, **kwargs)
         self.init_model()
+
+        self._fit()
+
+        self._finish()
+        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
+
+
+    def init_model(self):
+        super().init_model()
 
         self.init_itemsets()
         self.init_transactions()
         self.sort_by_cost()
-
-        self._fit()
-
-        self.evaluate(names=['k'], values=[self.k], df_name='results')
-        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
 
 
     def init_itemsets(self):
@@ -41,12 +41,12 @@ class Hyper(BaseModel):
         I : list of int list
         '''
         X_df = pd.DataFrame.sparse.from_spmatrix(self.X_train.astype(bool))
-        itemsets = apriori(X_df, min_support=self.alpha)
+        itemsets = apriori(X_df, min_support=self.min_support)
         itemsets['length'] = itemsets['itemsets'].apply(lambda x: len(x))
         itemsets = itemsets[itemsets['length'] > 1]
         L = len(itemsets)
         if L == 0:
-            print("[W] No itemset discovered outside singletons. Try to decrease alpha.")
+            print("[W] No itemset discovered outside singletons. Try to decrease min_support.")
         else:
             print(f"[I] Found {L} itemsets, max size: {itemsets['length'].max()}")
         self.I = [[i] for i in range(self.n)]

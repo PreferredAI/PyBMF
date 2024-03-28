@@ -1,7 +1,7 @@
 from .BinaryMF import BinaryMF
 from .BaseModel import BaseModel
 from .NMF import NMF
-from utils import multiply, power, sigmoid, to_dense, dot, add
+from utils import multiply, power, sigmoid, to_dense, dot, add, subtract
 import numpy as np
 from scipy.optimize import line_search
 from scipy.sparse import spmatrix
@@ -14,25 +14,16 @@ class BinaryMFThreshold(BinaryMF):
         'Binary Matrix Factorization with Applications', 
         'Algorithms for Non-negative Matrix Factorization'.
     '''
-    def __init__(self, k, W='mask', u=0.5, v=0.5, lamda=100, min_diff=1e-6, max_iter=100, init_method='sklearn', model=None, seed=None):
+    def __init__(self, k, W='mask', u=0.5, v=0.5, lamda=100, min_diff=1e-6, max_iter=100, init_method='nmf_sklearn', model=None, seed=None):
         '''
         Parameters
         ----------
-        k : int
-        W : np.ndarray, spmatrix or str in {'mask', 'full'}
-            Weight matrix. 
-            For 'mask', it'll use samples in `X_train` (both 1's and 0's) as weight mask. 
-            For 'full', it refers to a full 1's matrix.
         u : float
             Initial threshold for `U`.
         v : float
             Initial threshold for `V`.
         lamda : float
             The 'lambda' in sigmoid function.
-        min_diff : float
-            The minimal step size.
-        max_iter : int
-        init_method : str in ['sklearn', 'random', 'import']
         model : BaseModel
         '''
         self.check_params(k=k, W=W, u=u, v=v, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, model=model, seed=seed)
@@ -41,7 +32,7 @@ class BinaryMFThreshold(BinaryMF):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
         self.set_params(['u', 'v', 'lamda', 'model'], **kwargs)
-        assert self.init_method in ['sklearn', 'random', 'import']
+        assert self.init_method in ['nmf_sklearn', 'nmf', 'normal', 'uniform', 'import']
         assert isinstance(self.W, spmatrix) or self.W in ['mask', 'full']
         if self.init_method == 'import':
             assert isinstance(self.model, BaseModel), "Import a valid model."
@@ -60,7 +51,6 @@ class BinaryMFThreshold(BinaryMF):
         while should_continue:
             xk = x_last # starting point
             pk = p_last # searching direction
-
             pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
             self.print_msg("[I] iter: {}, start: [{:.3f}, {:.3f}], direction: [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
@@ -150,8 +140,8 @@ class BinaryMFThreshold(BinaryMF):
         '''
         u, v = params
         # reconstruction
-        U = sigmoid((to_dense(self.U) - u) * self.lamda)
-        V = sigmoid((to_dense(self.V) - v) * self.lamda)
+        U = sigmoid(subtract(self.U, u) * self.lamda)
+        V = sigmoid(subtract(self.V, v) * self.lamda)
 
         diff = self.X_train - U @ V.T
         F = 0.5 * np.sum(power(multiply(self.W, diff), 2))
@@ -169,8 +159,9 @@ class BinaryMFThreshold(BinaryMF):
         dF : [dF(u, v)/du, dF(u, v)/dv], the ascend direction
         '''
         u, v = params
-        U = sigmoid((to_dense(self.U) - u) * self.lamda)
-        V = sigmoid((to_dense(self.V) - v) * self.lamda)
+        U = sigmoid(subtract(self.U, u) * self.lamda)
+        V = sigmoid(subtract(self.V, v) * self.lamda)
+        
         X_gt = multiply(self.W, self.X_train)
         X_pd = multiply(self.W, U @ V.T)
 
@@ -197,7 +188,7 @@ class BinaryMFThreshold(BinaryMF):
         ----------
         X : X*, sigmoid(X - x) in the paper
         '''
-        diff = to_dense(X) - x
-        num = np.exp(-self.lamda * (to_dense(X) - x)) * self.lamda
+        diff = subtract(X, x)
+        num = np.exp(-self.lamda * subtract(X, x)) * self.lamda
         denom_inv = sigmoid(diff * self.lamda) ** 2
         return num * denom_inv

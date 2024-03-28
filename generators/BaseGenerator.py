@@ -9,7 +9,7 @@ class BaseGenerator:
 
         X = U * V
 
-        X, U, V: np.ndarray | sparse.spmatrix
+        X, U, V: ndarray, spmatrix
             X is an m-by-n data matrix.
             U is an m-by-k factor matrix.
             V is a n-by-k factor matrix.

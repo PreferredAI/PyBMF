@@ -35,8 +35,8 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             if p is None:
                 print("[E] Missing p.")
                 return
-            self.p = p
-            print("[I] p            :", self.p)
+            self.alpha = p
+            print("[I] p            :", self.alpha)
         if not hasattr(self, "n_basis") or "n_basis" in kwargs:
             n_basis = kwargs.get("n_basis")
             if n_basis is None:
@@ -142,7 +142,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                 for f0, f1, m in update_order:
                     self.update_basis(f0, f1, m, k, n_iter)
 
-                    ws_list = weighted_score(scores=self.scores, weights=self.p)
+                    ws_list = weighted_score(scores=self.scores, weights=self.alpha)
                     hs_list = harmonic_score(scores=self.scores)
                     ws = np.max(ws_list)
                     hs = np.max(hs_list)

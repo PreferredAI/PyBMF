@@ -3,7 +3,7 @@ from .common import get_rng, safe_indexing, sigmoid, d_sigmoid, binarize
 
 from .boolean_utils import multiply, dot, matmul, add, subtract, power
 from .generator_utils import shuffle_by_dim, shuffle_matrix, add_noise, reverse_index
-from .sparse_utils import to_dense, to_sparse, to_triplet, check_sparse, sparse_indexing, bool2index, index2bool
+from .sparse_utils import to_dense, to_sparse, to_triplet, check_sparse, sparse_indexing, bool_to_index, index_to_bool
 from .data_utils import summarize, sum, mean, median, sample, sort_order
 
 from .evaluate_utils import get_metrics, record, eval, header
@@ -21,7 +21,7 @@ from .dataframe_utils import log2html, log2latex
 #            'multiply', 'dot', 'matmul', 'add', 'subtract', 
 #            'shuffle_by_dim', 'shuffle_matrix', 'add_noise', 'reverse_index',
 #            'to_dense', 'to_sparse', 'to_triplet', 'check_sparse', 'sparse_indexing', 
-#            'bool2index', 
+#            'bool_to_index', 
 #            'get_metrics', 'invert', 'add_log', 
 #            'TP', 'FP', 'TN', 'FN', 
 #            'TPR', 'FPR', 'TNR', 'FNR', 

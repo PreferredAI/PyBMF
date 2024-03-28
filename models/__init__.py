@@ -38,5 +38,5 @@ from .CMF import  CMF
 #            'AssoOpt',
 #            'AssoIter',
 #            'NMF',
-#            'binaryMF',
+#            'BaseContinuousModel',
 #            'MEBF']

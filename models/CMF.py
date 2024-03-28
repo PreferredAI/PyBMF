@@ -12,26 +12,28 @@ class CMF(BaseCollectiveModel):
     Reference
     ---------
     Relational learning via collective matrix factorization.
+
+    todo: W
     '''
-    def __init__(self, k, p=None, Ws=1, link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
+    def __init__(self, k, alpha=None, Ws=1, link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
         """
         Parameters
         ----------
         k : int
             Rank.
-        p : list of float
+        alpha : list of float
             Importance weights of each matrix.
-        Ws : list of np.ndarray or spmatrix, None or 1, default: 1
+        Ws : list of ndarray or spmatrix, None or 1, default: 1
             When Ws is None, Ws is the same as Xs_train. When Ws is 1, Ws is the same as full 1's matrices.
         init_method : list of str in ['bmf', 'normal', 'uniform']
         link : list of str in ['linear', 'sigmoid']
         """
-        self.check_params(k=k, p=p, Ws=Ws, link=link, lr=lr, reg=reg, tol=tol, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, alpha=alpha, Ws=Ws, link=link, lr=lr, reg=reg, tol=tol, max_iter=max_iter, init_method=init_method, seed=seed)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['k', 'p', 'Ws', 'link', 'lr', 'reg', 'tol', 'max_iter', 'init_method'], **kwargs)
+        self.set_params(['k', 'alpha', 'Ws', 'link', 'lr', 'reg', 'tol', 'max_iter', 'init_method'], **kwargs)
         assert self.init_method in ['bmf', 'normal', 'uniform']
 
 
@@ -129,19 +131,19 @@ class CMF(BaseCollectiveModel):
         reg_error = 0
         for f in self.factor_list:
             for m in self.matrices[f]:
-                p = self.p[m]
+                a = self.alpha[m]
                 U = self.Us[f].flat
-                reg_error += p * self.reg * np.linalg.norm(U) / 2 # l2 norm
+                reg_error += a * self.reg * np.linalg.norm(U) / 2 # l2 norm
 
         rec_error = 0
         for m in range(self.n_matrices):
             X_gt = self.Xs_train[m]
             X_pd = self.Xs_pd[m]
             W = self.Ws[m]
-            p = self.p[m]
+            a = self.alpha[m]
 
             diff = multiply(W, X_gt - X_pd)
-            rec_error += p * np.sum(diff ** 2)
+            rec_error += a * np.sum(diff ** 2)
 
         error = rec_error + reg_error
         return error, rec_error, reg_error
@@ -157,7 +159,7 @@ class CMF(BaseCollectiveModel):
             A[:] = 0
             b[:] = 0
             for m in self.matrices[f]:
-                if self.p[m] == 0:
+                if self.alpha[m] == 0:
                     continue
 
                 if f in self.row_factors:
@@ -176,8 +178,8 @@ class CMF(BaseCollectiveModel):
                         UiVtV = np.dot(sigmoid(UiVt), V)
                         Hes = np.dot(np.multiply(V.T, d_sigmoid(UiVt)), V)
 
-                    A += self.p[m] * Hes
-                    b += self.p[m] * (UiVtV - XiV)
+                    A += self.alpha[m] * Hes
+                    b += self.alpha[m] * (UiVtV - XiV)
 
                 elif f in self.col_factors:
                     X = self.Xs_train[m]
@@ -195,8 +197,8 @@ class CMF(BaseCollectiveModel):
                         UVtU = np.dot(sigmoid(UVt).T, U)
                         Hes = np.dot(np.multiply(U.T, d_sigmoid(UVt)), U)
 
-                    A += self.p[m] * Hes
-                    b += self.p[m] * (UVtU - XiU)
+                    A += self.alpha[m] * Hes
+                    b += self.alpha[m] * (UVtU - XiU)
                 
             if np.all(b == 0):
                 continue

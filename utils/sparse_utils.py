@@ -24,7 +24,7 @@ def to_sparse(X, type='csr'):
 def to_dense(X, squeeze=False, keep_nan=False):
     '''Convert to dense array
     '''
-    if keep_nan and isspmatrix((X)):
+    if keep_nan and issparse(X):
         rows, cols, values = to_triplet(X)
         X = np.empty(shape=X.shape)
         X.fill(np.nan)
@@ -67,12 +67,12 @@ def sparse_indexing(X, indices):
     return X
 
 
-def bool2index(x):
+def bool_to_index(x):
     bool_array = to_dense(x, squeeze=True).astype(bool)
     idx = np.arange(len(bool_array))
     idx = idx[bool_array]
     return idx
 
 
-def index2bool(x):
+def index_to_bool(x):
     pass

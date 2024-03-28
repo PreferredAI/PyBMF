@@ -1,16 +1,18 @@
 from sklearn import decomposition
 from .BaseModel import BaseModel
+from utils import to_sparse
 
 
 class NMFSklearn(BaseModel):
-    def __init__(self, k, init='nndsvd', max_iter=1000, seed=None):
-        self.check_params(k=k, init=init, max_iter=max_iter, seed=seed)
+    '''NMF by scikit-learn.
+    '''
+    def __init__(self, k, init_method='nndsvd', tol=1e-4, max_iter=1000, seed=None):
+        self.check_params(k=k, init_method=init_method, tol=tol, max_iter=max_iter, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['k', 'init', 'max_iter', 'seed'], **kwargs)
-        assert self.init in ['random', 'nndsvd', 'nndsvda', 'nndsvdar', 'custom']
+        assert self.init_method in ['random', 'nndsvd', 'nndsvda', 'nndsvdar', 'custom']
         
     
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
@@ -21,11 +23,11 @@ class NMFSklearn(BaseModel):
     def _fit(self):
         self.model = decomposition.NMF(
             n_components=self.k, 
-            init=self.init, 
+            init=self.init_method, 
             random_state=self.rng, 
             solver="cd",
             beta_loss="frobenius",
-            tol=1e-4,
+            tol=self.tol,
             max_iter=self.max_iter,
             alpha_W=0.0,
             alpha_H="same",
@@ -35,3 +37,5 @@ class NMFSklearn(BaseModel):
         )
         self.U = self.model.fit_transform(self.X_train)
         self.V = self.model.components_.T
+
+        self.U, self.V = to_sparse(self.U), to_sparse(self.V)
