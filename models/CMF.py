@@ -15,7 +15,7 @@ class CMF(BaseCollectiveModel):
 
     todo: W
     '''
-    def __init__(self, k, alpha=None, Ws=1, link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
+    def __init__(self, k, alpha=None, Us=None, Ws=1, link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
         '''
         Parameters
         ----------
@@ -28,7 +28,7 @@ class CMF(BaseCollectiveModel):
         init_method : list of str in ['bmf', 'normal', 'uniform']
         link : list of str in ['linear', 'sigmoid']
         '''
-        self.check_params(k=k, alpha=alpha, Ws=Ws, link=link, lr=lr, reg=reg, tol=tol, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, alpha=alpha, Us=Us, Ws=Ws, link=link, lr=lr, reg=reg, tol=tol, max_iter=max_iter, init_method=init_method, seed=seed)
 
 
     def check_params(self, **kwargs):
