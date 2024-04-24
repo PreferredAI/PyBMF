@@ -44,7 +44,7 @@ def compute_factorization_error(target, left_factor, right_factor, link, beta_lo
 
 
 class _IterativeCMFSolver:
-    """Boilerplate for iterative solvers (mu and newton)
+    '''Boilerplate for iterative solvers (mu and newton)
         Implement the update_step method in concrete subclasses to use.
         Parameters
         ----------
@@ -95,7 +95,7 @@ class _IterativeCMFSolver:
 
         hessian_pertubation: double, default: 0.2
             The pertubation to the Hessian in the newton solver to maintain positive definiteness
-        """
+        '''
     def __init__(self, max_iter=200, tol=1e-4, beta_loss="frobenius",
                  l1_reg=0, l2_reg=0, alpha=0.5, verbose=0,
                  U_non_negative=True, V_non_negative=True, Z_non_negative=True,
@@ -123,7 +123,7 @@ class _IterativeCMFSolver:
             np.random.seed(random_state)
 
     def update_step(self, X, Y, U, V, Z, l1_reg, l2_reg, alpha):
-        """A single update step for all the matrices in the factorization."""
+        '''A single update step for all the matrices in the factorization.'''
         raise NotImplementedError("Implement in concrete subclass to use")
 
     def compute_error(self, X, Y, U, V, Z):
@@ -131,7 +131,7 @@ class _IterativeCMFSolver:
                (1 - self.alpha) * compute_factorization_error(Y, V, Z.T, self.y_link, self.beta_loss)
 
     def fit_iterative_update(self, X, Y, U, V, Z):
-        """Compute CMF with iterative methods.
+        '''Compute CMF with iterative methods.
         The objective function is minimized with an alternating minimization of U, V
         and Z. Regularly prints error and stops update when improvement stops.
 
@@ -162,7 +162,7 @@ class _IterativeCMFSolver:
 
         n_iter : int
             The number of iterations done by the algorithm.
-        """
+        '''
         start_time = time.time()
         # TODO: handle beta loss other than fnorm
 
@@ -213,7 +213,7 @@ class _IterativeCMFSolver:
 
 
 class MUSolver(_IterativeCMFSolver):
-    """Internal solver that solves by iteratively multiplying the matrices element wise.
+    '''Internal solver that solves by iteratively multiplying the matrices element wise.
     The multiplying factors are always positive, meaning this solver can only return positive matrices.
 
     References
@@ -224,7 +224,7 @@ class MUSolver(_IterativeCMFSolver):
     Lee, D., & Seung, H. (2001). Algorithms for non-negative matrix factorization.
     Advances in Neural Information Processing Systems, (1), 556–562.
     https://doi.org/10.1109/IJCNN.2008.4634046
-    """
+    '''
 
     @classmethod
     def _regularized_delta(cls, numerator, denominator, l1_reg, l2_reg, gamma, H):
@@ -283,7 +283,7 @@ class MUSolver(_IterativeCMFSolver):
 if USE_CYTHON:
     pass
     # class NewtonSolver(_IterativeCMFSolver):
-    #     """Internal solver that solves using the Newton-Raphson method.
+    #     '''Internal solver that solves using the Newton-Raphson method.
     #     Updates each row independently using a Newton-Raphson step. Can handle various link functions and settings.
     #     The gradient and Hessian are computed based on the residual between the target and the estimate.
     #     Computing the entire target/estimate can be memory intensive, so the option to compute the residual
@@ -294,7 +294,7 @@ if USE_CYTHON:
     #     Singh, A. P., & Gordon, G. J. (2008). Relational learning via collective matrix factorization.
     #     Proceeding of the 14th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining
     #     KDD 08, 650. https://doi.org/10.1145/1401890.1401969
-    #     """
+    #     '''
     #     def fit_iterative_update(self, X, Y, U, V, Z):
     #         # handle memory ordering and format issues for speed up
     #         X_ = X.tocsr() if issparse(X) else np.ascontiguousarray(X) if X is not None else X
@@ -335,7 +335,7 @@ if USE_CYTHON:
 
 else:
     class NewtonSolver(_IterativeCMFSolver):
-        """Default implementation when Cython cannot be used."""
+        '''Default implementation when Cython cannot be used.'''
         @classmethod
         def _row_newton_update(cls, M, idx, dM, ddM_inv,
                                eta=1., non_negative=True):
@@ -362,8 +362,8 @@ else:
             return features_sampled, target_sampled
 
         def _safe_invert(self, M):
-            """Computed according to reccomendations of
-            http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+            '''Computed according to reccomendations of
+            http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
             if scipy.sparse.issparse(M):
                 eigs, V = scipy.sparse.linalg.eigsh(M)
             else:
@@ -374,7 +374,7 @@ else:
             return np.dot(np.dot(V, np.diag(1 / eigs)), V.T)
 
         def _force_flatten(self, v):
-            """Forcibly flattens an indexed row or column of a matrix or sparse matrix"""
+            '''Forcibly flattens an indexed row or column of a matrix or sparse matrix'''
             if np.ndim(v) > 1:
                 if issparse(v):
                     v_ = v.toarray()
@@ -388,7 +388,7 @@ else:
                 return v.flatten()
 
         def _residual(self, left, right, target, link):
-            """Computes residual:
+            '''Computes residual:
                 inverse(left @ right, link) - target
             The number of dimensions of the residual and estimate will be the same.
             This is necessary because the indexing behavior of np.ndarrays and scipy sparse matrices are different.
@@ -401,7 +401,7 @@ else:
                 (2,)
                 >>> B[:, 0].shape
                 (2, 1)
-            """
+            '''
             estimate = inverse(np.dot(left, right), link)
             ground_truth = target
             if issparse(target) and np.ndim(estimate) == 1:

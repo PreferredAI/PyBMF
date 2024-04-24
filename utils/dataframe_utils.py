@@ -12,7 +12,7 @@ def log2html(model, df_name, file_path=r'..\logs', file_name=None, browser_path=
     '''Display a dataframe in HTML.
     '''
 
-    html_head = """<!DOCTYPE html>
+    html_head = '''<!DOCTYPE html>
 <html>
 <head>
   <style>
@@ -35,11 +35,11 @@ def log2html(model, df_name, file_path=r'..\logs', file_name=None, browser_path=
   </style>
 </head>
 <body>
-"""
+'''
 
-    html_tail = """
+    html_tail = '''
 </body>
-"""
+'''
 
     html = model.logs[df_name].to_html()
     html = html_head + html + html_tail
@@ -61,19 +61,19 @@ def log2latex(model, df_name, file_path=r'..\logs', file_name=None, browser_path
     geometry = f"[left=20px,right=10px,top=10px,bottom=20px,paperwidth={width}in,paperheight={height}in]"
     file_name = _make_name(model, file_name)
 
-    latex_head = r"""\documentclass{article}
+    latex_head = r'''\documentclass{article}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{lscape}
 \usepackage[table]{xcolor}
-\usepackage""" + geometry + r"""{geometry}
-\title{""" + file_name + r"""}
+\usepackage''' + geometry + r'''{geometry}
+\title{''' + file_name + r'''}
 \begin{document}
-"""
+'''
 
-    latex_tail = r"""
+    latex_tail = r'''
 \end{document}
-"""
+'''
 
     latex = model.logs[df_name].style.highlight_max(props='cellcolor:[HTML]{FFFF00}; color:{red};')
     latex = latex.to_latex(hrules=False, clines="skip-last;data", multicol_align='c')
@@ -99,7 +99,7 @@ def log2latex(model, df_name, file_path=r'..\logs', file_name=None, browser_path
         _open_html(full_path, browser_path)
 
 
-def _make_name(model, file_name, format="%d-%m-%y_%I-%M-%S_"):
+def _make_name(model, file_name=None, format="%d-%m-%y_%I-%M-%S_"):
     if file_name is None:
         file_name = str(type(model))
         file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', file_name)[-3]

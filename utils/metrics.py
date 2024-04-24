@@ -6,9 +6,9 @@ from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_sc
 
 
 def get_metrics(gt, pd, metrics, axis=None):
-    """Get results of the metrics all at once.
+    '''Get results of the metrics all at once.
 
-    Metrics from sklearn.metrics are included as sanity check. Their input must be binary ``array``, which makes them slow and less flexible.
+    Metrics from sklearn.metrics are included as sanity check. Their input must be binary `array`, which makes them slow and less flexible.
 
     Parameters
     ----------
@@ -25,7 +25,7 @@ def get_metrics(gt, pd, metrics, axis=None):
     Returns
     -------
     results : list
-    """
+    '''
     if np.isnan(to_dense(pd, squeeze=True)).any():
         raise TypeError("NaN is found in prediction.")
 
@@ -60,7 +60,7 @@ def TP(gt, pd, axis=None):
 
 def FP(gt, pd, axis=None):
     diff = pd - gt
-    if issparse(gt):
+    if issparse(diff):
         s = diff.maximum(0).sum(axis=axis)
         return np.array(s).squeeze()
     else:
@@ -77,41 +77,41 @@ def FN(gt, pd, axis=None):
 
 
 def TPR(gt, pd, axis=None):
-    """sensitivity, recall, hit rate, or true positive rate
-    """
+    '''sensitivity, recall, hit rate, or true positive rate
+    '''
     denom = gt.sum(axis=axis)
     return TP(gt, pd, axis=axis) / denom if denom > 0 else 0
 
 
 def TNR(gt, pd, axis=None):
-    """specificity, selectivity or true negative rate
-    """
+    '''specificity, selectivity or true negative rate
+    '''
     denom = invert(gt).sum(axis=axis)
     return TN(gt, pd, axis=axis) / denom if denom > 0 else 0
 
 
 def FPR(gt, pd, axis=None):
-    """fall-out or false positive rate
-    """
+    '''fall-out or false positive rate
+    '''
     return 1 - TNR(gt, pd, axis=axis)
 
 
 def FNR(gt, pd, axis=None):
-    """miss rate or false negative rate
-    """
+    '''miss rate or false negative rate
+    '''
     return 1 - TPR(gt, pd, axis=axis)
 
 
 def PPV(gt, pd, axis=None):
-    """precision or positive predictive value
-    """
+    '''precision or positive predictive value
+    '''
     denom = pd.sum(axis=axis)
     return TP(gt, pd, axis=axis) / denom if denom > 0 else 0
 
 
 def ACC(gt, pd, axis=None):
-    """Accuracy.
-    """
+    '''Accuracy.
+    '''
     if len(pd.shape) == 2:
         n = pd.shape[0] * pd.shape[1] if axis is None else pd.shape[axis]
     else:
@@ -120,19 +120,19 @@ def ACC(gt, pd, axis=None):
 
 
 def ERR(gt, pd, axis=None):
-    """Error rate.
-    """
+    '''Error rate.
+    '''
     return 1 - ACC(gt, pd, axis)
 
 
 def F1(gt, pd, axis=None):
-    """F1 score.
+    '''F1 score.
 
     tp = TP(gt, pd, axis)
     fp = FP(gt, pd, axis)
     fn = FN(gt, pd, axis)
     return 2 * tp / (2 * tp + fp + fn)
-    """
+    '''
     precision = PPV(gt, pd, axis)
     recall = TPR(gt, pd, axis)
     denom = precision + recall
@@ -167,14 +167,15 @@ def cover(gt, pd, w, axis=None):
     if w >= 1 and axis is not None:
         to_be_covered = np.asarray(gt.sum(axis=axis)).squeeze()
         n_all = gt.shape[axis]
-        score = covered * n_all - w * multiply(to_be_covered, c_all)
+        # score = covered * n_all - w * multiply(to_be_covered, c_all)
     elif w >= 1 and axis is None:
         to_be_covered = gt.sum()
         n_all = gt.shape[0] * gt.shape[1]
-        score = covered * n_all - w * to_be_covered * c_all
+        # score = covered * n_all - w * to_be_covered * c_all
     else:
         score = (1 - w) * covered - w * overcovered
-    # print(score.shape if isinstance(score, np.ndarray) else score)
+    # print(axis, w)
+    # print(type(gt), type(pd), gt.shape, pd.shape, covered.shape, overcovered.shape, score.shape)
     return score
 
 

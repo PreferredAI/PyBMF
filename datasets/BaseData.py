@@ -7,7 +7,7 @@ from scipy.sparse import lil_matrix, csr_matrix
 
 class BaseData:
     def __init__(self, path=None):
-        """Built-in datasets
+        '''Built-in datasets
 
         for single-matrix dataset:
             X:
@@ -26,7 +26,7 @@ class BaseData:
             factor_info:
                 list of factor info
                 e.g., [user_info, movie_info, genre_info, cast_info]
-        """
+        '''
         self.X, self.Xs, self.factors, self.factor_info = None, None, None, None
         self.is_single, self.name = None, None
 

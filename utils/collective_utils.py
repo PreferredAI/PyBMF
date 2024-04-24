@@ -3,7 +3,7 @@ import numpy as np
 
 
 def get_factor_list(factors):
-    """Get sorted factor list.
+    '''Get sorted factor list.
 
     Parameters
     ----------
@@ -16,7 +16,7 @@ def get_factor_list(factors):
     -------
     factor_list : list
         List of sorted factor ids.
-    """    
+    '''    
     factor_list = []
     for f in factors:
         factor_list.extend(f)
@@ -69,8 +69,8 @@ def get_factor_starts(Xs, factors):
 
 
 def get_dummy_factor_info(Xs, factors):
-    """Get dummy factor_info for collective matrices.
-    """
+    '''Get dummy factor_info for collective matrices.
+    '''
     factor_list = get_factor_list(factors)
     factor_dims = get_factor_dims(Xs, factors)
     factor_info = []

@@ -24,13 +24,20 @@ class AssoOpt(Asso):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['model', 'w'], **kwargs)
+        
+        # weight to use for refinement
+        self.set_params(['w'], **kwargs)
+        # model to import
+        if 'model' in kwargs:
+            model = kwargs.get('model')
+            self.import_model(k=model.k, U=model.U, V=model.V, logs=model.logs)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         super(Asso, self).fit(X_train, X_val, X_test, **kwargs)
+
         self._fit()
-        self._finish()
+        self.finish()
 
 
     def init_model(self):

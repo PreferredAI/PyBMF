@@ -24,7 +24,7 @@ def get_rng(seed, rng):
 
 
 def safe_indexing(X, indices):
-    """Return items or rows from X using indices
+    '''Return items or rows from X using indices
 
     Allows simple indexing of lists or arrays.
     Modified from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/__init__.py
@@ -40,7 +40,7 @@ def safe_indexing(X, indices):
     -------
     subset
         Subset of X on first axis
-    """
+    '''
     if hasattr(X, "shape"):
         if hasattr(X, 'take') and (hasattr(indices, 'dtype') and indices.dtype.kind == 'i'):
             # This is often substantially faster than X[indices]
@@ -55,7 +55,7 @@ def safe_indexing(X, indices):
     
 
 def binarize(X, threshold=0.5):
-    """To binarize a matrix. Also known as Heaviside step function.
+    '''To binarize a matrix. Also known as Heaviside step function.
 
     Parameters
     ----------
@@ -65,7 +65,7 @@ def binarize(X, threshold=0.5):
     Returns
     -------
     result : int ndarray, spmatrix
-    """
+    '''
     Y = (X >= threshold).astype(int)
     if isinstance(X, spmatrix):
         Y = to_sparse(Y, type=X.format)
@@ -75,6 +75,8 @@ def binarize(X, threshold=0.5):
 def sigmoid(X):
     '''Sigmoid function
     '''
+    X = X.astype(float)
+    X[X == 0] = 1e-9
     Y = 1.0 / (1.0 + np.exp(-X))
     return Y
 

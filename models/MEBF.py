@@ -10,7 +10,7 @@ class MEBF(BaseModel):
     From the paper 'Fast And Efficient Boolean Matrix Factorization By Geometric Segmentation'.
     '''
     def __init__(self, k=None, t=None, w=None) -> None:
-        """
+        '''
         k:
             suggested rank.
         t:
@@ -20,7 +20,7 @@ class MEBF(BaseModel):
             w[0]: reward the covered true-positives.
             w[1]: penalize the over-covered false-positives.
             this is not included in the original paper, which is equivalent to the default w = [1, 1].
-        """
+        '''
         self.check_params(k=k, t=t, w=w)
 
 
@@ -89,8 +89,8 @@ class MEBF(BaseModel):
 
 
     def bidirectional_growth(self):
-        """Bi-directional growth algorithm
-        """
+        '''Bi-directional growth algorithm
+        '''
         u_0, v_0 = self.get_factor(axis=0)
         d_cost_0 = self.get_factor_cost(u_0, v_0)
         
@@ -104,8 +104,8 @@ class MEBF(BaseModel):
 
 
     def weak_signal_detection(self):
-        """Weak signal detection algorithm
-        """
+        '''Weak signal detection algorithm
+        '''
         u_0, v_0 = self.get_weak_signal(axis=0)
         d_cost_0 = self.get_factor_cost(u_0, v_0)
         
@@ -119,8 +119,8 @@ class MEBF(BaseModel):
 
 
     def get_factor_cost(self, u, v):
-        """Get the difference of cost d_cost given the new pattern
-        """
+        '''Get the difference of cost d_cost given the new pattern
+        '''
         pattern = matmul(u, v.T, sparse=True, boolean=True).astype(bool)
         tp = self.X_res[pattern].sum() # covered
         fp = pattern.sum() - self.X_cover[pattern].sum() # over-covered
@@ -130,13 +130,13 @@ class MEBF(BaseModel):
     
     
     def get_factor(self, axis):
-        """Get factor for bi-directional growth
+        '''Get factor for bi-directional growth
 
         axis:
             0, sort cols, find middle u and grow on v
             1, sort rows, find middle v and grow on u
         a, b: np.matrix
-        """
+        '''
         scores = sum(X=self.X_res, axis=axis)
         idx = np.flip(np.argsort(scores)).astype(int)
         idx = idx[scores > 0]
@@ -153,13 +153,13 @@ class MEBF(BaseModel):
     
 
     def get_weak_signal(self, axis):
-        """Get factor for weak signal detection
+        '''Get factor for weak signal detection
 
         axis:
             0, find u and grow on v
             1, find v and grow on u
         a, b: np.matrix
-        """
+        '''
         scores = sum(X=self.X_res, axis=axis)
         idx = np.flip(np.argsort(scores)).astype(int)
         first, second = idx[0], idx[1]

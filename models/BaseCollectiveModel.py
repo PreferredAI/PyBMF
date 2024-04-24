@@ -15,15 +15,15 @@ class BaseCollectiveModel(BaseModel):
     
 
     def fit(self, Xs_train, factors, Xs_val=None, Xs_test=None, **kwargs):
-        """Fit the model to observations, with validation and prediction if necessary.
-        """
+        '''Fit the model to observations, with validation and prediction if necessary.
+        '''
         self.check_params(**kwargs)
         self.load_dataset(Xs_train, factors, Xs_val, Xs_test)
         self.init_model()
         
         
     def load_dataset(self, Xs_train, factors, Xs_val=None, Xs_test=None):
-        """Load train and val data.
+        '''Load train and val data.
 
         For matrices that are modified frequently, lil (LIst of List) or coo is preferred.
         For matrices that are not modified, csr or csc is preferred.
@@ -38,7 +38,7 @@ class BaseCollectiveModel(BaseModel):
             List of Boolean matrices for validation. It should have the same length of `Xs_train`.
         Xs_test : list of np.ndarray, spmatrix and None, optional
             List of Boolean matrices for testing. It should have the same length of `Xs_train`.
-        """
+        '''
         if Xs_train is None:
             raise TypeError("Missing training data.")
         if factors is None:
@@ -65,8 +65,8 @@ class BaseCollectiveModel(BaseModel):
         
 
     def init_model(self):
-        """The collective wrapper for `BaseModel.init_model()`.
-        """        
+        '''The collective wrapper for `BaseModel.init_model()`.
+        '''        
         if not hasattr(self, 'Us'):
             self.Us = [lil_matrix(np.zeros((dim, self.k))) for dim in self.factor_dims]
 
@@ -75,10 +75,10 @@ class BaseCollectiveModel(BaseModel):
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
-        """The show_matrix() wrapper for CMF models.
+        '''The show_matrix() wrapper for CMF models.
 
         If `settings` is None, show the factors and their boolean product.
-        """
+        '''
         scaling = self.scaling if scaling is None else scaling
         pixels = self.pixels if pixels is None else pixels
 
@@ -96,8 +96,38 @@ class BaseCollectiveModel(BaseModel):
 
         for i, factors in enumerate(self.factors):
             a, b = factors
-            X = matmul(U=Us[a], V=Us[b].T, boolean=boolean, sparse=True)
+            X = matmul(U=Us[a], V=Us[b].T, boolean=boolean, sparse=None)
             self.Xs_pd[i] = X
+
+
+    def evaluate(self, df_name, 
+            head_info={}, train_info={}, val_info={}, test_info={}, 
+            metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
+            train_metrics=None, val_metrics=None, test_metrics=None):
+        '''Evaluate a CMF model on the given train, val and test daatset.
+        '''
+        train_metrics = metrics if train_metrics is None else train_metrics
+        val_metrics = metrics if val_metrics is None else val_metrics
+        test_metrics = metrics if test_metrics is None else test_metrics
+
+        columns = header(list(head_info.keys()), levels=3)
+        results = list(head_info.values())
+
+        c, r = self._evaluate('train', train_info, train_metrics)
+        columns += c
+        results += r
+
+        if self.Xs_val is not None:
+            c, r = self._evaluate('val', val_info, val_metrics)
+            columns += c
+            results += r
+            
+        if self.Xs_test is not None:
+            c, r = self._evaluate('test', test_info, test_metrics)
+            columns += c
+            results += r
+        
+        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)
 
 
     def _evaluate(self, name, info, metrics):
@@ -107,7 +137,7 @@ class BaseCollectiveModel(BaseModel):
         ----------
         name : str in ['train', 'val', 'test']
         info : dict of list
-            If a value in the ``dict`` is a ``list``, and the length equals `n_matrices`, the values in the ``list`` will be assigned to the head of each matrix in the dataset. Make sure the order matches the order of matrices.
+            If a value in the `dict` is a `list`, and the length equals `n_matrices`, the values in the `list` will be assigned to the head of each matrix in the dataset. Make sure the order matches the order of matrices.
         metrics : list of str
         '''
         columns, results = [], []

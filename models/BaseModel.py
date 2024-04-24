@@ -6,154 +6,102 @@ from scipy.sparse import lil_matrix
 from itertools import product
 import pandas as pd
 from itertools import product
+from .BaseTools import BaseTools
 
 
-class BaseModel():
-    def __init__(self):
-        raise NotImplementedError("This is a template class.")
+class BaseModel(BaseTools):
+    '''The base class for all MF models.    
+    '''
+    def __init__(self, **kwargs):
+        '''Initialize the model with parameters.
+        '''
+        self.check_params(**kwargs)
+        raise NotImplementedError('This is a template class.')
     
 
     def check_params(self, **kwargs):
-        '''Shared parameters called upon model initialization, fitting and evaluation.
+        '''Check parameters upon model initialization and fitting.
 
-        Model parameters
-        ----------------
-        k : int
-            Rank.
-        W : ndarray, spmatrix or str in {'mask', 'full'}
-            Masking weight matrix. 
-            For 'mask', it'll use all samples in `X_train` (both 1's and 0's) as a mask. 
-            For 'full', it refers to a full 1's matrix.
-        Ws : list of spmatrix, str in {'mask', 'full'}
-            Masking weight matrices.
-        alpha : list of float
-            Importance weights for matrices.
-        lf : float
-            Learning rate.
-        reg : float
-            Regularization weight.
-        tol : float
-            Error tolerance.
-        min_diff : float
-            Minimal difference.
-        max_iter : int
-            Maximal number of iterations.
-        init_method : str
-            Initialization method.
+        Model parameters are those frequently used when initializing the model.
+        For now, they are: 'k', 'W', 'Ws', 'alpha', 'lr', 'reg', 'tol', 'min_diff', 'max_iter', 'init_method'.
+        For the extra parameters you need, you can wrap this method into your own `check_params()`.
 
-        System parameters
-        -----------------
-        task : str, {'prediction', 'reconstruction'}
-            The type of task when evaluating.
-        seed : int
-            Model seed.
-        display : bool, default: False
-            Switch for visualization.
-        verbose : bool, default: False
-            Switch for verbosity.
-        scaling : float, default: 1.0
-            Scaling of images in visualization.
-        pixels : int, default: 2
-            Resolution of images in visualization.
+        System configurations are those involved when calling the `fit()` method.
+        They controls the random seed generator and the verbosity and display settings.
+        They also identify the type of task the model is dealing with, which affects the evaluation procedure.
+        
+        E.g. in your model class, you can do:
+        .. code-block:: python
+            def __init__(self, k, W, alpha):
+                self.check_params(k=k, W=W, alpha=alpha)
+
+            def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+                self.check_params(**kwargs)
+
+            model.fit(X_train, X_val, X_test, seed=2024, task='prediction', verbose=False, display=True)
         '''
-        # frequently used
-        self.set_params(['k', 'W', 'Ws', 'alpha', 'lr', 'reg', 'tol', 'min_diff', 'max_iter', 'init_method'], **kwargs)
-        # triggered when it's mentioned in kwargs
-        if "task" in kwargs:
-            task = kwargs.get("task")
-            assert task in ['prediction', 'reconstruction'], "Eval task must be 'prediction' or 'reconstruction'."
-            self.task = task
-            print("[I] task         :", self.task)
-        if "seed" in kwargs:
-            seed = kwargs.get("seed")
-            if seed is None and not hasattr(self,'seed'):
-                # use time as self.seed
-                seed = int(time.time())
-                self.seed = seed
-                self.rng = np.random.RandomState(seed)
-                print("[I] seed         :", self.seed)
-            elif seed is not None:
-                # overwrite self.seed
-                self.seed = seed
-                self.rng = np.random.RandomState(seed)
-                print("[I] seed         :", self.seed)
-            else:
-                # self.rng remains unchanged
-                pass
-        # triggered upon initialization
-        if not hasattr(self, 'verbose'):
-            self.verbose = False
-            print("[I] verbose      :", self.verbose)
-        if not hasattr(self, 'display'):
-            self.display = False
-            print("[I] display      :", self.display)
-        # triggered when it's getting changed
-        if "verbose" in kwargs:
-            verbose = kwargs.get("verbose")
-            if verbose != self.verbose:
-                self.verbose = verbose
-                print("[I] verbose      :", self.verbose)
-        if "display" in kwargs:
-            display = kwargs.get("display")
-            if display != self.display:
-                self.display = display
-                print("[I] display      :", self.display)
-        # triggered no matter if it's mantioned or not
-        if "scaling" in kwargs and self.display:
-            self.scaling = kwargs.get("scaling")
-            print("[I]   scaling    :", self.scaling)
-        else:
-            self.scaling = 1.0
-        if "pixels" in kwargs and self.display:
-            self.pixels = kwargs.get("pixels")
-            print("[I]   pixels     :", self.pixels)
-        else:
-            self.pixels = 2
-
-
-    def set_params(self, params, **kwargs):
-        '''Set parameters without checking.
-
-        Parameters
-        ----------
-        params : str or list of str
-        '''
-        for param in list(params):
-            if param in kwargs:
-                value = kwargs.get(param)
-                setattr(self, param, value)
-                print("[I] {:<12} : {}".format(param, value.shape if hasattr(value, 'shape') else value))
+        self.set_params(['k', 'U', 'V', 'Us', 'W', 'Ws', 'alpha', 'lr', 'reg', 'tol', 'min_diff', 'max_iter', 'init_method'], **kwargs)
+        self.set_config(**kwargs)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
-        """Fit the model to observations, with validation and prediction if necessary.
+        '''Fit the model to observations, with validation and prediction (experimental).
 
-        Here are the preparations for a normal fitting procedure
-        """
+        The default preparations for a fitting procedure, followed by `_fit()` and `finish()`.
+        Simply overwrite this method if you want to drop any parts or include more procedures.
+        '''
         self.check_params(**kwargs)
         self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
         self.init_model()
+        # attach these in your models:
+        # self._fit()
+        # self.finish()
 
 
-    def _finish(self):
-        for log in self.logs.values():
-            if isinstance(log, pd.DataFrame):
-                display(log)
-    
+    def init_model(self):
+        '''Initialize the model.
+
+        The default initialization procedure.
+        Simply overwrite this method if you want to drop any parts or include more procedures.
+        E.g. when you choose to import the factors from another model.
+        '''
+        self._init_factors()
+        self._init_logs()
+
+
+    def _fit(self):
+        '''Where the tedious fitting procedure takes place.
+        '''
+        raise NotImplementedError('This is a template method.')
+
+
+    def finish(self, show_logs=True, show_matrix=True, save_model=True):
+        '''Called when the fitting is over.
+
+        The default finishing procedure.
+        Simply overwrite this method if you want to drop any parts or include more procedures.
+        You can attach this to the end of `fit()` or simply call from outside.
+        '''
+        self._show_logs()
+        self._show_matrix()
+        self._save_model()
+
 
     def load_dataset(self, X_train, X_val=None, X_test=None):
-        """Load train and validation data.
+        '''Load train and validation data.
 
         For matrices that are modified frequently, lil (LIst of List) or coo is preferred.
         For matrices that are not getting modified, csr or csc is preferred.
 
+        Parameters
+        ----------
         X_train : array, spmatrix
             Data for matrix factorization.
         X_val : array, spmatrix
             Data for model selection.
         X_test : ndarray, spmatrix
             Data for prediction.
-        """
+        '''
         if X_train is None:
             raise TypeError("Missing training data.")
         if X_val is None:
@@ -168,70 +116,9 @@ class BaseModel():
         self.m, self.n = self.X_train.shape
 
 
-    def import_model(self, **kwargs):
-        """Import or inherit variables and parameters from another model.
-        """
-        for attr in kwargs:
-            setattr(self, attr, kwargs.get(attr))
-            action = "Overwrote" if hasattr(self, attr) else "Imported"
-            self.print_msg("{} model parameter: {}".format(action, attr))
-
-
-    def init_model(self):
-        """Initialize factors and logging variables.
-
-        logs : dict
-            The ``dict`` containing the logging data recorded in ``dataframe``, ``array`` or ``list``.
-        """
-        if not hasattr(self, 'U') or not hasattr(self, 'V'):
-            self.U = lil_matrix(np.zeros((self.m, self.k)))
-            self.V = lil_matrix(np.zeros((self.n, self.k)))
-
-        if not hasattr(self, 'logs'):
-            self.logs = {}
-
-
-    def early_stop(self, error=None, diff=None, n_iter=None):
-        """Early stop detection.
-        """
-        should_continue = True
-
-        if error is not None and hasattr(self, 'tol') and error < self.tol:
-            self._early_stop("Error lower than tolerance")
-            should_continue = False
-        if n_iter is not None and hasattr(self, 'max_iter') and n_iter > self.max_iter:
-            self._early_stop("Reach maximum iteration")
-            should_continue = False
-        if diff is not None and hasattr(self, 'min_diff') and diff < self.min_diff:
-            self._early_stop("Difference lower than threshold")
-            should_continue = False
-
-        return should_continue
-        
-
-    def _early_stop(self, msg: str, k: int=None):
-        '''To deal with early covergence or stop.
-
-        Parameters
-        ----------
-        msg : str
-            The message to be displayed.
-        k : int, optional
-            The number of factors obtained.
-        '''
-        print("[W] Stopped in advance: " + msg)
-        if k is not None:
-            print("[W]   got {} factor(s).".format(k))
-            self.U = self.U[:, :k]
-            self.V = self.V[:, :k]
-    
-    
-    def print_msg(self, msg, type='I'):
-        if self.verbose:
-            print("[{}] {}".format(type, msg))
-
-
     def predict_X(self, U=None, V=None, u=None, v=None, boolean=True):
+        '''Update `X_pd`.
+        '''
         U = self.U if U is None else U
         V = self.V if V is None else V
         U = binarize(U, u) if u is not None else U
@@ -240,10 +127,10 @@ class BaseModel():
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
-        """The show_matrix() wrapper for BMF models.
+        '''The show_matrix() wrapper for BMF models.
 
-        If `settings` is missing, show the factors and their boolean product.
-        """
+        If the `settings` is missing, show the factors and their boolean product by default.
+        '''
         scaling = self.scaling if scaling is None else scaling
         pixels = self.pixels if pixels is None else pixels
 
@@ -262,7 +149,7 @@ class BaseModel():
         Parameters
         ----------
         df_name : str
-            The name of ``dataframe`` to record with.
+            The name of `dataframe` to record with.
         head_info : dict
             The names and values of shared information at the head of each record.
         train_info : dict

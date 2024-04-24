@@ -3,12 +3,12 @@ from .BaseGenerator import BaseGenerator
     
 
 class BlockMatrixGenerator(BaseGenerator):
-    """Arbitrary Boolean matrix
+    '''Arbitrary Boolean matrix
     
     This generation procedure produces factor matrices U and V with C1P (contiguous-1 property)
     The factors form a arbitrarily placed block matrix with or without overlap
     The matrix is sorted by nature upon generation
-    """
+    '''
     def __init__(self, m=None, n=None, k=None, overlap_flag=None, size_range=None):
         super().__init__()
         self.check_params(m=m, n=n, k=k, overlap_flag=overlap_flag, size_range=size_range)

@@ -14,7 +14,7 @@ class Asso(BaseModel):
     The discrete basis problem. Zhang et al. 2007.
     '''
     def __init__(self, k, tau, w):
-        """
+        '''
         Parameters
         ----------
         k : int
@@ -23,7 +23,7 @@ class Asso(BaseModel):
             The binarization threshold when building basis.
         w : float in [0, 1]
             The lower bound of true positive ratio.
-        """
+        '''
         self.check_params(k=k, tau=tau, w=w)
 
 
@@ -36,7 +36,7 @@ class Asso(BaseModel):
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
-        self._finish()
+        self.finish()
 
 
     def init_model(self):
@@ -48,8 +48,8 @@ class Asso(BaseModel):
         self.basis = self.build_basis(assoc=self.assoc, tau=self.tau)
 
         if self.verbose:
-            self.show_matrix([(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')], 
-                colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
+            settings = [(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')]
+            self.show_matrix(settings, colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
 
 
     @staticmethod
@@ -160,7 +160,7 @@ class Asso(BaseModel):
         vector = lil_matrix(np.ones((1, X_gt.shape[vector_dim])))
         pattern = matmul(basis.T, vector, sparse=True, boolean=True)
         pattern = pattern if basis_dim == 0 else pattern.T
-        X_new = add(X_old, pattern)
+        X_new = add(X_old, pattern, sparse=True, boolean=True)
         s_new = cover(gt=X_gt, pd=X_new, w=w, axis=basis_dim)
 
         vector = lil_matrix(np.array(s_new > s_old, dtype=int))

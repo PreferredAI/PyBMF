@@ -3,12 +3,12 @@ from .BaseGenerator import BaseGenerator
 
 
 class BlockDiagonalMatrixGenerator(BaseGenerator):
-    """Block diagonal Boolean matrix 
+    '''Block diagonal Boolean matrix 
 
     This generation procedure produces factor matrices U and V with C1P (contiguous-1 property)
     The factors form a block diagonal matrix with overlap configuration (when overlap < 0, there's no overlap)
     The matrix is sorted by nature upon generation
-    """
+    '''
     def __init__(self, m=None, n=None, k=None, overlap=None):
         super().__init__()
         self.check_params(m=m, n=n, k=k, overlap=overlap)

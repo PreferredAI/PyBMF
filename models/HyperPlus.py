@@ -14,7 +14,7 @@ class HyperPlus(Hyper):
     ---------
     Summarizing Transactional Databases with Overlapped Hyperrectangles. Xiang et al. SIGKDD 2011.
     '''
-    def __init__(self, model=None, beta=None, samples=None, target_k=None):
+    def __init__(self, model, samples=100, beta=None, target_k=None):
         '''
         model : Hyper class
             The fitted Hyper model.
@@ -25,47 +25,45 @@ class HyperPlus(Hyper):
         target_k : int, default: half of the original `k`
             The target number of factors.
         '''
-        self.check_params(model=model, beta=beta, samples=samples, target_k=target_k)
+        self.check_params(model=model, beta=beta, target_k=target_k, samples=samples)
 
 
     def check_params(self, **kwargs):
-        super().check_params(**kwargs)
+        super(Hyper, self).check_params(**kwargs)
+        self.set_params(['beta', 'target_k', 'samples'], **kwargs)
+        assert self.beta is not None or self.target_k is not None, "Please specify beta or target_k or both."
+
+        # import model
         if 'model' in kwargs:
             model = kwargs.get('model')
-            assert isinstance(model, Hyper), "[E] Import a Hyper model."
-            self.init_model(U=model.U, V=model.V, T=model.T, I=model.I, k=model.k, logs=model.logs)
-            print("[I] k from Hyper :", self.k)
-        if 'beta' in kwargs:
-            beta = kwargs.get('beta')
-            if beta is None:
-                print("[E] Missing beta.")
-                return
-            self.beta = beta
-            print("[I] beta         :", self.beta)
-        if 'samples' in kwargs:
-            samples = kwargs.get('samples')
-            if beta is None:
-                print("[W] Missing samples. Using full sampling space.")
-                samples = self.k * (self.k - 1) / 2
-            self.samples = int(np.min([samples, self.k * (self.k - 1) / 2]))
+            assert isinstance(model, Hyper), "Please import a Hyper model."
+            self.import_model(U=model.U, V=model.V, T=model.T, I=model.I, k=model.k, logs=model.logs)
+            print("[I] k from model :", self.k)
+            
+        # default number of pairs for sampling
+        if self.samples is None:
+            print("[W] Missing samples. Will sample in the whole space.")
+            self.samples = self.k * (self.k - 1) / 2
             print("[I] samples      :", self.samples)
-        if 'target_k' in kwargs:
-            target_k = kwargs.get('target_k')
-            if target_k is None:
-                print("[W] Missing target_k. Using half of the original k as target k.")
-                target_k = self.k / 2
-            self.target_k = int(target_k)
-            print("[I] target k     :", self.target_k)
+        if self.samples > self.k * (self.k - 1) / 2:
+            print("[W] Too many samples. Will sample in the whole space.")
+            self.samples = self.k * (self.k - 1) / 2
+            print("[I] samples      :", self.samples)     
+
     
     
-    def fit(self, X_train, X_val=None, **kwargs):
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        # super(Hyper, self).fit(X_train, X_val, X_test, **kwargs)
         self.check_params(**kwargs)
-        self.load_dataset(X_train, X_val)
+        self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
 
         self._fit()
+        self.finish()
 
-        self.evaluate(names=['k'], values=[self.k], df_name='results')
-        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
+
+    def init_model(self):
+        # do not re-init model since the model is imported from another model
+        pass
 
 
     def _fit(self):
@@ -75,11 +73,13 @@ class HyperPlus(Hyper):
 
 
         while fpr <= self.beta and self.k > self.target_k:
+            print(fpr, self.k)
             # sample pairs
             a = int(self.k * (self.k - 1) / 2)
             pairs_idx = np.random.choice(a, size=self.samples, replace=False)
             pairs = []
-            for m in tqdm(range(self.k), position=0, leave=True, desc="[I] Sampling pairs"):
+            # for m in tqdm(range(self.k), position=0, leave=True, desc="[I] Sampling pairs"):
+            for m in range(self.k):
                 idx_0 = 0.5 * m * ((self.k - 1) + (self.k - m))
                 idx_1 = 0.5 * (m + 1) * ((self.k - 1) + (self.k - (m + 1)))
                 idx = pairs_idx[(pairs_idx >= idx_0) & (pairs_idx < idx_1)]
@@ -92,7 +92,9 @@ class HyperPlus(Hyper):
             best_T, best_I = None, None
             best_U, best_V = None, None
             best_savings = 0
-            for m, n in tqdm(pairs, position=1, leave=False, desc="[I] Merging"):
+            # for m, n in tqdm(pairs, position=1, leave=False, desc="[I] Merging"):
+            for m, n in pairs:
+                # debug
                 if m >= len(self.T) or n >= len(self.T):
                     print(self.k, len(self.T), m, n)
                 T = list(set(self.T[m] + self.T[n]))
@@ -134,10 +136,9 @@ class HyperPlus(Hyper):
             fpr = FPR(gt=self.X_train, pd=self.X_covered)
             self.k -= 1
 
-            self.evaluate(
-                names=['k', 'savings', 'FPR'], 
-                values=[self.k, best_savings, fpr], 
-                df_name='refinements')
+            # evaluate
+            self.predict_X()
+            self.evaluate(df_name='refinements', head_info={'k': self.k, 'savings': best_savings, 'FPR': fpr})
             
 
 def cost_savings(T_0, I_0, T_1, I_1, X_covered):

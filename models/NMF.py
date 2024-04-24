@@ -15,11 +15,11 @@ class NMF(BaseModel):
 
 
     def init_model(self):
-        """Initialize factors and logging variables.
+        '''Initialize factors and logging variables.
 
         logs : dict
-            The ``dict`` containing the logging data recorded in ``dataframe``, ``array`` or ``list``.
-        """
+            The `dict` containing the logging data recorded in `dataframe`, `array` or `list`.
+        '''
         if not hasattr(self, 'U') or not hasattr(self, 'V'):
             self.U = lil_matrix(np.zeros((self.m, self.k)))
             self.V = lil_matrix(np.zeros((self.n, self.k)))

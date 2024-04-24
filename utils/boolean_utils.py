@@ -65,7 +65,8 @@ def matmul(U, V, sparse=None, boolean=False):
     sparse : bool, default: None
     boolean : bool, default: False
     '''
-    if issparse(U) or issparse(V) or sparse == True:
+    sparse = sparse or (issparse(U) or issparse(V))
+    if sparse:
         U = csr_matrix(U)
         V = csr_matrix(V)
         assert U.shape[1] == V.shape[0], "U and V should be multiplicable"
@@ -80,7 +81,7 @@ def matmul(U, V, sparse=None, boolean=False):
     return check_sparse(X, sparse=sparse)
 
 
-def add(X, Y, sparse=False, boolean=False):
+def add(X, Y, sparse=None, boolean=False):
     '''Matrix-matrix addition for both dense and sparse input with Boolean logic support.
 
     Also support regular const-matrix addition.
@@ -91,13 +92,14 @@ def add(X, Y, sparse=False, boolean=False):
     sparse : bool, default: False
     boolean : bool, default: False
     '''
+    if isnum(X) or isnum(Y): # const-matrix addition
+        X = to_dense(X) if issparse(X) else X
+        Y = to_dense(Y) if issparse(Y) else Y
     if boolean: # boolean matrix-matrix addition
         Z = np.add(X, Y).astype(bool).astype(float)
     else:
-        if isnum(X) or isnum(Y): # const-matrix addition
-            X = to_dense(X) if issparse(X) else X
-            Y = to_dense(Y) if issparse(Y) else Y
         Z = X + Y
+    sparse = sparse or (issparse(X) or issparse(Y))
     return check_sparse(Z, sparse=sparse)
 
 
@@ -112,13 +114,14 @@ def subtract(X, Y, sparse=False, boolean=False):
     sparse : bool, default: False
     boolean : bool, default: False
     '''
+    if isnum(X) or isnum(Y): # const-matrix subtraction
+        X = to_dense(X) if issparse(X) else X
+        Y = to_dense(Y) if issparse(Y) else Y
     if boolean: # boolean matrix-matrix subtraction
         Z = np.subtract(X, Y).astype(bool).astype(float)
     else:
-        if isnum(X) or isnum(Y): # const-matrix addition
-            X = to_dense(X) if ismat(X) else X
-            Y = to_dense(Y) if ismat(Y) else Y
         Z = X - Y
+    sparse = sparse or (issparse(X) or issparse(Y))
     return check_sparse(Z, sparse=sparse)
 
 

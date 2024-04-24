@@ -9,6 +9,12 @@ from utils import matmul
 
 class Hyper(BaseModel):
     def __init__(self, min_support):
+        '''
+        Parameters
+        ----------
+        min_support : float
+            The 'alpha' in the paper. The min support of frequent itemsets.
+        '''
         self.check_params(min_support=min_support)
 
 
@@ -19,16 +25,14 @@ class Hyper(BaseModel):
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         super().fit(X_train, X_val, X_test, **kwargs)
-        self.init_model()
 
         self._fit()
-
-        self._finish()
-        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
+        self.finish()
 
 
     def init_model(self):
-        super().init_model()
+        if not hasattr(self, 'logs'):
+            self.logs = {}
 
         self.init_itemsets()
         self.init_transactions()
@@ -122,10 +126,9 @@ class Hyper(BaseModel):
             pattern = matmul(U, V.T, sparse=True, boolean=True).astype(bool)
             self.X_uncovered[pattern] = 0
 
-            self.evaluate(
-                names=['k', 'iter', 'size', 'uncovered'], 
-                values=[k, n_iter, pattern.sum(), self.X_uncovered.sum()], 
-                df_name='updates')
+            # evaluate
+            self.predict_X()
+            self.evaluate(df_name='updates', head_info={'k': k, 'iter': n_iter, 'size': pattern.sum(), 'uncovered': self.X_uncovered.sum()})
 
             if self.X_uncovered.sum() == 0:
                 break

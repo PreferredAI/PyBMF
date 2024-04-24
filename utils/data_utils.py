@@ -3,12 +3,12 @@ import time
 
 
 def summarize(X):
-    """To show the summary of a matrix.
+    '''To show the summary of a matrix.
 
     Parameters
     ----------
     X : ndarray, spmatrix
-    """
+    '''
     u_num, v_num = X.shape
     u_sum, v_sum = sum(X)
     u_min, u_max = min(u_sum), max(u_sum)

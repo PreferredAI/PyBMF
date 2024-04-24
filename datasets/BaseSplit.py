@@ -1,9 +1,8 @@
-from utils import check_sparse, safe_indexing, to_sparse, sum
+from utils import check_sparse, safe_indexing, to_sparse, sum, ignore_warnings
 from scipy.sparse import csr_matrix, spmatrix
 import time
 import numpy as np
 from typing import Union
-
 
 class BaseSplit:
     '''Common functions for NoSplit, RatioSplit and CrossValidation
@@ -19,7 +18,7 @@ class BaseSplit:
 
 
     def negative_sample(self):
-        """Add negative to the matrix in RatioSplit and CrossValidation
+        '''Add negative to the matrix in RatioSplit and CrossValidation
 
         Note that we can only add 0's using csr/csc_matrix, and validate negative samples using coo_matrix or triplet.
 
@@ -27,7 +26,7 @@ class BaseSplit:
         lil_matrix has no effect when adding 0's onto it.
 
         Any arithmetic operation or csr_matrix.eliminate_zeros() will lose the negative samples.
-        """
+        '''
         raise NotImplementedError("Missing negative_sample method.")
 
 
@@ -93,6 +92,7 @@ class BaseSplit:
         return U_neg, V_neg
     
 
+    @ignore_warnings
     def load_neg_data(self, train_idx, val_idx, test_idx, U_neg, V_neg):
         '''
         Used in RatioSplit.negative_sample and CrossValidation.negative_sample.
@@ -104,8 +104,9 @@ class BaseSplit:
         self.X_train.eliminate_zeros()
         self.X_val.eliminate_zeros()
         self.X_test.eliminate_zeros()
-        
-        self.X_train[U_neg[train_idx], V_neg[train_idx]] = 0 # SparseEfficiencyWarning
+
+        # SparseEfficiencyWarning
+        self.X_train[U_neg[train_idx], V_neg[train_idx]] = 0
         self.X_val[U_neg[val_idx], V_neg[val_idx]] = 0
         self.X_test[U_neg[test_idx], V_neg[test_idx]] = 0
 

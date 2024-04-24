@@ -5,7 +5,7 @@ from utils import matmul, shuffle_by_dim, add_noise, to_sparse, reverse_index, t
 
 class BaseGenerator:
     def __init__(self):
-        """Base Boolean matrix class
+        '''Base Boolean matrix class
 
         X = U * V
 
@@ -15,7 +15,7 @@ class BaseGenerator:
             V is a n-by-k factor matrix.
 
         factor_info: list, [U_info, V_info]
-        """
+        '''
         self.X = None
         self.U = None
         self.V = None
@@ -23,7 +23,7 @@ class BaseGenerator:
 
 
     def check_params(self, **kwargs):
-        """All tunable parameters
+        '''All tunable parameters
         
         Parameters
         ----------
@@ -60,7 +60,7 @@ class BaseGenerator:
             A complete setting of overlap should hold the format (height_low, height_high, width_low, width_high)
         seed : int
             Decide the current state of self.rng
-        """
+        '''
         # check dimensions
         if "m" in kwargs:
             self.m = kwargs.get("m")
@@ -168,13 +168,13 @@ class BaseGenerator:
 
 
     def measure(self):
-        """Measure a matrix
+        '''Measure a matrix
 
         true_density
             percentage on the number of 1's
         true_overlap
             percentage on the number of overlapped 1's
-        """
+        '''
         self.measured_density = self.measure_density()
         self.measured_overlap = self.measure_overlap()
         print("[I] Density of X :", self.measured_density)
@@ -191,8 +191,8 @@ class BaseGenerator:
 
         
     def shuffle(self, seed=None):
-        """Shuffle a matrix together with its factors
-        """        
+        '''Shuffle a matrix together with its factors
+        '''        
         self.check_params(seed=seed)
         self.U_order, self.U, self.rng = shuffle_by_dim(X=self.U, dim=0, rng=self.rng)
         self.V_order, self.V, self.rng = shuffle_by_dim(X=self.V, dim=0, rng=self.rng)
@@ -200,8 +200,8 @@ class BaseGenerator:
         
 
     def shuffle_factors(self, seed=None):
-        """Shuffle the factors of a matrix to re-arrange the bi-clusters
-        """
+        '''Shuffle the factors of a matrix to re-arrange the bi-clusters
+        '''
         self.check_params(seed=seed)
         _, self.U, self.rng = shuffle_by_dim(X=self.U, dim=1, rng=self.rng)
         _, self.V, self.rng = shuffle_by_dim(X=self.V, dim=1, rng=self.rng)
@@ -209,21 +209,21 @@ class BaseGenerator:
 
 
     def sortout(self, method=None):
-        """Sort out a matrix
-        """
+        '''Sort out a matrix
+        '''
         pass
 
 
     def sorted_index(self):
-        """Make index sorted for a sorted matrix
-        """
+        '''Make index sorted for a sorted matrix
+        '''
         self.U_order = np.array([i for i in range(self.m)])
         self.V_order = np.array([i for i in range(self.n)])
 
 
     def set_factor_info(self):
-        """Set factor_info
-        """
+        '''Set factor_info
+        '''
         U_info = [self.U_order, self.U_order, self.U_order.astype(str)]
         V_info = [self.V_order, self.V_order, self.V_order.astype(str)]
         self.factor_info = [U_info, V_info]

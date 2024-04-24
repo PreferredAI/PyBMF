@@ -2,74 +2,54 @@ from .BaseModel import BaseModel
 from tqdm import tqdm
 import numpy as np
 from utils import sum, invert, multiply, to_dense, matmul, bool_to_index
-from utils import header, record, eval
+from utils import header, record, eval, ignore_warnings, to_sparse, timeit
 from itertools import product
 from scipy.sparse import lil_matrix
 
 
 class Panda(BaseModel):
-    """PaNDa and PaNDa+ algorithm.
+    '''PaNDa and PaNDa+ algorithm.
 
-    When rho = 1 and w = [1, 1], PaNDa+ becomes PaNDa algorithm.
+    When reg = 1 and w = [1, 1], PaNDa+ becomes PaNDa algorithm.
 
     Reference
     ---------
     Mining Top-K Patterns from Binary Datasets in presence of Noise.
     A unifying framework for mining approximate top-k binary patterns.
-    """
-    def __init__(self, k, rho=None, w=None, method=None):
-        """
+    '''
+    def __init__(self, k, reg=1.0, w=[1, 1], init_method='frequency'):
+        '''
         Parameters
         ----------
-        k : int
-            The rank.
-        rho : float
-            The regularization parameter.
+        reg : float
+            The regularization parameter rho in the paper.
         w : list
-            The penalty weights for under-coverage and over-coverage.
-            This is not included in original works of Panda or Panda+.
-        method : str
+            The penalty weights for under-coverage and over-coverage. These are added on top of the original works of Panda and Panda+.
+        init_method : str
             How items are sorted.
-        """
-        self.check_params(k=k, rho=rho, w=w, method=method)
+        '''
+        self.check_params(k=k, reg=reg, w=w, init_method=init_method)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        if "rho" in kwargs:
-            rho = kwargs.get("rho")
-            if rho is None:
-                rho = 1.0
-            self.rho = rho
-            print("[I] rho          :", self.rho)
-        if "w" in kwargs:
-            w = kwargs.get("w")
-            if w is None:
-                w = [1.0, 1.0]
-            self.w = w
-            print("[I] weights      :", self.w)
-        if "method" in kwargs:
-            method = kwargs.get("method")
-            if method is None:
-                method = 'frequency'
-            assert method in ['frequency', 'couples-frequency', 'correlation'], "Sorting method should be 'frequency', 'couples-frequency' or 'correlation'."
-            self.method = method
-            print("[I] method       :", self.method)
+        self.set_params(['w'], **kwargs)
+        assert len(self.w) == 2
+        assert self.init_method in ['frequency', 'couples-frequency', 'correlation']
 
 
-    def fit(self, X_train, X_val=None, **kwargs):
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         self.check_params(**kwargs)
-        self.load_dataset(X_train=X_train, X_val=X_val)
+        self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
         self.init_model()
         
         self._fit()
 
-        display(self.logs['updates'])
-        self.show_matrix(colorbar=True, discrete=True, clim=[0, 1], title="result")
+        self.finish()
 
 
     def _fit(self):
-        """
+        '''
         X_uncovered : spmatrix
             X_train but covered cells are set to 0.
         X_covered : spmatrix
@@ -80,9 +60,9 @@ class Panda(BaseModel):
             The item list.
         T : list
             The user or transaction list.
-        """
-        self.X_uncovered = self.X_train.copy()
-        self.X_covered = self.X_train.copy()
+        '''
+        self.X_uncovered = to_sparse(self.X_train.copy(), 'csr')
+        self.X_covered = to_sparse(self.X_train.copy(), 'csr')
 
         self.I = lil_matrix(np.zeros((self.n, 1)))
         self.T = lil_matrix(np.zeros((self.m, 1)))
@@ -98,25 +78,30 @@ class Panda(BaseModel):
             self.extend_core()
             print(f"[I]   extension  : {self.cost_now}") # self.cost(self.I, self.T)
 
-            if self.cost_now > cost_old:
-                self.early_stop(msg="Cost stops improving", k=k)
-                break
-            else:
-                # update U and V
-                self.U[:, k] = self.T
-                self.V[:, k] = self.I
-                cost_old = self.cost_now
+            diff = self.cost_now - cost_old
+            self.early_stop(diff=diff, k=k)
+            cost_old = self.cost_now
 
-                # update residual and coverage
-                pattern = matmul(self.T, self.I.T, sparse=True, boolean=True).astype(bool)
-                self.X_uncovered[pattern] = 0
-                self.X_covered[pattern] = 1
+            # update factors
+            self.update_factors(k, u=self.T, v=self.I)
+            
+            # update residual and coverage
+            self.update_cover()
 
-                self.evaluate(names=['cost'], values=[self.cost_now], df_name='updates')
+            self.predict_X()
+            self.evaluate(df_name='updates', head_info={'cost': self.cost_now})
 
 
+    @ignore_warnings
+    def update_cover(self):
+        pattern = matmul(self.T, self.I.T, sparse=True, boolean=True).astype(bool)
+        self.X_uncovered[pattern] = 0
+        self.X_covered[pattern] = 1
+
+
+    @ignore_warnings
     def find_core(self):
-        """Find a dense core (T, I) and its extension list E.
+        '''Find a dense core (T, I) and its extension list E.
         
         E : array
             The item extension list.
@@ -124,15 +109,15 @@ class Panda(BaseModel):
             The item list.
         T : sparse matrix
             The user or transaction list.
-        """
+        '''
         self.E = list(range(self.n)) # start with all items
         self.I = lil_matrix(np.zeros((self.n, 1)))
         self.T = lil_matrix(np.zeros((self.m, 1)))
 
         # initialize extension list
-        if self.method == 'frequency' or self.method == 'correlation':
+        if self.init_method == 'frequency' or self.init_method == 'correlation':
             self.sort_items(method='frequency')
-        elif self.method == 'couples-frequency':
+        elif self.init_method == 'couples-frequency':
             self.sort_items(method='couples-frequency')
 
         # add the first item from E to I
@@ -145,7 +130,7 @@ class Panda(BaseModel):
         i = 0
         while i < len(self.E):
             I = self.I.copy()
-            if self.method == 'correlation':
+            if self.init_method == 'correlation':
                 self.sort_items(method='correlation') # re-order extension list
                 I[self.E[0]] = 1 # use item with highest correlation
                 T = multiply(self.T, self.X_uncovered[:, self.E[0]])
@@ -159,7 +144,7 @@ class Panda(BaseModel):
             # check cost by cost difference: this is faster
             w0, h0 = self.I.sum(), self.T.sum()
             w1, h1 = self.I.sum() + 1, T.sum()
-            d_cost = 1 + (h1 - h0) - self.rho * self.w[0] * ((w1 * h1) - (w0 * h0))
+            d_cost = 1 + (h1 - h0) - self.reg * self.w[0] * ((w1 * h1) - (w0 * h0))
 
             if d_cost <= 0: # cost_new <= cost_old
                 cost_new = cost_old + d_cost
@@ -169,7 +154,7 @@ class Panda(BaseModel):
                 # update I, T and E
                 self.I = I
                 self.T = T
-                if self.method == 'correlation':
+                if self.init_method == 'correlation':
                     self.E.pop(0)
                 else:
                     self.E.pop(i)
@@ -179,6 +164,7 @@ class Panda(BaseModel):
         self.cost_now = cost_old
 
 
+    @ignore_warnings
     def extend_core(self):
         cost_old = self.cost_now
         
@@ -199,7 +185,7 @@ class Panda(BaseModel):
             idx_T = bool_to_index(invert(self.T)) # indices of transactions outside T
             d_fn = -self.X_uncovered[idx_T][:, idx_I].sum(axis=1) # newly added false negatives
             d_fp = self.I.sum() - self.X_covered[idx_T][:, idx_I].sum(axis=1) # newly added false positives
-            d_cost = 1 + self.rho * (self.w[0] * d_fn + self.w[1] * d_fp) # cost difference
+            d_cost = 1 + self.reg * (self.w[0] * d_fn + self.w[1] * d_fp) # cost difference
 
             # update T
             idx = to_dense(d_cost, squeeze=True) <= 0
@@ -216,7 +202,7 @@ class Panda(BaseModel):
 
 
     def sort_items(self, method):
-        """Sort the extension list by descending scores.
+        '''Sort the extension list by descending scores.
 
         frequency :
             Sort items in extension list by frequency.
@@ -226,7 +212,7 @@ class Panda(BaseModel):
             Sort items in extension list by correlation with current transactions T.
         prefix-child :
             To-do.
-        """
+        '''
         if method == 'frequency':
             scores = sum(self.X_uncovered[:, self.E], axis=0)
         elif method == 'couples-frequency':
@@ -247,11 +233,11 @@ class Panda(BaseModel):
 
 
     def cost(self, I, T):
-        """MDL cost function.
+        '''MDL cost function.
 
         T : (m, 1) boolean spmatrix
         I : (n, 1) boolean spmatrix
-        """
+        '''
         idx_I = bool_to_index(I)
         idx_T = bool_to_index(T)
         width, height = I.sum(), T.sum()
@@ -262,5 +248,5 @@ class Panda(BaseModel):
         fp = width * height - self.X_covered[idx_T][:, idx_I].sum()
 
         cost_noise = self.w[0] * fn + self.w[1] * fp
-        cost = (cost_width + cost_height) + self.rho * cost_noise
+        cost = (cost_width + cost_height) + self.reg * cost_noise
         return cost

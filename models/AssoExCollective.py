@@ -13,7 +13,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
     '''The Asso algorithm for collective MF (experimental)
     '''
     def __init__(self, k, tau=None, w=None, p=None, n_basis=None):
-        """
+        '''
         Parameters
         ----------
         k : int
@@ -24,7 +24,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             The ratio of true positives.
         p : list of float
             Importance weights that sum up tp 1.
-        """
+        '''
         self.check_params(k=k, tau=tau, w=w, p=p, n_basis=n_basis)
 
 
@@ -133,7 +133,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             self.set_update_order()
 
             n_iter = 0
-            break_counter = 0
+            n_stop = 0
             while True:
                 # print("[I] k: {}, n_iter: {}".format(k, n_iter))
                 update_order = self.init_order if n_iter == 0 else self.update_order
@@ -169,14 +169,14 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                         record(df_dict=self.logs, df_name='scores', columns=np.arange(self.n_basis).tolist(), records=ws_list.flatten().tolist(), verbose=self.verbose)
 
                         n_iter += 1
-                        break_counter = 0
+                        n_stop = 0
                     else:
-                        break_counter += 1
-                        # print("[I] iter: {}, break_counter: {}".format(n_iter, break_counter))
-                        if break_counter == self.n_factors:
+                        n_stop += 1
+                        # print("[I] iter: {}, n_stop: {}".format(n_iter, n_stop))
+                        if n_stop == self.n_factors:
                             break
                     
-                if break_counter == self.n_factors:
+                if n_stop == self.n_factors:
                     break
 
             # update factors
@@ -261,7 +261,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
     def get_vector(X_gt, X_old, s_old, basis, basis_dim, w, starts):
         '''CMF wrapper for `Asso.get_vector()`.
         
-        With additional parameter `starts` to indicate the split of `X`, and ``list`` `w` to indicate the ratio of true positives..
+        With additional parameter `starts` to indicate the split of `X`, and `list` `w` to indicate the ratio of true positives..
 
         Parameters
         ----------
@@ -288,7 +288,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         vector = lil_matrix(np.ones((1, X_gt.shape[vector_dim])))
         X_new = matmul(basis.T, vector, sparse=True, boolean=True)
         X_new = X_new if basis_dim == 0 else X_new.T
-        X_new = add(X_old, X_new)
+        X_new = add(X_old, X_new, sparse=True, boolean=True)
 
         # collective cover
         s_new = collective_cover(gt=X_gt, pd=X_new, w=w, axis=basis_dim, starts=starts)

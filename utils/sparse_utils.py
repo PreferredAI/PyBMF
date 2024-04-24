@@ -1,6 +1,5 @@
-from scipy.sparse import coo_matrix, csr_matrix, csc_matrix, lil_matrix, issparse, isspmatrix
+from scipy.sparse import coo_matrix, csr_matrix, csc_matrix, lil_matrix, issparse
 import numpy as np
-from typing import Union
 
 
 def to_sparse(X, type='csr'):

@@ -13,7 +13,7 @@ def show_matrix(settings,
                 keep_nan=True, 
                 colorbar=False, clim=None, discrete=False, center=True, 
                 cmap='rainbow', cmin='gray', cmax='black', cnan='white'):
-    """Show the matrix and factors.
+    '''Show the matrix and factors.
 
     Parameters
     ----------
@@ -34,7 +34,7 @@ def show_matrix(settings,
     colorbar : bool, default: False
         Show colorbar.
     clim : list, optional
-        Colorbar range limit applied over all matrices. If `clim` is ``None``, each matrix will have its own colorbar range limit separately.
+        Colorbar range limit applied over all matrices. If `clim` is `None`, each matrix will have its own colorbar range limit separately.
     discrete : bool, default: False
         Show discrete colorbar.
     center : bool, default: True
@@ -46,8 +46,8 @@ def show_matrix(settings,
     cmax : str, default: 'black'
         The color of values higher than the range limit `clim`.
     cnan : str, default: 'white'
-        The color of ``NaN``. To differentiate real zeros and ``NaN`` in sparse marices.
-    """
+        The color of `NaN`. To differentiate real zeros and `NaN` in sparse marices.
+    '''
     rows = []       # row index of each matrix
     cols = []       # col index of each matrix
     widths = {}     # width of matrices at each col in grid
@@ -142,8 +142,8 @@ def show_matrix(settings,
 
             vmin = dmin - (0.5 if center else 0)
             vmax = dmax + (0.5 if center else 0)
-            # cmap = plt.get_cmap(cmap, cnum) # deprecated
-            cmap = cm.get_cmap(cmap, cnum).copy()
+            cmap = plt.get_cmap(cmap, cnum) # deprecated
+            # cmap = cm.get_cmap(cmap, cnum).copy()
             cmap.set_under(cmin)
             cmap.set_over(cmax)
             cmap.set_bad(cnan)
@@ -198,7 +198,7 @@ def show_matrix(settings,
 
 
 def get_size_inches(scaling, ppi, hds, pixels, width_cells, height_cells):
-    """Get figure size in inches.
+    '''Get figure size in inches.
 
     Parameters
     ----------
@@ -213,7 +213,7 @@ def get_size_inches(scaling, ppi, hds, pixels, width_cells, height_cells):
         Figure width in inches.
     height_inches : float
         Figure height in inches.
-    """
+    '''
     if pixels is None:
         # get screen resolution in pixels
         if platform.system() == "Windows":
@@ -252,7 +252,7 @@ def fill_nan(X, mask: spmatrix):
     Parameters
     ----------
     X : ndarray or spmatrix
-        The matrix with values to be filled with ``NaN``.
+        The matrix with values to be filled with `NaN`.
     mask : spamtrix
         The masking matrix.
         Explicit zeros in `mask` are not considered as missing. 
@@ -261,7 +261,7 @@ def fill_nan(X, mask: spmatrix):
     Returns
     -------
     Y : ndarray
-        The dense matrix with ``NaN`` in it.
+        The dense matrix with `NaN` in it.
     '''
     rows, cols, _ = to_triplet(mask)
     Y = np.empty(shape=X.shape)

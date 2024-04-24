@@ -9,7 +9,7 @@ from p_tqdm import t_imap
 
 
 def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
-    """Evaluate with given metrics.
+    '''Evaluate with given metrics.
 
     X_gt : array or spmatrix
     X_pd : array or spmatrix, optional
@@ -18,9 +18,9 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
     metrics : list of str
         List of metric names.
     task : str in {'prediction', 'reconstruction'}
-        If `task` == 'prediction', it ignores the missing values and only use the triplet from the ``spmatrix``. The triplet may contain zeros, depending on whether negative sampling has been used.
-        If `task` == 'reconstruction', it uses the whole matrix, which considers all missing values as zeros in ``spmatrix``.
-    """
+        If `task` == 'prediction', it ignores the missing values and only use the triplet from the `spmatrix`. The triplet may contain zeros, depending on whether negative sampling has been used.
+        If `task` == 'reconstruction', it uses the whole matrix, which considers all missing values as zeros in `spmatrix`.
+    '''
     using_matrix = X_pd is not None
     using_factors = U is not None and V is not None
     assert using_matrix or using_factors, "[E] User should provide either `U`, `V` or `X_pd`."

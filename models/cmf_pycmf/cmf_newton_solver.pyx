@@ -23,7 +23,7 @@ def d_sigmoid(M):
 
 @cython.binding(True)
 def inverse(x, link):
-    """Compute element-wise inverse link function."""
+    '''Compute element-wise inverse link function.'''
     if link == "linear":
         return x
     elif link == "logit":
@@ -33,7 +33,7 @@ def inverse(x, link):
 
 # utility classes
 class Pseudocsr_row:
-    """Acts as a (1, d) csr_matrix while computing the residual"""
+    '''Acts as a (1, d) csr_matrix while computing the residual'''
     __slots__ = ["data", "indices", "shape"]
     def __init__(self, data, indices, shape):
         self.data = data
@@ -44,9 +44,9 @@ class Pseudocsr_row:
         return "csr"
 
 class SampledSparseMatrix:
-    """A wrapper that acts as a sample of the sparse matrix but
+    '''A wrapper that acts as a sample of the sparse matrix but
        prevents copying of original matrix.
-       For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0."""
+       For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0.'''
     def __init__(self, matrix, sample_mask, sample_axis):
         self.matrix = matrix
         assert(sample_axis in (0, 1))
@@ -92,8 +92,8 @@ cdef void _row_newton_update_fast(np.ndarray[DTYPE_t, ndim=2] M,
 @cython.binding(True)
 def _stochastic_sample(np.ndarray[DTYPE_t, ndim=2] features,
                        target, double ratio, int axis):
-    """Sample the feature and target matrices for stochastic gradient.
-    Returns original matrices when ratio = 1.0"""
+    '''Sample the feature and target matrices for stochastic gradient.
+    Returns original matrices when ratio = 1.0'''
     cdef int sample_size
 
     assert(features.shape[axis] == target.shape[axis])
@@ -121,8 +121,8 @@ def _stochastic_sample(np.ndarray[DTYPE_t, ndim=2] features,
 
 @cython.binding(True)
 def _safe_invert(np.ndarray[DTYPE_t, ndim=2] M, double hessian_pertubation):
-    """Compute inverse of M according to reccomendations of
-    http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+    '''Compute inverse of M according to reccomendations of
+    http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
     if issparse(M):
         eigs, V = scipy.sparse.linalg.eigsh(M)
     else:
@@ -165,8 +165,8 @@ cdef dgemm_ptr dgemm=<dgemm_ptr>PyCapsule_GetPointer(fblas.dgemm._cpointer, NULL
 def matmul(np.ndarray[DTYPE_t, ndim=2] _a, np.ndarray[DTYPE_t, ndim=2] _b,
         bint transA=False, bint transB=False,
         DTYPE_t alpha=1., DTYPE_t beta=0.):
-    """Substitution for np.dot that calls BLAS directly for speed up.
-    Based on https://gist.github.com/JonathanRaiman/07046b897709fffb49e5"""
+    '''Substitution for np.dot that calls BLAS directly for speed up.
+    Based on https://gist.github.com/JonathanRaiman/07046b897709fffb49e5'''
     cdef int m, n, k, lda, ldb, ldc
     assert(PyArray_IS_F_CONTIGUOUS(_a)) # BLAS matmul requires memory to be in Fortran order
     assert(PyArray_IS_F_CONTIGUOUS(_b))
@@ -201,7 +201,7 @@ def matmul(np.ndarray[DTYPE_t, ndim=2] _a, np.ndarray[DTYPE_t, ndim=2] _b,
 def _residual(np.ndarray[DTYPE_t, ndim=1] left,
               np.ndarray[DTYPE_t, ndim=2] right,
               target, str link, bint target_is_sparse):
-    """Computes residual:
+    '''Computes residual:
         inverse(left @ right, link) - target
     The number of dimensions of the residual and estimate will be the same.
     This is necessary because the indexing behavior of np.ndarrays and scipy sparse matrices are different.
@@ -214,7 +214,7 @@ def _residual(np.ndarray[DTYPE_t, ndim=1] left,
         (2,)
         >>> B[:, 0].shape
         (2, 1)
-    """
+    '''
     cdef Py_ssize_t i
     cdef double v
     cdef bint is_csr
@@ -245,7 +245,7 @@ def _newton_update_left(np.ndarray[DTYPE_t, ndim=2] U,
                         str link, bint non_negative,
                         double sg_sample_ratio,
                         double hessian_pertubation):
-    """Updates either U or Z row-wise inplace."""
+    '''Updates either U or Z row-wise inplace.'''
     cdef int i
 
     precompute_dU = sg_sample_ratio == 1.
@@ -301,7 +301,7 @@ def _newton_update_V(np.ndarray[DTYPE_t, ndim=2] V,
                      str y_link, bint non_negative,
                      double sg_sample_ratio,
                      double hessian_pertubation):
-    """Updates V row-wise inplace."""
+    '''Updates V row-wise inplace.'''
     cdef int i
 
     precompute_dV = (sg_sample_ratio == 1.)

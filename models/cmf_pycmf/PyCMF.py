@@ -20,10 +20,10 @@ INTEGER_TYPES = (numbers.Integral, np.integer)
 # initialization utils
 
 def norm(x):
-    """Dot product-based Euclidean norm implementation
+    '''Dot product-based Euclidean norm implementation
 
     See: http://fseoane.net/blog/2011/computing-the-vector-norm/
-    """
+    '''
     return sqrt(squared_norm(x))
 
 
@@ -39,7 +39,7 @@ def _check_init(A, shape, whom, non_negative):
 
 
 def _initialize_mf(M, n_components, init=None, eps=1e-6, random_state=None, non_negative=False):
-    """Algorithms for MF initialization.
+    '''Algorithms for MF initialization.
 
     Computes an initial guess for the non-negative
     rank k matrix approximation for M: M = AB^T
@@ -80,7 +80,7 @@ def _initialize_mf(M, n_components, init=None, eps=1e-6, random_state=None, non_
         If int, random_state is the seed used by the random number generator;
         If RandomState instance, random_state is the random number generator;
         If None, the random number generator is the RandomState instance used
-        by `np.random`. Used when ``random`` == 'nndsvdar' or 'random'.
+        by `np.random`. Used when `random` == 'nndsvdar' or 'random'.
 
     Returns
     -------
@@ -95,7 +95,7 @@ def _initialize_mf(M, n_components, init=None, eps=1e-6, random_state=None, non_
     C. Boutsidis, E. Gallopoulos: SVD based initialization: A head start for
     nonnegative matrix factorization - Pattern Recognition, 2008
     http://tinyurl.com/nndsvd
-    """
+    '''
     if non_negative:
         check_non_negative(M, "MF initialization")
 
@@ -222,7 +222,7 @@ def collective_matrix_factorization(X, Y, U=None, V=None, Z=None,
                                     update_V=True, update_Z=True,
                                     x_link="linear", y_link="linear",
                                     hessian_pertubation=0.2, sg_sample_ratio=1.):
-    """Compute Collective Matrix Factorization (CMF)
+    '''Compute Collective Matrix Factorization (CMF)
 
     Currently only available for factorizing two matrices X and Y.
     Find low-rank, non-negative matrices (U, V, Z) that can approximate X and Y simultaneously.
@@ -377,7 +377,7 @@ def collective_matrix_factorization(X, Y, U=None, V=None, Z=None,
     >>> from CMF import collective_matrix_factorization
     >>> U, V, Z, n_iter = collective_matrix_factorization(X, Y, n_components=2, \
         init='random', random_state=0)
-    """
+    '''
     if n_components is None:
         n_components = max(X.shape[1], Y.shape[1])
 
@@ -458,7 +458,7 @@ def collective_matrix_factorization(X, Y, U=None, V=None, Z=None,
 
 
 class PyCMF(BaseEstimator, TransformerMixin):
-    """Compute Collective Matrix Factorization (CMF)
+    '''Compute Collective Matrix Factorization (CMF)
 
         Currently only available for factorizing two matrices X and Y.
         Find low-rank, non-negative matrices (U, V, Z) that can approximate X and Y simultaneously.
@@ -603,7 +603,7 @@ class PyCMF(BaseEstimator, TransformerMixin):
 
         reconstruction_err_ : number
             Frobenius norm of the matrix difference, or beta-divergence, between
-            the training data ``X``, ``Y`` and the reconstructed data ``UV^T``, ``VZ^T`` from
+            the training data `X`, `Y` and the reconstructed data `UV^T`, `VZ^T` from
             the fitted model.
 
         n_iter_ : int
@@ -617,7 +617,7 @@ class PyCMF(BaseEstimator, TransformerMixin):
 
         Wang, Y., Yanchunzhangvueduau, E., & Zhou, B. (2017).
         Semi-supervised collective matrix factorization for topic detection and document clustering.
-        """
+        '''
     def __init__(self, n_components=None, x_init=None, y_init=None, solver='mu', alpha='auto',
                  beta_loss='frobenius', tol=1e-4, max_iter=600,
                  random_state=None, l1_reg=0., l2_reg=0., verbose=0,
@@ -644,7 +644,7 @@ class PyCMF(BaseEstimator, TransformerMixin):
         self.sg_sample_ratio = sg_sample_ratio
 
     def fit_transform(self, X, Y, U=None, V=None, Z=None):
-        """Learn a CMF model for the data X and Y and returns the transformed data.
+        '''Learn a CMF model for the data X and Y and returns the transformed data.
 
         This is more efficient than calling fit followed by transform.
 
@@ -676,7 +676,7 @@ class PyCMF(BaseEstimator, TransformerMixin):
         Z : array, shape (n_labels, n_components)
             Transformed data.
 
-        """
+        '''
         X = check_array(X, accept_sparse=('csr', 'csc'), dtype=float)
         Y = check_array(Y, accept_sparse=('csr', 'csc'), dtype=float)
 
@@ -707,7 +707,7 @@ class PyCMF(BaseEstimator, TransformerMixin):
         return U, V, Z
 
     def fit(self, X, Y, **params):
-        """Learn a CMF model for the data X and Y.
+        '''Learn a CMF model for the data X and Y.
 
         Parameters
         ----------
@@ -720,14 +720,14 @@ class PyCMF(BaseEstimator, TransformerMixin):
         Returns
         -------
         self
-        """
+        '''
         self.fit_transform(X, Y, **params)
         return self
 
     def transform(self, X, Y):
-        """Fit on X/Y while keeping components matrix (V) constant.
+        '''Fit on X/Y while keeping components matrix (V) constant.
         If only fitting on either X or Y, set the other to None.
-        """
+        '''
         assert(hasattr(self, "components"))
         update_U = X is not None
         update_Z = Y is not None
@@ -748,7 +748,7 @@ class PyCMF(BaseEstimator, TransformerMixin):
         return U, V, Z
 
     def print_topic_terms(self, vectorizer, topn_words=10, importances=True):
-        """For interpreting the results when using CMF for labeled topic modeling.
+        '''For interpreting the results when using CMF for labeled topic modeling.
         Prints out the topics acquired along with the words included.
 
         Parameters
@@ -765,7 +765,7 @@ class PyCMF(BaseEstimator, TransformerMixin):
 
         importances : bool, default: True
             Whether to print the importances along with the topics.
-        """
+        '''
         idx_to_word = np.array(vectorizer.get_feature_names())
         if importances:
             _print_topic_terms_with_importances_from_matrices(

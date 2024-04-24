@@ -2980,7 +2980,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_2d_sigmoid(CYTHON_UNUSED Py
  * 
  * @cython.binding(True)
  * def inverse(x, link):             # <<<<<<<<<<<<<<
- *     """Compute element-wise inverse link function."""
+ *     '''Compute element-wise inverse link function.'''
  *     if link == "linear":
  */
 
@@ -3067,7 +3067,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_4inverse(CYTHON_UNUSED PyOb
 
   /* "pycmf/cmf_newton_solver.pyx":27
  * def inverse(x, link):
- *     """Compute element-wise inverse link function."""
+ *     '''Compute element-wise inverse link function.'''
  *     if link == "linear":             # <<<<<<<<<<<<<<
  *         return x
  *     elif link == "logit":
@@ -3077,7 +3077,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_4inverse(CYTHON_UNUSED PyOb
   if (__pyx_t_1) {
 
     /* "pycmf/cmf_newton_solver.pyx":28
- *     """Compute element-wise inverse link function."""
+ *     '''Compute element-wise inverse link function.'''
  *     if link == "linear":
  *         return x             # <<<<<<<<<<<<<<
  *     elif link == "logit":
@@ -3091,7 +3091,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_4inverse(CYTHON_UNUSED PyOb
 
     /* "pycmf/cmf_newton_solver.pyx":27
  * def inverse(x, link):
- *     """Compute element-wise inverse link function."""
+ *     '''Compute element-wise inverse link function.'''
  *     if link == "linear":             # <<<<<<<<<<<<<<
  *         return x
  *     elif link == "logit":
@@ -3186,7 +3186,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_4inverse(CYTHON_UNUSED PyOb
  * 
  * @cython.binding(True)
  * def inverse(x, link):             # <<<<<<<<<<<<<<
- *     """Compute element-wise inverse link function."""
+ *     '''Compute element-wise inverse link function.'''
  *     if link == "linear":
  */
 
@@ -3205,7 +3205,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_4inverse(CYTHON_UNUSED PyOb
 }
 
 /* "pycmf/cmf_newton_solver.pyx":38
- *     """Acts as a (1, d) csr_matrix while computing the residual"""
+ *     '''Acts as a (1, d) csr_matrix while computing the residual'''
  *     __slots__ = ["data", "indices", "shape"]
  *     def __init__(self, data, indices, shape):             # <<<<<<<<<<<<<<
  *         self.data = data
@@ -3341,7 +3341,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_13Pseudocsr_row___init__(CY
   if (__Pyx_PyObject_SetAttrStr(__pyx_v_self, __pyx_n_s_shape, __pyx_v_shape) < 0) __PYX_ERR(0, 41, __pyx_L1_error)
 
   /* "pycmf/cmf_newton_solver.pyx":38
- *     """Acts as a (1, d) csr_matrix while computing the residual"""
+ *     '''Acts as a (1, d) csr_matrix while computing the residual'''
  *     __slots__ = ["data", "indices", "shape"]
  *     def __init__(self, data, indices, shape):             # <<<<<<<<<<<<<<
  *         self.data = data
@@ -3428,7 +3428,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_13Pseudocsr_row_2getformat(
 
 /* "pycmf/cmf_newton_solver.pyx":50
  *        prevents copying of original matrix.
- *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0."""
+ *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0.'''
  *     def __init__(self, matrix, sample_mask, sample_axis):             # <<<<<<<<<<<<<<
  *         self.matrix = matrix
  *         assert(sample_axis in (0, 1))
@@ -3543,7 +3543,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_19SampledSparseMatrix___ini
   __Pyx_TraceCall("__init__", __pyx_f[0], 50, 0, __PYX_ERR(0, 50, __pyx_L1_error));
 
   /* "pycmf/cmf_newton_solver.pyx":51
- *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0."""
+ *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0.'''
  *     def __init__(self, matrix, sample_mask, sample_axis):
  *         self.matrix = matrix             # <<<<<<<<<<<<<<
  *         assert(sample_axis in (0, 1))
@@ -3713,7 +3713,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_19SampledSparseMatrix___ini
 
   /* "pycmf/cmf_newton_solver.pyx":50
  *        prevents copying of original matrix.
- *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0."""
+ *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0.'''
  *     def __init__(self, matrix, sample_mask, sample_axis):             # <<<<<<<<<<<<<<
  *         self.matrix = matrix
  *         assert(sample_axis in (0, 1))
@@ -4661,7 +4661,7 @@ static void __pyx_f_5pycmf_17cmf_newton_solver__row_newton_update_fast(PyArrayOb
  * @cython.binding(True)
  * def _stochastic_sample(np.ndarray[DTYPE_t, ndim=2] features,             # <<<<<<<<<<<<<<
  *                        target, double ratio, int axis):
- *     """Sample the feature and target matrices for stochastic gradient.
+ *     '''Sample the feature and target matrices for stochastic gradient.
  */
 
 /* Python wrapper */
@@ -5256,7 +5256,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_6_stochastic_sample(CYTHON_
  * @cython.binding(True)
  * def _stochastic_sample(np.ndarray[DTYPE_t, ndim=2] features,             # <<<<<<<<<<<<<<
  *                        target, double ratio, int axis):
- *     """Sample the feature and target matrices for stochastic gradient.
+ *     '''Sample the feature and target matrices for stochastic gradient.
  */
 
   /* function exit code */
@@ -5292,8 +5292,8 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_6_stochastic_sample(CYTHON_
  * 
  * @cython.binding(True)
  * def _safe_invert(np.ndarray[DTYPE_t, ndim=2] M, double hessian_pertubation):             # <<<<<<<<<<<<<<
- *     """Compute inverse of M according to reccomendations of
- *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+ *     '''Compute inverse of M according to reccomendations of
+ *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
  */
 
 /* Python wrapper */
@@ -5403,8 +5403,8 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_8_safe_invert(CYTHON_UNUSED
   __pyx_pybuffernd_M.diminfo[0].strides = __pyx_pybuffernd_M.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_M.diminfo[0].shape = __pyx_pybuffernd_M.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_M.diminfo[1].strides = __pyx_pybuffernd_M.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_M.diminfo[1].shape = __pyx_pybuffernd_M.rcbuffer->pybuffer.shape[1];
 
   /* "pycmf/cmf_newton_solver.pyx":126
- *     """Compute inverse of M according to reccomendations of
- *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+ *     '''Compute inverse of M according to reccomendations of
+ *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
  *     if issparse(M):             # <<<<<<<<<<<<<<
  *         eigs, V = scipy.sparse.linalg.eigsh(M)
  *     else:
@@ -5432,7 +5432,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_8_safe_invert(CYTHON_UNUSED
   if (__pyx_t_4) {
 
     /* "pycmf/cmf_newton_solver.pyx":127
- *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+ *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
  *     if issparse(M):
  *         eigs, V = scipy.sparse.linalg.eigsh(M)             # <<<<<<<<<<<<<<
  *     else:
@@ -5517,8 +5517,8 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_8_safe_invert(CYTHON_UNUSED
     __pyx_t_2 = 0;
 
     /* "pycmf/cmf_newton_solver.pyx":126
- *     """Compute inverse of M according to reccomendations of
- *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+ *     '''Compute inverse of M according to reccomendations of
+ *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
  *     if issparse(M):             # <<<<<<<<<<<<<<
  *         eigs, V = scipy.sparse.linalg.eigsh(M)
  *     else:
@@ -5808,8 +5808,8 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_8_safe_invert(CYTHON_UNUSED
  * 
  * @cython.binding(True)
  * def _safe_invert(np.ndarray[DTYPE_t, ndim=2] M, double hessian_pertubation):             # <<<<<<<<<<<<<<
- *     """Compute inverse of M according to reccomendations of
- *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+ *     '''Compute inverse of M according to reccomendations of
+ *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
  */
 
   /* function exit code */
@@ -5955,7 +5955,7 @@ static PyObject *__pyx_pw_5pycmf_17cmf_newton_solver_11matmul(PyObject *__pyx_se
  * def matmul(np.ndarray[DTYPE_t, ndim=2] _a, np.ndarray[DTYPE_t, ndim=2] _b,
  *         bint transA=False, bint transB=False,             # <<<<<<<<<<<<<<
  *         DTYPE_t alpha=1., DTYPE_t beta=0.):
- *     """Substitution for np.dot that calls BLAS directly for speed up.
+ *     '''Substitution for np.dot that calls BLAS directly for speed up.
  */
       __pyx_v_transA = ((int)((int)0));
     }
@@ -6064,7 +6064,7 @@ static PyObject *__pyx_pf_5pycmf_17cmf_newton_solver_10matmul(CYTHON_UNUSED PyOb
   __pyx_pybuffernd__b.diminfo[0].strides = __pyx_pybuffernd__b.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd__b.diminfo[0].shape = __pyx_pybuffernd__b.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd__b.diminfo[1].strides = __pyx_pybuffernd__b.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd__b.diminfo[1].shape = __pyx_pybuffernd__b.rcbuffer->pybuffer.shape[1];
 
   /* "pycmf/cmf_newton_solver.pyx":171
- *     Based on https://gist.github.com/JonathanRaiman/07046b897709fffb49e5"""
+ *     Based on https://gist.github.com/JonathanRaiman/07046b897709fffb49e5'''
  *     cdef int m, n, k, lda, ldb, ldc
  *     assert(PyArray_IS_F_CONTIGUOUS(_a)) # BLAS matmul requires memory to be in Fortran order             # <<<<<<<<<<<<<<
  *     assert(PyArray_IS_F_CONTIGUOUS(_b))
@@ -12898,7 +12898,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
  * 
  * 
  * cdef inline bint is_timedelta64_object(object obj):             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     Cython equivalent of `isinstance(obj, np.timedelta64)`
  */
 
@@ -12914,7 +12914,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_is_timedelta64_object(PyObject *__pyx_v_
 
   /* "C:/Users/hongtuonie/Anaconda3/envs/cmfrec/lib/site-packages/numpy/__init__.pxd":978
  *     bool
- *     """
+ *     '''
  *     return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)             # <<<<<<<<<<<<<<
  * 
  * 
@@ -12927,7 +12927,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_is_timedelta64_object(PyObject *__pyx_v_
  * 
  * 
  * cdef inline bint is_timedelta64_object(object obj):             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     Cython equivalent of `isinstance(obj, np.timedelta64)`
  */
 
@@ -12945,7 +12945,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_is_timedelta64_object(PyObject *__pyx_v_
  * 
  * 
  * cdef inline bint is_datetime64_object(object obj):             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     Cython equivalent of `isinstance(obj, np.datetime64)`
  */
 
@@ -12961,7 +12961,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_is_datetime64_object(PyObject *__pyx_v_o
 
   /* "C:/Users/hongtuonie/Anaconda3/envs/cmfrec/lib/site-packages/numpy/__init__.pxd":993
  *     bool
- *     """
+ *     '''
  *     return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)             # <<<<<<<<<<<<<<
  * 
  * 
@@ -12974,7 +12974,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_is_datetime64_object(PyObject *__pyx_v_o
  * 
  * 
  * cdef inline bint is_datetime64_object(object obj):             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     Cython equivalent of `isinstance(obj, np.datetime64)`
  */
 
@@ -12992,7 +12992,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_is_datetime64_object(PyObject *__pyx_v_o
  * 
  * 
  * cdef inline npy_datetime get_datetime64_value(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the int64 value underlying scalar numpy datetime64 object
  */
 
@@ -13006,7 +13006,7 @@ static CYTHON_INLINE npy_datetime __pyx_f_5numpy_get_datetime64_value(PyObject *
 
   /* "C:/Users/hongtuonie/Anaconda3/envs/cmfrec/lib/site-packages/numpy/__init__.pxd":1003
  *     also needed.  That can be found using `get_datetime64_unit`.
- *     """
+ *     '''
  *     return (<PyDatetimeScalarObject*>obj).obval             # <<<<<<<<<<<<<<
  * 
  * 
@@ -13019,7 +13019,7 @@ static CYTHON_INLINE npy_datetime __pyx_f_5numpy_get_datetime64_value(PyObject *
  * 
  * 
  * cdef inline npy_datetime get_datetime64_value(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the int64 value underlying scalar numpy datetime64 object
  */
 
@@ -13036,7 +13036,7 @@ static CYTHON_INLINE npy_datetime __pyx_f_5numpy_get_datetime64_value(PyObject *
  * 
  * 
  * cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the int64 value underlying scalar numpy timedelta64 object
  */
 
@@ -13050,7 +13050,7 @@ static CYTHON_INLINE npy_timedelta __pyx_f_5numpy_get_timedelta64_value(PyObject
 
   /* "C:/Users/hongtuonie/Anaconda3/envs/cmfrec/lib/site-packages/numpy/__init__.pxd":1010
  *     returns the int64 value underlying scalar numpy timedelta64 object
- *     """
+ *     '''
  *     return (<PyTimedeltaScalarObject*>obj).obval             # <<<<<<<<<<<<<<
  * 
  * 
@@ -13063,7 +13063,7 @@ static CYTHON_INLINE npy_timedelta __pyx_f_5numpy_get_timedelta64_value(PyObject
  * 
  * 
  * cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the int64 value underlying scalar numpy timedelta64 object
  */
 
@@ -13080,7 +13080,7 @@ static CYTHON_INLINE npy_timedelta __pyx_f_5numpy_get_timedelta64_value(PyObject
  * 
  * 
  * cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the unit part of the dtype for a numpy datetime64 object.
  */
 
@@ -13094,7 +13094,7 @@ static CYTHON_INLINE NPY_DATETIMEUNIT __pyx_f_5numpy_get_datetime64_unit(PyObjec
 
   /* "C:/Users/hongtuonie/Anaconda3/envs/cmfrec/lib/site-packages/numpy/__init__.pxd":1017
  *     returns the unit part of the dtype for a numpy datetime64 object.
- *     """
+ *     '''
  *     return <NPY_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base             # <<<<<<<<<<<<<<
  */
   __Pyx_TraceLine(1017,1,__PYX_ERR(1, 1017, __pyx_L1_error))
@@ -13105,7 +13105,7 @@ static CYTHON_INLINE NPY_DATETIMEUNIT __pyx_f_5numpy_get_datetime64_unit(PyObjec
  * 
  * 
  * cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the unit part of the dtype for a numpy datetime64 object.
  */
 
@@ -13455,7 +13455,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * @cython.binding(True)
  * def inverse(x, link):             # <<<<<<<<<<<<<<
- *     """Compute element-wise inverse link function."""
+ *     '''Compute element-wise inverse link function.'''
  *     if link == "linear":
  */
   __pyx_tuple__22 = PyTuple_Pack(2, __pyx_n_s_x, __pyx_n_s_link); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 25, __pyx_L1_error)
@@ -13464,7 +13464,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(2, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pycmf_cmf_newton_solver_pyx, __pyx_n_s_inverse, 25, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 25, __pyx_L1_error)
 
   /* "pycmf/cmf_newton_solver.pyx":38
- *     """Acts as a (1, d) csr_matrix while computing the residual"""
+ *     '''Acts as a (1, d) csr_matrix while computing the residual'''
  *     __slots__ = ["data", "indices", "shape"]
  *     def __init__(self, data, indices, shape):             # <<<<<<<<<<<<<<
  *         self.data = data
@@ -13489,7 +13489,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
   /* "pycmf/cmf_newton_solver.pyx":50
  *        prevents copying of original matrix.
- *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0."""
+ *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0.'''
  *     def __init__(self, matrix, sample_mask, sample_axis):             # <<<<<<<<<<<<<<
  *         self.matrix = matrix
  *         assert(sample_axis in (0, 1))
@@ -13516,7 +13516,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * @cython.binding(True)
  * def _stochastic_sample(np.ndarray[DTYPE_t, ndim=2] features,             # <<<<<<<<<<<<<<
  *                        target, double ratio, int axis):
- *     """Sample the feature and target matrices for stochastic gradient.
+ *     '''Sample the feature and target matrices for stochastic gradient.
  */
   __pyx_tuple__27 = PyTuple_Pack(9, __pyx_n_s_features, __pyx_n_s_target, __pyx_n_s_ratio, __pyx_n_s_axis, __pyx_n_s_sample_size, __pyx_n_s_sample_mask, __pyx_n_s_target_is_sparse, __pyx_n_s_features_sampled, __pyx_n_s_target_sampled); if (unlikely(!__pyx_tuple__27)) __PYX_ERR(0, 93, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__27);
@@ -13527,8 +13527,8 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * @cython.binding(True)
  * def _safe_invert(np.ndarray[DTYPE_t, ndim=2] M, double hessian_pertubation):             # <<<<<<<<<<<<<<
- *     """Compute inverse of M according to reccomendations of
- *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+ *     '''Compute inverse of M according to reccomendations of
+ *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
  */
   __pyx_tuple__28 = PyTuple_Pack(4, __pyx_n_s_M, __pyx_n_s_hessian_pertubation, __pyx_n_s_eigs, __pyx_n_s_V); if (unlikely(!__pyx_tuple__28)) __PYX_ERR(0, 123, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__28);
@@ -14077,7 +14077,7 @@ if (!__Pyx_RefNanny) {
  * 
  * @cython.binding(True)
  * def inverse(x, link):             # <<<<<<<<<<<<<<
- *     """Compute element-wise inverse link function."""
+ *     '''Compute element-wise inverse link function.'''
  *     if link == "linear":
  */
   __Pyx_TraceLine(25,0,__PYX_ERR(0, 25, __pyx_L1_error))
@@ -14090,7 +14090,7 @@ if (!__Pyx_RefNanny) {
  * 
  * # utility classes
  * class Pseudocsr_row:             # <<<<<<<<<<<<<<
- *     """Acts as a (1, d) csr_matrix while computing the residual"""
+ *     '''Acts as a (1, d) csr_matrix while computing the residual'''
  *     __slots__ = ["data", "indices", "shape"]
  */
   __Pyx_TraceLine(35,0,__PYX_ERR(0, 35, __pyx_L1_error))
@@ -14099,7 +14099,7 @@ if (!__Pyx_RefNanny) {
 
   /* "pycmf/cmf_newton_solver.pyx":37
  * class Pseudocsr_row:
- *     """Acts as a (1, d) csr_matrix while computing the residual"""
+ *     '''Acts as a (1, d) csr_matrix while computing the residual'''
  *     __slots__ = ["data", "indices", "shape"]             # <<<<<<<<<<<<<<
  *     def __init__(self, data, indices, shape):
  *         self.data = data
@@ -14120,7 +14120,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
   /* "pycmf/cmf_newton_solver.pyx":38
- *     """Acts as a (1, d) csr_matrix while computing the residual"""
+ *     '''Acts as a (1, d) csr_matrix while computing the residual'''
  *     __slots__ = ["data", "indices", "shape"]
  *     def __init__(self, data, indices, shape):             # <<<<<<<<<<<<<<
  *         self.data = data
@@ -14149,7 +14149,7 @@ if (!__Pyx_RefNanny) {
  * 
  * # utility classes
  * class Pseudocsr_row:             # <<<<<<<<<<<<<<
- *     """Acts as a (1, d) csr_matrix while computing the residual"""
+ *     '''Acts as a (1, d) csr_matrix while computing the residual'''
  *     __slots__ = ["data", "indices", "shape"]
  */
   __Pyx_TraceLine(35,0,__PYX_ERR(0, 35, __pyx_L1_error))
@@ -14163,7 +14163,7 @@ if (!__Pyx_RefNanny) {
  *         return "csr"
  * 
  * class SampledSparseMatrix:             # <<<<<<<<<<<<<<
- *     """A wrapper that acts as a sample of the sparse matrix but
+ *     '''A wrapper that acts as a sample of the sparse matrix but
  *        prevents copying of original matrix.
  */
   __Pyx_TraceLine(46,0,__PYX_ERR(0, 46, __pyx_L1_error))
@@ -14172,7 +14172,7 @@ if (!__Pyx_RefNanny) {
 
   /* "pycmf/cmf_newton_solver.pyx":50
  *        prevents copying of original matrix.
- *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0."""
+ *        For speeding up sampling of large csr_matrices when sg_sample_ratio < 1.0.'''
  *     def __init__(self, matrix, sample_mask, sample_axis):             # <<<<<<<<<<<<<<
  *         self.matrix = matrix
  *         assert(sample_axis in (0, 1))
@@ -14200,7 +14200,7 @@ if (!__Pyx_RefNanny) {
  *         return "csr"
  * 
  * class SampledSparseMatrix:             # <<<<<<<<<<<<<<
- *     """A wrapper that acts as a sample of the sparse matrix but
+ *     '''A wrapper that acts as a sample of the sparse matrix but
  *        prevents copying of original matrix.
  */
   __Pyx_TraceLine(46,0,__PYX_ERR(0, 46, __pyx_L1_error))
@@ -14225,7 +14225,7 @@ if (!__Pyx_RefNanny) {
  * @cython.binding(True)
  * def _stochastic_sample(np.ndarray[DTYPE_t, ndim=2] features,             # <<<<<<<<<<<<<<
  *                        target, double ratio, int axis):
- *     """Sample the feature and target matrices for stochastic gradient.
+ *     '''Sample the feature and target matrices for stochastic gradient.
  */
   __Pyx_TraceLine(93,0,__PYX_ERR(0, 93, __pyx_L1_error))
   __pyx_t_1 = __Pyx_CyFunction_New(&__pyx_mdef_5pycmf_17cmf_newton_solver_7_stochastic_sample, 0, __pyx_n_s_stochastic_sample, NULL, __pyx_n_s_pycmf_cmf_newton_solver, __pyx_d, ((PyObject *)__pyx_codeobj__10)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 93, __pyx_L1_error)
@@ -14237,8 +14237,8 @@ if (!__Pyx_RefNanny) {
  * 
  * @cython.binding(True)
  * def _safe_invert(np.ndarray[DTYPE_t, ndim=2] M, double hessian_pertubation):             # <<<<<<<<<<<<<<
- *     """Compute inverse of M according to reccomendations of
- *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf"""
+ *     '''Compute inverse of M according to reccomendations of
+ *     http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf'''
  */
   __Pyx_TraceLine(123,0,__PYX_ERR(0, 123, __pyx_L1_error))
   __pyx_t_1 = __Pyx_CyFunction_New(&__pyx_mdef_5pycmf_17cmf_newton_solver_9_safe_invert, 0, __pyx_n_s_safe_invert, NULL, __pyx_n_s_pycmf_cmf_newton_solver, __pyx_d, ((PyObject *)__pyx_codeobj__11)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 123, __pyx_L1_error)
@@ -14323,7 +14323,7 @@ if (!__Pyx_RefNanny) {
  * def matmul(np.ndarray[DTYPE_t, ndim=2] _a, np.ndarray[DTYPE_t, ndim=2] _b,
  *         bint transA=False, bint transB=False,             # <<<<<<<<<<<<<<
  *         DTYPE_t alpha=1., DTYPE_t beta=0.):
- *     """Substitution for np.dot that calls BLAS directly for speed up.
+ *     '''Substitution for np.dot that calls BLAS directly for speed up.
  */
   __Pyx_TraceLine(166,0,__PYX_ERR(0, 166, __pyx_L1_error))
   __pyx_t_3 = __Pyx_PyBool_FromLong(((int)0)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 166, __pyx_L1_error)
@@ -14335,8 +14335,8 @@ if (!__Pyx_RefNanny) {
  * def matmul(np.ndarray[DTYPE_t, ndim=2] _a, np.ndarray[DTYPE_t, ndim=2] _b,
  *         bint transA=False, bint transB=False,
  *         DTYPE_t alpha=1., DTYPE_t beta=0.):             # <<<<<<<<<<<<<<
- *     """Substitution for np.dot that calls BLAS directly for speed up.
- *     Based on https://gist.github.com/JonathanRaiman/07046b897709fffb49e5"""
+ *     '''Substitution for np.dot that calls BLAS directly for speed up.
+ *     Based on https://gist.github.com/JonathanRaiman/07046b897709fffb49e5'''
  */
   __Pyx_TraceLine(167,0,__PYX_ERR(0, 167, __pyx_L1_error))
   __pyx_t_2 = PyFloat_FromDouble(((double)1.)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 167, __pyx_L1_error)
@@ -14538,7 +14538,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * cdef inline bint is_timedelta64_object(object obj):             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     Cython equivalent of `isinstance(obj, np.timedelta64)`
  */
   __Pyx_TraceLine(966,0,__PYX_ERR(1, 966, __pyx_L1_error))
@@ -14548,7 +14548,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * cdef inline bint is_datetime64_object(object obj):             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     Cython equivalent of `isinstance(obj, np.datetime64)`
  */
   __Pyx_TraceLine(981,0,__PYX_ERR(1, 981, __pyx_L1_error))
@@ -14558,7 +14558,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * cdef inline npy_datetime get_datetime64_value(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the int64 value underlying scalar numpy datetime64 object
  */
   __Pyx_TraceLine(996,0,__PYX_ERR(1, 996, __pyx_L1_error))
@@ -14568,7 +14568,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the int64 value underlying scalar numpy timedelta64 object
  */
   __Pyx_TraceLine(1006,0,__PYX_ERR(1, 1006, __pyx_L1_error))
@@ -14578,7 +14578,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:             # <<<<<<<<<<<<<<
- *     """
+ *     '''
  *     returns the unit part of the dtype for a numpy datetime64 object.
  */
   __Pyx_TraceLine(1013,0,__PYX_ERR(1, 1013, __pyx_L1_error))

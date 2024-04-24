@@ -16,7 +16,7 @@ class CMF(BaseCollectiveModel):
     todo: W
     '''
     def __init__(self, k, alpha=None, Ws=1, link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
-        """
+        '''
         Parameters
         ----------
         k : int
@@ -27,14 +27,14 @@ class CMF(BaseCollectiveModel):
             When Ws is None, Ws is the same as Xs_train. When Ws is 1, Ws is the same as full 1's matrices.
         init_method : list of str in ['bmf', 'normal', 'uniform']
         link : list of str in ['linear', 'sigmoid']
-        """
+        '''
         self.check_params(k=k, alpha=alpha, Ws=Ws, link=link, lr=lr, reg=reg, tol=tol, max_iter=max_iter, init_method=init_method, seed=seed)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
         self.set_params(['k', 'alpha', 'Ws', 'link', 'lr', 'reg', 'tol', 'max_iter', 'init_method'], **kwargs)
-        assert self.init_method in ['bmf', 'normal', 'uniform']
+        assert self.init_method in ['normal', 'uniform', 'custom']
 
 
     def fit(self, Xs_train, factors, Xs_val=None, Xs_test=None, **kwargs):
@@ -44,8 +44,8 @@ class CMF(BaseCollectiveModel):
     
 
     def init_model(self):
-        """Initialize factors and logging variables.
-        """
+        '''Initialize factors and logging variables.
+        '''
         # init logs
         if not hasattr(self, 'logs'):
             self.logs = {}
@@ -98,7 +98,7 @@ class CMF(BaseCollectiveModel):
             rmse = RMSE(self.Ws[0] * self.Xs_train[0], self.Ws[0] * self.Xs_pd[0])
 
             if n_iter > self.max_iter:
-                self.early_stop("max iter")
+                self.early_stop(n_iter=n_iter)
                 break
 
             print("[I] error: {:.3e}, rec_error: {:.3e}, reg_error: {:.3e}, rmse: {:.3e}".format(error, rec_error, reg_error, rmse))
@@ -125,7 +125,6 @@ class CMF(BaseCollectiveModel):
                 pass
             elif self.link[m] == 'logistic':
                 self.Xs_pd[m] = sigmoid(self.Xs_pd[m])
-
 
     def error(self):
         reg_error = 0

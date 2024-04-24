@@ -68,13 +68,13 @@ class RatioSplit(BaseSplit):
 
     @staticmethod
     def get_size(val_size, test_size, n_ratings, train_size=None):
-        """
+        '''
         Used in both RatioSplit and RatioSplit.negative_sample.
 
         train_size:
             None, use the rest of data.
             0.0, empty training set. used in negative sampling if there's no need to append negative samples to the training set.
-        """
+        '''
         # validate val_size
         if val_size is None:
             val_size = 0.0

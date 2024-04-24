@@ -1,20 +1,19 @@
-from .BinaryMF import BinaryMF
+from .BaseContinuousModel import BaseContinuousModel
 from .BaseModel import BaseModel
 from .NMF import NMF
 from utils import multiply, power, sigmoid, to_dense, dot, add, subtract
 import numpy as np
-from scipy.optimize import line_search
 from scipy.sparse import spmatrix
 
 
-class BinaryMFThreshold(BinaryMF):
+class BinaryMFThreshold(BaseContinuousModel):
     '''Binary matrix factorization, Thresholding algorithm
     
     From the papers:
         'Binary Matrix Factorization with Applications', 
         'Algorithms for Non-negative Matrix Factorization'.
     '''
-    def __init__(self, k, W='mask', u=0.5, v=0.5, lamda=100, min_diff=1e-6, max_iter=100, init_method='nmf_sklearn', model=None, seed=None):
+    def __init__(self, k, U, V, W='mask', u=0.5, v=0.5, lamda=100, min_diff=1e-6, max_iter=100, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -26,16 +25,20 @@ class BinaryMFThreshold(BinaryMF):
             The 'lambda' in sigmoid function.
         model : BaseModel
         '''
-        self.check_params(k=k, W=W, u=u, v=v, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, model=model, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, u=u, v=v, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['u', 'v', 'lamda', 'model'], **kwargs)
-        assert self.init_method in ['nmf_sklearn', 'nmf', 'normal', 'uniform', 'import']
-        assert isinstance(self.W, spmatrix) or self.W in ['mask', 'full']
-        if self.init_method == 'import':
-            assert isinstance(self.model, BaseModel), "Import a valid model."
+
+        self.set_params(['u', 'v', 'lamda'], **kwargs)
+
+
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super().fit(X_train, X_val, X_test, **kwargs)
+
+        self._fit()
+        self.finish()
 
 
     def _fit(self):
@@ -44,18 +47,17 @@ class BinaryMFThreshold(BinaryMF):
         x_last = np.array([self.u, self.v]) # initial threshold u, v
         p_last = -self.dF(x_last) # initial gradient dF(u, v)
 
-        us, vs, Fs, ds = [], [], [], []
         n_iter = 0
         
-        should_continue = True
-        while should_continue:
+        is_improving = True
+        while is_improving:
             xk = x_last # starting point
             pk = p_last # searching direction
             pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
-            self.print_msg("[I] iter: {}, start: [{:.3f}, {:.3f}], direction: [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
+            print("[I] iter: {}, start: [{:.3f}, {:.3f}], direction: [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
 
-            alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk)
+            alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50)
 
             if alpha is None:
                 self._early_stop("search direction is not a descent direction.")
@@ -64,29 +66,35 @@ class BinaryMFThreshold(BinaryMF):
             x_last = xk + alpha * pk
             p_last = -new_slope # descent direction
             self.u, self.v = x_last
-            us.append(self.u)
-            vs.append(self.v)
-            Fs.append(new_fval)
-            diff = np.sqrt(np.sum((alpha * pk) ** 2))
-            ds.append(diff)
-            
-            self.print_msg("[I] Wolfe line search for iter   : {}".format(n_iter))
-            self.print_msg("    num of function evals made   : {}".format(fc))
-            self.print_msg("    num of gradient evals made   : {}".format(gc))
-            self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
-            self.print_msg("    threshold update             : [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]".format(*xk, *x_last))
-            self.print_msg("    threshold difference         : {:.3f}".format(diff))
 
-            should_continue = self.early_stop(diff=diff)
+            diff = np.sqrt(np.sum((alpha * pk) ** 2))
+            
+            print("[I] Wolfe line search for iter   : {}".format(n_iter))
+            print("    num of function evals made   : {}".format(fc))
+            print("    num of gradient evals made   : {}".format(gc))
+            print("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
+            print("    threshold update             : [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]".format(*xk, *x_last))
+            print("    threshold difference         : {:.6f}".format(diff))
+
+            # evaluate
+            self.predict_X(u=self.u, v=self.v, boolean=True)
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'u': self.u, 'v': self.v, 'F': new_fval})
+
+            # display
+            if self.display and n_iter % 10 == 0:
+                self.show_matrix(u=self.u, v=self.v, title=f"iter {n_iter}")
+
+            is_improving = self.early_stop(diff=diff)
             n_iter += 1
 
-        self.show_matrix(u=self.u, v=self.v, title="result")
+        # self.show_matrix(u=self.u, v=self.v, title="result")
 
 
     def line_search(self, f, myfprime, xk, pk, maxiter=1000, c1=0.1, c2=0.4):
         '''Re-implementation of SciPy's Wolfe line search.
 
-        The parameters are compatible with `scipy.optimize.line_search`.
+        It's compatible with `scipy.optimize.line_search`.
+        >>> from scipy.optimize import line_search
         >>> line_search(f=f, myfprime=myfprime, xk=xk, pk=pk, maxiter=maxiter, c1=c1, c2=c2)
         '''
         alpha = 2
@@ -139,7 +147,7 @@ class BinaryMFThreshold(BinaryMF):
         F : F(u, v)
         '''
         u, v = params
-        # reconstruction
+
         U = sigmoid(subtract(self.U, u) * self.lamda)
         V = sigmoid(subtract(self.V, v) * self.lamda)
 

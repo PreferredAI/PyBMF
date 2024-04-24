@@ -1,10 +1,10 @@
-from .BinaryMF import BinaryMF
-from utils import binarize, to_dense, power, multiply
+from .BaseContinuousModel import BaseContinuousModel
+from utils import binarize, to_dense, power, multiply, ignore_warnings
 import numpy as np
 from scipy.sparse import spmatrix
 
 
-class BinaryMFPenalty(BinaryMF):
+class BinaryMFPenalty(BaseContinuousModel):
     '''Binary matrix factorization, Penalty algorithm
     
     Reference
@@ -12,7 +12,7 @@ class BinaryMFPenalty(BinaryMF):
     Binary Matrix Factorization with Applications
     Algorithms for Non-negative Matrix Factorization
     '''
-    def __init__(self, k, W='mask', reg=2, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='nmf_sklearn', seed=None):
+    def __init__(self, k, U=None, V=None, W='mask', reg=2, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='nmf_sklearn', seed=None):
         '''
         Parameters
         ----------
@@ -23,28 +23,46 @@ class BinaryMFPenalty(BinaryMF):
         tol : float
             The error tolerance 'epsilon' in the paper.
         '''
-        self.check_params(k=k, W=W, reg=reg, reg_growth=reg_growth, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, reg=reg, reg_growth=reg_growth, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['reg_growth', 'init_method'], **kwargs)
-        assert self.init_method in ['nmf_sklearn', 'nmf', 'normal', 'uniform']
-        assert isinstance(self.W, spmatrix) or self.W in ['mask', 'full']
+        
+        self.set_params(['reg_growth'], **kwargs)
+        assert self.init_method in ['normal', 'uniform', 'custom']
+
+
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super().fit(X_train, X_val, X_test, **kwargs)
+
+        self._fit()
+        self.finish()
+
+    
+    def init_model(self):
+        '''Initialize factors and logging variables.
+        '''
+        super().init_model()
+
+        self.init_UV()
+        print("[I] max U: {:.3f}, max V: {:.3f}".format(self.U.max(), self.V.max()))
+        self.normalize_UV()
+        print("[I] max U: {:.3f}, max V: {:.3f}".format(self.U.max(), self.V.max()))
 
 
     def _fit(self):
         '''The alternative minimization algorithm.
         '''
         n_iter = 0
-        should_continue = True
+        is_improving = True
         error_old, rec_error, reg_error = self.error()
         self.logs['errors'] = [error_old]
 
-        while should_continue:
+        while is_improving:
 
-            import warnings
-            warnings.filterwarnings('ignore') 
+            # import warnings
+            # warnings.filterwarnings('ignore') 
             self.update_V()
             self.update_U()
 
@@ -58,19 +76,20 @@ class BinaryMFPenalty(BinaryMF):
 
             # display
             self.print_msg("iter: {}, reg: {:.2e}, err: {:.2e}, rec_err: {:.2e}, reg_err: {:.2e}".format(n_iter, self.reg, error_new, rec_error, reg_error))
-            if n_iter % 10 == 0:
+            if self.display and n_iter % 10 == 0:
                 self.show_matrix(u=0.5, v=0.5, title=f"iter {n_iter}")
 
             # early stop detection
-            should_continue = self.early_stop(error=reg_error, diff=diff, n_iter=n_iter)
+            is_improving = self.early_stop(error=reg_error, diff=diff, n_iter=n_iter)
 
             # update reg
             self.reg *= self.reg_growth
             n_iter += 1
 
-        self.show_matrix(u=0.5, v=0.5, title="result")
+        # self.show_matrix(u=0.5, v=0.5, title="result")
 
 
+    @ignore_warnings
     def update_U(self):
         '''Multiplicative update of U
         '''
@@ -80,6 +99,7 @@ class BinaryMFPenalty(BinaryMF):
         self.U = multiply(self.U, num / denom)
 
 
+    @ignore_warnings
     def update_V(self):
         '''Multiplicative update of V
         '''
@@ -92,7 +112,7 @@ class BinaryMFPenalty(BinaryMF):
     def error(self):
         '''Error for penalty function algorithm.
 
-        In the paper, only reg_error is considered.
+        In the paper, only reg_error is considered and minimized.
         '''
         diff = self.X_train - self.U @ self.V.T
         rec_error = np.sum(power(multiply(self.W, diff), 2))
