@@ -1,52 +1,56 @@
 from sklearn import decomposition
-from .BaseModel import BaseModel
+from .BaseContinuousModel import BaseContinuousModel
+from utils import to_sparse
 
 
-class NMF(BaseModel):
+class NMF(BaseContinuousModel):
     '''Weighted NMF.
     '''
-    def __init__(self, k, init_method='nndsvd', tol=1e-4, max_iter=1000, seed=None):
-        self.check_params(k=k, init_method=init_method, tol=tol, max_iter=max_iter, seed=seed)
+    def __init__(self, k, U=None, V=None, init_method='nndsvd', tol=1e-4, max_iter=1000, seed=None):
+        '''
+        Parameters
+        ----------
+        U, V : numpy.ndarray, spmatrix
+            Need to be prepared if `init_method` is 'custom'.
+        '''
+        self.check_params(k=k, U=U, V=V, init_method=init_method, tol=tol, max_iter=max_iter, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        assert self.init_method in ['uniform', 'nndsvd']
 
-
-    def init_model(self):
-        '''Initialize factors and logging variables.
-
-        logs : dict
-            The `dict` containing the logging data recorded in `dataframe`, `array` or `list`.
-        '''
-        if not hasattr(self, 'U') or not hasattr(self, 'V'):
-            self.U = lil_matrix(np.zeros((self.m, self.k)))
-            self.V = lil_matrix(np.zeros((self.n, self.k)))
-
-        if not hasattr(self, 'logs'):
-            self.logs = {}
+        # check if init_method is valid
+        assert self.init_method in ['random', 'nndsvd', 'nndsvda', 'nndsvdar', 'custom']
         
     
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         super().fit(X_train, X_val, X_test, **kwargs)
+
         self._fit()
 
 
     def _fit(self):
-        self.model = decomposition.NMF(
-            n_components=self.k, 
-            init=self.init, 
-            random_state=self.rng, 
-            solver="cd",
-            beta_loss="frobenius",
-            tol=1e-4,
-            max_iter=self.max_iter,
-            alpha_W=0.0,
-            alpha_H="same",
-            l1_ratio=0.0,
-            verbose=0,
-            shuffle=False
-        )
-        self.U = self.model.fit_transform(self.X_train)
+        # self.model = decomposition.NMF(
+        #     n_components=self.k, 
+        #     init=self.init_method, 
+        #     random_state=self.rng, 
+        #     solver="cd",
+        #     beta_loss="frobenius",
+        #     tol=self.tol,
+        #     max_iter=self.max_iter,
+        #     alpha_W=0.0,
+        #     alpha_H="same",
+        #     l1_ratio=0.0,
+        #     verbose=0,
+        #     shuffle=False
+        # )
+
+        # init guess W and H will only be used when init_method is 'custom'
+        if self.init_method == 'custom':
+            self.U = self.model.fit_transform(self.X_train, W=self.U, H=self.V.T)
+        else:
+            self.U = self.model.fit_transform(self.X_train)
+
         self.V = self.model.components_.T
+
+        self.U, self.V = to_sparse(self.U), to_sparse(self.V)
