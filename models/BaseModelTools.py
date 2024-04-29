@@ -7,7 +7,7 @@ import time
 from IPython.display import display
 from utils import _make_name
 
-class BaseTools():
+class BaseModelTools():
     '''The helper class for BaseModel.
     '''
     def __init__(self):

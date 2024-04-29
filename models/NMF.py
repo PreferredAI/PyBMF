@@ -1,9 +1,9 @@
 from sklearn import decomposition
-from .BaseContinuousModel import BaseContinuousModel
+from .ContinuousModel import ContinuousModel
 from utils import to_sparse
 
 
-class NMF(BaseContinuousModel):
+class NMF(ContinuousModel):
     '''Weighted NMF.
     '''
     def __init__(self, k, U=None, V=None, init_method='nndsvd', tol=1e-4, max_iter=1000, seed=None):
@@ -30,20 +30,20 @@ class NMF(BaseContinuousModel):
 
 
     def _fit(self):
-        # self.model = decomposition.NMF(
-        #     n_components=self.k, 
-        #     init=self.init_method, 
-        #     random_state=self.rng, 
-        #     solver="cd",
-        #     beta_loss="frobenius",
-        #     tol=self.tol,
-        #     max_iter=self.max_iter,
-        #     alpha_W=0.0,
-        #     alpha_H="same",
-        #     l1_ratio=0.0,
-        #     verbose=0,
-        #     shuffle=False
-        # )
+        self.model = decomposition.NMF(
+            n_components=self.k, 
+            init=self.init_method, 
+            random_state=self.rng, 
+            solver="cd",
+            beta_loss="frobenius",
+            tol=self.tol,
+            max_iter=self.max_iter,
+            alpha_W=0.0,
+            alpha_H="same",
+            l1_ratio=0.0,
+            verbose=0,
+            shuffle=False
+        )
 
         # init guess W and H will only be used when init_method is 'custom'
         if self.init_method == 'custom':

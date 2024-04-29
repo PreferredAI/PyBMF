@@ -73,7 +73,7 @@ def binarize(X, threshold=0.5):
 
 
 def sigmoid(X):
-    '''Sigmoid function
+    '''Sigmoid function.
     '''
     X = X.astype(float)
     X[X == 0] = 1e-9

@@ -1,4 +1,4 @@
-from .BaseContinuousModel import BaseContinuousModel
+from .ContinuousModel import ContinuousModel
 from .BaseModel import BaseModel
 from .NMF import NMF
 from utils import multiply, power, sigmoid, to_dense, dot, add, subtract
@@ -6,8 +6,8 @@ import numpy as np
 from scipy.sparse import spmatrix
 
 
-class BinaryMFThreshold(BaseContinuousModel):
-    '''Binary matrix factorization, Thresholding algorithm
+class BinaryMFThreshold(ContinuousModel):
+    '''Binary matrix factorization, thresholding algorithm.
     
     From the papers:
         'Binary Matrix Factorization with Applications', 
@@ -17,13 +17,10 @@ class BinaryMFThreshold(BaseContinuousModel):
         '''
         Parameters
         ----------
-        u : float
-            Initial threshold for `U`.
-        v : float
-            Initial threshold for `V`.
+        u, v : float
+            Initial threshold for `U` and `V`.
         lamda : float
             The 'lambda' in sigmoid function.
-        model : BaseModel
         '''
         self.check_params(k=k, U=U, V=V, W=W, u=u, v=v, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
@@ -86,8 +83,6 @@ class BinaryMFThreshold(BaseContinuousModel):
 
             is_improving = self.early_stop(diff=diff)
             n_iter += 1
-
-        # self.show_matrix(u=self.u, v=self.v, title="result")
 
 
     def line_search(self, f, myfprime, xk, pk, maxiter=1000, c1=0.1, c2=0.4):
@@ -175,11 +170,11 @@ class BinaryMFThreshold(BaseContinuousModel):
 
         dFdU = X_gt @ V - X_pd @ V
         dUdu = self.dXdx(self.U, u)
-        dFdu = multiply(dFdU, dUdu)
+        dFdu = multiply(dFdU, dUdu) # (m, k)
 
         dFdV = U.T @ X_gt - U.T @ X_pd
         dVdv = self.dXdx(self.V, v)
-        dFdv = multiply(dFdV, dVdv.T)
+        dFdv = multiply(dFdV, dVdv.T) # (k, n)
 
         dF = np.array([np.sum(dFdu), np.sum(dFdv)])
         return dF

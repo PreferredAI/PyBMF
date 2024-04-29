@@ -1,15 +1,12 @@
 import numpy as np
 from utils import show_matrix, matmul, to_sparse
 from utils import header, record, eval, binarize
-import time
-from scipy.sparse import lil_matrix
-from itertools import product
 import pandas as pd
 from itertools import product
-from .BaseTools import BaseTools
+from .BaseModelTools import BaseModelTools
 
 
-class BaseModel(BaseTools):
+class BaseModel(BaseModelTools):
     '''The base class for all MF models.    
     '''
     def __init__(self, **kwargs):
@@ -50,10 +47,14 @@ class BaseModel(BaseTools):
         The default preparations for a fitting procedure, followed by `_fit()` and `finish()`.
         Simply overwrite this method if you want to drop any parts or include more procedures.
         '''
+        # these are the common routines when the fitting starts:
+        
         self.check_params(**kwargs)
         self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
         self.init_model()
+
         # attach these in your models:
+
         # self._fit()
         # self.finish()
 

@@ -1,9 +1,9 @@
 from sklearn import decomposition
-from .BaseContinuousModel import BaseContinuousModel
+from .ContinuousModel import ContinuousModel
 from utils import to_sparse
 
 
-class NMFSklearn(BaseContinuousModel):
+class NMFSklearn(ContinuousModel):
     '''NMF by scikit-learn.
     '''
     def __init__(self, k, U=None, V=None, init_method='nndsvd', tol=1e-4, max_iter=1000, seed=None):

@@ -1,11 +1,11 @@
-from .BaseContinuousModel import BaseContinuousModel
+from .ContinuousModel import ContinuousModel
 from .NMFSklearn import NMFSklearn
 import numpy as np
 from utils import binarize, matmul, to_dense, to_sparse
 from scipy.sparse import csr_matrix
 
 
-class BinaryMF(BaseContinuousModel):
+class BinaryMF(ContinuousModel):
     '''Binary MF template class.
 
     Instantiate BinaryMFPenalty or BinaryMFThreshold instead.

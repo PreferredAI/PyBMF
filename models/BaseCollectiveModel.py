@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import spmatrix, lil_matrix
 from itertools import product
-from utils import split_factor_list, get_factor_list, get_matrices, get_settings, get_factor_dims, concat_Xs_into_X, get_factor_starts
-from utils import to_sparse, dot, matmul, show_matrix, get_metrics, record, eval, header, to_triplet, binarize
+from utils import split_factor_list, get_factor_list, get_matrices, get_settings, get_factor_dims, concat_Xs_into_X, get_factor_starts, power
+from utils import to_sparse, dot, matmul, show_matrix, get_metrics, record, eval, header, to_triplet, binarize, isnum
 from utils import weighted_score, harmonic_score
 from tqdm import tqdm
 
@@ -17,9 +17,16 @@ class BaseCollectiveModel(BaseModel):
     def fit(self, Xs_train, factors, Xs_val=None, Xs_test=None, **kwargs):
         '''Fit the model to observations, with validation and prediction if necessary.
         '''
+        # these are the common routines when the fitting starts:
+
         self.check_params(**kwargs)
         self.load_dataset(Xs_train, factors, Xs_val, Xs_test)
         self.init_model()
+        
+        # attach these in your models:
+
+        # self._fit()
+        # self.finish()
         
         
     def load_dataset(self, Xs_train, factors, Xs_val=None, Xs_test=None):
@@ -66,12 +73,14 @@ class BaseCollectiveModel(BaseModel):
 
     def init_model(self):
         '''The collective wrapper for `BaseModel.init_model()`.
-        '''        
+        '''
+        self._init_factors()
+        self._init_logs()
+
+
+    def _init_factors(self):
         if not hasattr(self, 'Us'):
             self.Us = [lil_matrix(np.zeros((dim, self.k))) for dim in self.factor_dims]
-
-        if not hasattr(self, 'logs'):
-            self.logs = {}
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
@@ -89,10 +98,19 @@ class BaseCollectiveModel(BaseModel):
 
 
     def predict_Xs(self, Us=None, us=None, boolean=True):
-        self.Xs_pd = [None] * self.n_matrices if not hasattr(self, 'Xs') else self.Xs_pd
-        us = [us] * self.n_factors if isinstance(us, float) else us
-        Us = self.Us if Us is None else Us
-        Us = [binarize(Us[f], us[f]) for f in self.factor_list] if us is not None else Us
+        '''Get predictions.
+        '''
+        if not hasattr(self, 'Xs_pd'):
+            self.Xs_pd = [None] * self.n_matrices
+        if Us is None:
+            Us = self.Us # .copy()
+        if isnum(us):
+            us = [us] * (self.k * self.n_factors)
+
+        if us is not None:
+            for j in range(self.n_factors):
+                for i in range(self.k):
+                    Us[j][:, i] = binarize(Us[j][:, i], self.us[i + j * self.k])
 
         for i, factors in enumerate(self.factors):
             a, b = factors

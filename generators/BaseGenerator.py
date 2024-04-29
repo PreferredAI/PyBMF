@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from utils import matmul, shuffle_by_dim, add_noise, to_sparse, reverse_index, to_dense, show_matrix
+from utils import matmul, shuffle_by_dim, add_noise, to_sparse, reverse_index, to_dense, show_matrix, isnum
 
 
 class BaseGenerator:
@@ -77,7 +77,7 @@ class BaseGenerator:
             noise = kwargs.get("noise")
             if noise is None:
                 noise = [0.0, 0.0] # no noise
-            elif isinstance(noise, (int, float)):
+            elif isnum(noise):
                 noise = [noise, noise] # p_pos and p_neg
             self.noise = np.array(noise)
             print("[I] noise        :", self.noise)
@@ -87,7 +87,7 @@ class BaseGenerator:
             density = kwargs.get("density")
             if density is None:
                 density = [0.2, 0.2]
-            elif isinstance(density, (int, float)):
+            elif isnum(density):
                 density = [density, density] # density_u and density_v
             self.density = np.array(density)
             print("[I] density      :", self.density)

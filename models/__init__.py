@@ -26,6 +26,7 @@ from .BinaryMFPenalty import BinaryMFPenalty
 # from .BinaryMFPenaltyExWeighted import BinaryMFPenaltyExWeighted
 
 from .BinaryMFThreshold import BinaryMFThreshold
+from .BinaryMFThresholdExSigmoid import BinaryMFThresholdExSigmoid
 from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
 from .BinaryMFThresholdExCollective import BinaryMFThresholdExCollective
 # from .BinaryMFThresholdExSimple import BinaryMFThresholdExSimple
@@ -40,5 +41,5 @@ from .CMF import  CMF
 #            'AssoOpt',
 #            'AssoIter',
 #            'NMF',
-#            'BaseContinuousModel',
+#            'ContinuousModel',
 #            'MEBF']

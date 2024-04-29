@@ -1,4 +1,4 @@
-from .BaseCollectiveModel import BaseCollectiveModel
+from .ContinuousCollectiveModel import ContinuousCollectiveModel
 from .BinaryMFPenalty import BinaryMFPenalty
 import numpy as np
 from utils import concat_Xs_into_X, split_U_into_Us
@@ -6,7 +6,7 @@ from utils import to_dense, sigmoid, d_sigmoid, matmul, multiply, binarize
 from utils import RMSE, TPR, PPV, ACC, F1, get_metrics
 
 
-class CMF(BaseCollectiveModel):
+class CMF(ContinuousCollectiveModel):
     '''Collective Matrix Factorization.
 
     Reference
@@ -33,6 +33,7 @@ class CMF(BaseCollectiveModel):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
+
         self.set_params(['k', 'alpha', 'Ws', 'link', 'lr', 'reg', 'tol', 'max_iter', 'init_method'], **kwargs)
         assert self.init_method in ['normal', 'uniform', 'custom']
 
@@ -46,49 +47,16 @@ class CMF(BaseCollectiveModel):
     def init_model(self):
         '''Initialize factors and logging variables.
         '''
-        # init logs
-        if not hasattr(self, 'logs'):
-            self.logs = {}
-        # init Ws
-        if self.Ws is None:
-            self.Ws = self.Xs_train.copy()
-            for i in range(self.n_matrices):
-                self.Ws[i].data = np.ones(self.Xs_train[i].data.shape)
-                self.Ws[i] = to_dense(self.Ws[i])        
-        elif self.Ws == 1:
-            self.Ws = [None] * self.n_matrices
-            for i in range(self.n_matrices):
-                self.Ws[i] = np.ones(self.Xs_train[i].shape)
-        # init Xs
-        for i in range(self.n_matrices):
-            self.Xs_train[i] = to_dense(self.Xs_train[i])
-            if self.Xs_val is not None:
-                self.Xs_val[i] = to_dense(self.Xs_val[i])
-            if self.Xs_test is not None:
-                self.Xs_test[i] = to_dense(self.Xs_test[i])
-        # init Us
-        if self.init_method == 'bmf':
-            # init factors using single binary mf
-            self.X_train = concat_Xs_into_X(Xs=self.Xs_train, factors=self.factors)
-            self.W = concat_Xs_into_X(Xs=self.Ws, factors=self.factors)
-            bmf = BinaryMFPenalty(k=self.k, W=self.W, seed=self.seed)
-            bmf.fit(X_train=self.X_train)
-            self.U, self.V = to_dense(bmf.U), to_dense(bmf.V)
-            self.Us = split_U_into_Us(U=self.U, V=self.V, factors=self.factors, factor_starts=self.factor_starts)
-        elif self.init_method == "normal":
-            # init factors randomly with standard normal distribution
-            self.X_train = concat_Xs_into_X(Xs=self.Xs_train, factors=self.factors)
-            avg = np.sqrt(self.X_train.mean() / self.k)
-            self.Us = [avg * self.rng.standard_normal(size=(dim, self.k)) for dim in self.factor_dims]
-        elif self.init_method == "uniform":
-            # init factors randomly with uniform distribution
-            avg = np.sqrt(1 / self.k)
-            self.Us = [avg * self.rng.rand(dim, self.k) for dim in self.factor_dims]
+        super().init_model()
+
+        self.init_Us()
+        self._to_dense()
 
 
     def _fit(self):
         n_iter = 0
-        while True:
+        is_improving = True
+        while is_improving:
             for f in self.factor_list:
                 self.newton_update(f)
 
@@ -97,23 +65,25 @@ class CMF(BaseCollectiveModel):
             error, rec_error, reg_error = self.error()
             rmse = RMSE(self.Ws[0] * self.Xs_train[0], self.Ws[0] * self.Xs_pd[0])
 
+            # early stop
             if n_iter > self.max_iter:
                 self.early_stop(n_iter=n_iter)
+                is_improving = False
                 break
 
             print("[I] error: {:.3e}, rec_error: {:.3e}, reg_error: {:.3e}, rmse: {:.3e}".format(error, rec_error, reg_error, rmse))
 
-            # evaluation, boolean
-            self.predict_Xs(us=0.8, boolean=True)
-            self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter})
-            if n_iter % 10 == 0:
-                self.show_matrix(colorbar=True, discrete=True, center=True, clim=[0, 1])
+            # # evaluation, boolean
+            # self.predict_Xs(us=0, boolean=True)
+            # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter})
+            # if n_iter % 10 == 0:
+            #     self.show_matrix(colorbar=True, discrete=True, center=True, clim=[0, 1])
 
-            # evaluation, continuous
-            self.predict_Xs()
-            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error, 'rec_error': rec_error, 'reg_error': reg_error}, metrics=['RMSE'])
-            if n_iter % 10 == 0:
-                self.show_matrix(colorbar=True)
+            # # evaluation, continuous
+            # self.predict_Xs()
+            # self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error, 'rec_error': rec_error, 'reg_error': reg_error}, metrics=['RMSE'])
+            # if n_iter % 10 == 0:
+            #     self.show_matrix(colorbar=True)
 
             n_iter += 1
 

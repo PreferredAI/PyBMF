@@ -1,83 +1,181 @@
-from .BinaryMFThreshold import BinaryMFThreshold
+from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
 from .BaseCollectiveModel import BaseCollectiveModel
-from utils import multiply, sigmoid, dot, to_dense
-from utils import split_factor_list, get_factor_list
+from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum
 import numpy as np
 from scipy.optimize import line_search
+from scipy.sparse import spmatrix, lil_matrix
 
 
-class BinaryMFThresholdExCollective(BaseCollectiveModel, BinaryMFThreshold):
-    '''Collective thresholding algorithm (experimental)
+class BinaryMFThresholdExCollective(BaseCollectiveModel, BinaryMFThresholdExColumnwise):
+    '''Collective thresholding algorithm (experimental).
     '''
-    def __init__(self, k=None, Us=None, lamda=None, u=None, v=None, eps=None, max_iter=None):
-        super().check_params(k=k, lamda=lamda, u=u, v=v, eps=eps, max_iter=max_iter, algorithm='threshold')
-        if Us is None:
-            # to be initialized by NMF
-            self.is_initialized = False
-            assert k is not None, "Missing k."
-        else:
-            self.is_initialized = True
-            self.Us_dense = [to_dense(U).astype(float) for U in Us]
-            self.k = Us[0].shape[1]
+    def __init__(self, k, Us, alpha, Ws='mask', us=0.5, lamda=100, min_diff=1e-6, max_iter=100, init_method='custom', seed=None):
+        '''
+        Parameters
+        ----------
+        us : list of list of length k, float
+            Initial thresholds for `Us`.
+        '''
+        self.check_params(k=k, Us=Us, Ws=Ws, us=us, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
 
+
+    def check_params(self, **kwargs):
+        super().check_params(**kwargs)
+
+        self.set_params(['us', 'lamda'], **kwargs)
+
+        if 'us' in kwargs and isnum(self.us):
+            self.us = [self.us] * (self.k * self.n_factors)
+
+
+    def fit(self):
+        super().fit()
+
+        self._fit()
+        # self.finish() # todo
+    
 
     def _fit(self):
-        # W only masks Xs[0]: we assume that auxilary information matrices do not have missing values
-        self.W = self.Xs_train[0].copy()
-        self.W.data = np.ones(self.W.nnz)
-        self.W = to_dense(self.W)
-        super()._fit()
+        '''The gradient descent method.
+        '''
+        params = self.us
+        x_last = np.array(params) # initial threshold u, v
+        p_last = -self.dF(x_last) # initial gradient dF(u, v)
 
+        n_iter = 0
+        is_improving = True
+        while is_improving:
+            xk = x_last # starting point
+            pk = p_last # searching direction
+            pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
-    def initialize(self):
-        if self.is_initialized:
-            self.X_train = to_dense(self.X_train)
-            self.Us = self.Us_dense
-            print("[I] After initialization: max Us: {}".format([U.max() for U in self.Us]))
-        else:
-            super().initialize()
+            print("[I] iter: {}".format(n_iter))
 
+            alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50, c1=0.1, c2=0.4)
 
-    def normalize(self):
-        rows, cols = split_factor_list(self.Xs_train_factors)
-        factor_list = get_factor_list(self.Xs_train_factors)
-        return super().normalize()
-        
-    
+            if alpha is None:
+                self._early_stop("search direction is not a descent direction.")
+                break
+
+            x_last = xk + alpha * pk
+            p_last = -new_slope # descent direction
+            
+            self.us = x_last
+            diff = np.sqrt(np.sum((alpha * pk) ** 2))
+            
+            print("[I] Wolfe line search for iter   : {}".format(n_iter))
+            print("    num of function evals made   : {}".format(fc))
+            print("    num of gradient evals made   : {}".format(gc))
+            print("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
+
+            str_xk = ', '.join('{:.2f}'.format(x) for x in xk)
+            str_x_last = ', '.join('{:.2f}'.format(x) for x in x_last)
+            print("    threshold update             :")
+            print("        [{}]".format(str_xk))
+            print("     -> [{}]".format(str_x_last))
+            
+            str_pk = ', '.join('{:.2f}'.format(p) for p in pk)
+            print("    threshold update direction   :")
+            print("        [{}]".format(str_pk))
+            
+            print("    threshold difference         : {:.3f}".format(diff))
+
+            # evaluate
+            self.predict_Xs()
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'F': new_fval})
+
+            # display
+            if self.display and n_iter % 10 == 0:
+                self._show_matrix(title=f"iter {n_iter}")
+
+            is_improving = self.early_stop(diff=diff)
+            n_iter += 1
+
 
     def F(self, params):
         '''
-        params = [u, v]
-        return = F(u, v)
-        '''
-        u, v = params
-        # reconstruction
-        U = sigmoid((self.U - u) * self.lamda)
-        V = sigmoid((self.V - v) * self.lamda)
+        Parameters
+        ----------
+        params : [u00, u01, ..., u10, u11, ...]
 
-        diff = self.X_train - U @ V.T
-        F = 0.5 * np.sum(multiply(self.W, diff) ** 2)        
+        Returns
+        -------
+        F : F(u00, u01, ..., u10, u11, ...)
+        '''
+
+        us = params
+
+        F = 0
+        for m in range(self.n_matrices):
+            a, b = self.n_factors[m]
+            X_pd = lil_matrix(np.zeros(self.Xs_train[m].shape))
+            for i in range(self.k):
+                U = sigmoid(subtract(self.Us[a][:, i], us[i + a * self.k]) * self.lamda)
+                V = sigmoid(subtract(self.Us[b][:, i], us[i + b * self.k]) * self.lamda)
+                X_pd = add(X_pd, U @ V.T)
+
+            diff = self.X_train[m] - X_pd
+            F += 0.5 * self.alpha[m] * np.sum(power(multiply(self.W, diff), 2))
         return F
     
 
     def dF(self, params):
         '''
-        params = [u, v]
-        return = [dF(u, v)/du, dF(u, v)/dv], the ascend direction
+        Parameters
+        ----------
+        params : [u00, u01, ..., u10, u11, ...]
+
+        Returns
+        -------
+        dF : dF/d(u00, u01, ..., u10, u11, ...), the ascend direction
         '''
-        u, v = params
-        sigmoid_U = sigmoid((self.U - u) * self.lamda)
-        sigmoid_V = sigmoid((self.V - v) * self.lamda)
+        us = params
 
-        dFdU = multiply(self.W, self.X_train) @ sigmoid_V - multiply(self.W, sigmoid_U @ sigmoid_V.T) @ sigmoid_V
-        dUdu = self.dXdx(sigmoid_U, u) # original paper
-        # dUdu = self.dXdx(self.U, u) # authors' implementation
-        dFdu = multiply(dFdU, dUdu)
+        dF = np.zeros(self.k * self.n_factors)
+        for f in range(self.n_factors):
+            for m in self.matrices[f]:
+                for i in range(self.k):
+                    U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
+                    V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
 
-        dFdV = sigmoid_U.T @ multiply(self.W, self.X_train) - sigmoid_U.T @ multiply(self.W, sigmoid_U @ sigmoid_V.T)
-        dVdv = self.dXdx(sigmoid_V, v) # original paper
-        # dVdv = self.dXdx(self.V, v) # authors' implementation
-        dFdv = multiply(dFdV, dVdv.T)
+                    X_gt = lil_matrix(np.zeros((self.m, self.n)))
+                    for j in range(self.k):
+                        if j == i:
+                            continue
+                        U = sigmoid(subtract(self.U[:, j], us[j]) * self.lamda)
+                        V = sigmoid(subtract(self.V[:, j], vs[j]) * self.lamda)
+                        X_gt = add(X_gt, U @ V.T)
+                    
+                    # X_gt = multiply(self.W, self.X_train)
+                    X_gt = multiply(self.W, self.X_train - X_gt)
+                    X_pd = multiply(self.W, U @ V.T)
 
-        dF = np.array([np.sum(dFdu), np.sum(dFdv)])
+                    dFdU = X_gt @ V - X_pd @ V
+                    dUdu = self.dXdx(self.U[:, i], us[i])
+                    dFdu = multiply(dFdU, dUdu)
+
+                    dFdV = U.T @ X_gt - U.T @ X_pd
+                    dVdv = self.dXdx(self.V[:, i], vs[i])
+                    dFdv = multiply(dFdV, dVdv.T)
+
+                    dF[i] = np.sum(dFdu)
+                    dF[i + self.k] = np.sum(dFdv)
+
         return dF
+
+
+    def dXdx(self, X, x):
+        '''The fractional term in the gradient.
+
+                      dU*     dV*     dW*     dH*
+        This computes --- and --- (or --- and --- as in the paper).
+                      du      dv      dw      dh
+        
+        Parameters
+        ----------
+        X : X*, sigmoid(X - x) in the paper
+        '''
+        diff = subtract(X, x)
+        num = np.exp(-self.lamda * subtract(X, x)) * self.lamda
+        denom_inv = sigmoid(diff * self.lamda) ** 2
+        return num * denom_inv

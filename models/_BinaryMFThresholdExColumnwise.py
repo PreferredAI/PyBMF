@@ -1,13 +1,14 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, ismat
+from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul
+from utils import isnum, index_to_bool
 import numpy as np
 from scipy.sparse import spmatrix, lil_matrix
 
 
 class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
-    '''Binary matrix factorization, thresholding algorithm, columnwise thresholds (experimental).
+    '''Binary matrix factorization, Thresholding algorithm, columnwise thresholds (experimental)
     '''
-    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, lamda=100, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
+    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, lamda=100, min_diff=1e-2, max_iter=30, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -24,7 +25,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         self.set_params(['us', 'vs', 'lamda'], **kwargs)
 
         if 'W' in kwargs:
-            assert ismat(self.W) or self.W in ['mask', 'full']
+            assert isinstance(self.W, spmatrix) or self.W in ['mask', 'full']
         if 'us' in kwargs and isnum(self.us):
             self.us = [self.us] * self.k
         if 'vs' in kwargs and isnum(self.vs):
@@ -91,8 +92,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             if self.display and n_iter % 10 == 0:
                 self._show_matrix(title=f"iter {n_iter}")
 
-            # early stop
-            is_improving = self.early_stop(diff=diff, n_iter=n_iter)
+            is_improving = self.early_stop(diff=diff)
+            is_
             n_iter += 1
 
 
@@ -102,39 +103,26 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             U[:, i] = binarize(U[:, i], self.us[i])
             V[:, i] = binarize(V[:, i], self.vs[i])
         self.X_pd = matmul(U, V.T, boolean=True, sparse=True)
-
-
-    def get_patterns(self, us, vs):
-        patterns = [None] * self.k
-        for i in range(self.k):
-            U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-            V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
-            patterns[i] = U @ V.T
-        return patterns
-
-
-    @staticmethod
-    def sum_patterns(patterns, idx):
-        s = lil_matrix(np.zeros(patterns[0].shape))
-        for i in idx:
-            s = add(s, patterns[i])
-        return s
     
 
     def F(self, params):
         '''
         Parameters
         ----------
-        params : [u1, ..., uk, v1, ..., vk]
+        params : [u0, u1, ..., v0, v1, ...]
 
         Returns
         -------
-        F : F(u1, ..., uk, v1, ..., vk)
+        F : F(u0, u1, ..., v0, v1, ...)
         '''
+
         us, vs = params[:self.k], params[self.k:]
 
-        patterns = self.get_patterns(us, vs) # generate patterns
-        X_pd = self.sum_patterns(patterns, idx=[i for i in range(self.k)])
+        X_pd = lil_matrix(np.zeros((self.m, self.n)))
+        for i in range(self.k):
+            U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
+            V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
+            X_pd = add(X_pd, U @ V.T)
 
         diff = self.X_train - X_pd
         F = 0.5 * np.sum(power(multiply(self.W, diff), 2))
@@ -145,25 +133,28 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         '''
         Parameters
         ----------
-        params : [u1, ..., uk, v1, ..., vk]
+        params : [u0, u1, ..., v0, v1, ...]
 
         Returns
         -------
-        dF : dF/d(u1, ..., uk, v1, ..., vk), the ascend direction
+        dF : dF/d(u0, u1, ..., v0, v1, ...), the ascend direction
         '''
         us, vs = params[:self.k], params[self.k:]
 
         dF = np.zeros(self.k * 2)
-        patterns = self.get_patterns(us, vs) # generate patterns
         for i in range(self.k):
-            X_gt = self.sum_patterns(patterns, idx=[j for j in range(self.k) if j != i])
-            X_gt = multiply(self.W, self.X_train - X_gt)
-
-            X_pd = self.sum_patterns(patterns, idx=[i])
-            X_pd = multiply(self.W, X_pd)
+            X_gt = lil_matrix(np.zeros((self.m, self.n)))
+            for j in range(self.k):
+                if j == i:
+                    continue
+                U = sigmoid(subtract(self.U[:, j], us[j]) * self.lamda)
+                V = sigmoid(subtract(self.V[:, j], vs[j]) * self.lamda)
+                X_gt = add(X_gt, U @ V.T)
+            X_gt = multiply(self.W, self.X_train - X_gt) # X_gt: the i-th residual
 
             U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
             V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
+            X_pd = multiply(self.W, U @ V.T) # X_pd: the i-th pattern
 
             dFdU = X_gt @ V - X_pd @ V
             dUdu = self.dXdx(self.U[:, i], us[i])
