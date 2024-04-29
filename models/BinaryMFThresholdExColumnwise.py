@@ -41,13 +41,19 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
     def _fit(self):
         '''The gradient descent method.
         '''
-        params = self.us + self.vs
-        x_last = np.array(params) # initial threshold u, v
-        p_last = -self.dF(x_last) # initial gradient dF(u, v)
-
         n_iter = 0
         is_improving = True
+
+        params = self.us + self.vs
+        x_last = np.array(params) # initial point
+        p_last = -self.dF(x_last) # descent direction
+        new_fval = self.F(x_last) # initial value
+
+        # initial evaluation
+        self.predict_X(us=self.us, vs=self.vs, boolean=True)
+        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
         while is_improving:
+            n_iter += 1
             xk = x_last # starting point
             pk = p_last # searching direction
             pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
@@ -66,59 +72,53 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             self.us, self.vs = x_last[:self.k], x_last[self.k:]
             diff = np.sqrt(np.sum((alpha * pk) ** 2))
             
-            print("[I] Wolfe line search for iter   : {}".format(n_iter))
-            print("    num of function evals made   : {}".format(fc))
-            print("    num of gradient evals made   : {}".format(gc))
-            print("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
-
+            self.print_msg("[I] Wolfe line search for iter   : {}".format(n_iter))
+            self.print_msg("    num of function evals made   : {}".format(fc))
+            self.print_msg("    num of gradient evals made   : {}".format(gc))
+            self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
             str_xk = ', '.join('{:.2f}'.format(x) for x in xk)
             str_x_last = ', '.join('{:.2f}'.format(x) for x in x_last)
-            print("    threshold update             :")
-            print("        [{}]".format(str_xk))
-            print("     -> [{}]".format(str_x_last))
-            
+            self.print_msg("    threshold update             :")
+            self.print_msg("        [{}]".format(str_xk))
+            self.print_msg("     -> [{}]".format(str_x_last))
             str_pk = ', '.join('{:.2f}'.format(p) for p in pk)
-            print("    threshold update direction   :")
-            print("        [{}]".format(str_pk))
-            
-            print("    threshold difference         : {:.3f}".format(diff))
+            self.print_msg("    threshold update direction   :")
+            self.print_msg("        [{}]".format(str_pk))
+            self.print_msg("    threshold difference         : {:.3f}".format(diff))
 
             # evaluate
-            self.predict_X()
+            self.predict_X(us=self.us, vs=self.vs, boolean=True)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
 
             # display
-            if self.display and n_iter % 10 == 0:
+            if self.verbose and self.display and n_iter % 10 == 0:
                 self._show_matrix(title=f"iter {n_iter}")
 
-            # early stop
+            # early stop detection
             is_improving = self.early_stop(diff=diff, n_iter=n_iter)
-            n_iter += 1
 
 
-    def predict_X(self):
+    def debug(self, n_iter):
+        flag = False
+        if (self.U == 0).sum() + (self.U == 1).sum() == self.U.shape[0] * self.U.shape[1]:
+            print("[{}] U is all zeros or ones.".format(n_iter))
+            flag = True
+        if (self.V == 0).sum() + (self.V == 1).sum() == self.V.shape[0] * self.V.shape[1]:
+            print("[{}] V is all zeros or ones.".format(n_iter))
+            flag = True
+        if not flag:
+            print("[{}] OK.".format(n_iter))
+
+
+
+    def approximate_X(self, us, vs):
+        '''`BaseModel.predict_X()` with sigmoid relations.
+        '''
         U, V = self.U.copy(), self.V.copy()
         for i in range(self.k):
-            U[:, i] = binarize(U[:, i], self.us[i])
-            V[:, i] = binarize(V[:, i], self.vs[i])
-        self.X_pd = matmul(U, V.T, boolean=True, sparse=True)
-
-
-    def get_patterns(self, us, vs):
-        patterns = [None] * self.k
-        for i in range(self.k):
-            U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-            V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
-            patterns[i] = U @ V.T
-        return patterns
-
-
-    @staticmethod
-    def sum_patterns(patterns, idx):
-        s = lil_matrix(np.zeros(patterns[0].shape))
-        for i in idx:
-            s = add(s, patterns[i])
-        return s
+            U[:, i] = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
+            V[:, i] = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
+        self.X_approx = U @ V.T
     
 
     def F(self, params):
@@ -133,10 +133,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         '''
         us, vs = params[:self.k], params[self.k:]
 
-        patterns = self.get_patterns(us, vs) # generate patterns
-        X_pd = self.sum_patterns(patterns, idx=[i for i in range(self.k)])
-
-        diff = self.X_train - X_pd
+        self.approximate_X(us, vs)
+        diff = self.X_train - self.X_approx
         F = 0.5 * np.sum(power(multiply(self.W, diff), 2))
         return F
     
@@ -154,23 +152,25 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         us, vs = params[:self.k], params[self.k:]
 
         dF = np.zeros(self.k * 2)
-        patterns = self.get_patterns(us, vs) # generate patterns
+
+        self.approximate_X(us, vs)
+        diff = self.X_train - self.X_approx
+        dFdX = multiply(self.W, diff)
+
         for i in range(self.k):
-            X_gt = self.sum_patterns(patterns, idx=[j for j in range(self.k) if j != i])
-            X_gt = multiply(self.W, self.X_train - X_gt)
-
-            X_pd = self.sum_patterns(patterns, idx=[i])
-            X_pd = multiply(self.W, X_pd)
-
             U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
             V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
 
-            dFdU = X_gt @ V - X_pd @ V
-            dUdu = self.dXdx(self.U[:, i], us[i])
+            # dFdU = X_gt @ V - X_pd @ V
+            dFdU = dFdX @ V
+            dUdu = self.dXdx(U, us[i])
+            # dUdu = self.dXdx(self.U[:, i], us[i])
             dFdu = multiply(dFdU, dUdu)
 
-            dFdV = U.T @ X_gt - U.T @ X_pd
-            dVdv = self.dXdx(self.V[:, i], vs[i])
+            # dFdV = U.T @ X_gt - U.T @ X_pd
+            dFdV = U.T @ dFdX
+            dVdv = self.dXdx(V, us[i])
+            # dVdv = self.dXdx(self.V[:, i], vs[i])
             dFdv = multiply(dFdV, dVdv.T)
 
             dF[i] = np.sum(dFdu)

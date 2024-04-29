@@ -46,10 +46,7 @@ class BinaryMFPenalty(ContinuousModel):
         super().init_model()
 
         self.init_UV()
-        print("[I] max U: {:.3f}, max V: {:.3f}".format(self.U.max(), self.V.max()))
-        
-        self.normalize_UV()
-        print("[I] max U: {:.3f}, max V: {:.3f}".format(self.U.max(), self.V.max()))
+        self.normalize_UV(method="balance")
 
 
     def _fit(self):

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from p_tqdm import t_imap
+from IPython.display import display
 
 
 def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):

@@ -38,16 +38,30 @@ class BinaryMFThreshold(ContinuousModel):
         self.finish()
 
 
+    def init_model(self):
+        '''Initialize factors and logging variables.
+        '''
+        super().init_model()
+
+        self.normalize_UV(method="normalize")
+
+
     def _fit(self):
         '''The gradient descent method.
         '''
-        x_last = np.array([self.u, self.v]) # initial threshold u, v
-        p_last = -self.dF(x_last) # initial gradient dF(u, v)
-
         n_iter = 0
-        
         is_improving = True
+
+        x_last = np.array([self.u, self.v]) # initial point
+        p_last = -self.dF(x_last) # descent direction
+        new_fval = self.F(x_last) # initial value
+
+        # initial evaluation
+        self.predict_X(u=self.u, v=self.v, boolean=True)
+        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'u': self.u, 'v': self.v, 'F': new_fval})
+        
         while is_improving:
+            n_iter += 1
             xk = x_last # starting point
             pk = p_last # searching direction
             pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
@@ -66,29 +80,29 @@ class BinaryMFThreshold(ContinuousModel):
 
             diff = np.sqrt(np.sum((alpha * pk) ** 2))
             
-            print("[I] Wolfe line search for iter   : {}".format(n_iter))
-            print("    num of function evals made   : {}".format(fc))
-            print("    num of gradient evals made   : {}".format(gc))
-            print("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
-            print("    threshold update             : [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]".format(*xk, *x_last))
-            print("    threshold difference         : {:.6f}".format(diff))
+            self.print_msg("[I] Wolfe line search for iter   : {}".format(n_iter))
+            self.print_msg("    num of function evals made   : {}".format(fc))
+            self.print_msg("    num of gradient evals made   : {}".format(gc))
+            self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
+            self.print_msg("    threshold update             : [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]".format(*xk, *x_last))
+            self.print_msg("    threshold difference         : {:.6f}".format(diff))
 
             # evaluate
             self.predict_X(u=self.u, v=self.v, boolean=True)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'u': self.u, 'v': self.v, 'F': new_fval})
 
             # display
-            if self.display and n_iter % 10 == 0:
+            if self.verbose and self.display and n_iter % 10 == 0:
                 self.show_matrix(u=self.u, v=self.v, title=f"iter {n_iter}")
 
+            # early stop detection
             is_improving = self.early_stop(diff=diff)
-            n_iter += 1
 
 
     def line_search(self, f, myfprime, xk, pk, maxiter=1000, c1=0.1, c2=0.4):
         '''Re-implementation of SciPy's Wolfe line search.
 
-        It's compatible with `scipy.optimize.line_search`.
+        It's compatible with `scipy.optimize.line_search`:
         >>> from scipy.optimize import line_search
         >>> line_search(f=f, myfprime=myfprime, xk=xk, pk=pk, maxiter=maxiter, c1=c1, c2=c2)
         '''
@@ -165,14 +179,16 @@ class BinaryMFThreshold(ContinuousModel):
         U = sigmoid(subtract(self.U, u) * self.lamda)
         V = sigmoid(subtract(self.V, v) * self.lamda)
         
-        X_gt = multiply(self.W, self.X_train)
-        X_pd = multiply(self.W, U @ V.T)
+        X_gt = self.X_train
+        X_pd = U @ V.T
 
-        dFdU = X_gt @ V - X_pd @ V
+        dFdX = multiply(self.W, X_gt - X_pd)
+
+        dFdU = dFdX @ V
         dUdu = self.dXdx(self.U, u)
         dFdu = multiply(dFdU, dUdu) # (m, k)
 
-        dFdV = U.T @ X_gt - U.T @ X_pd
+        dFdV = U.T @ dFdX
         dVdv = self.dXdx(self.V, v)
         dFdv = multiply(dFdV, dVdv.T) # (k, n)
 

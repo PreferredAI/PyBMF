@@ -29,9 +29,7 @@ from .BinaryMFThreshold import BinaryMFThreshold
 from .BinaryMFThresholdExSigmoid import BinaryMFThresholdExSigmoid
 from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
 from .BinaryMFThresholdExCollective import BinaryMFThresholdExCollective
-# from .BinaryMFThresholdExSimple import BinaryMFThresholdExSimple
-# from .BinaryMFThresholdExWeighted import BinaryMFThresholdExWeighted
-# from .BinaryMFThresholdExCustomFactors import BinaryMFThresholdExCustomFactors
+from .BinaryMFThresholdExSigmoidColumnwise import BinaryMFThresholdExSigmoidColumnwise
 
 from .CMF import  CMF
 # from .cmf_pycmf import PyCMF

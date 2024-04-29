@@ -117,13 +117,34 @@ class BaseModel(BaseModelTools):
         self.m, self.n = self.X_train.shape
 
 
-    def predict_X(self, U=None, V=None, u=None, v=None, boolean=True):
-        '''Update `X_pd`.
+    def predict_X(self, U=None, V=None, u=None, v=None, us=None, vs=None, boolean=True):
+        '''Update prediction `X_pd`.
+
+        Parameters
+        ----------
+        U, V : array, spmatrix
+        u, v : float
+            The shared threshold for U and V.
+        us, vs : list of length k, float
+            The thresholds for each factor in U and V.
         '''
-        U = self.U if U is None else U
-        V = self.V if V is None else V
-        U = binarize(U, u) if u is not None else U
-        V = binarize(V, v) if v is not None else V
+        U = self.U.copy() if U is None else U.copy()
+        V = self.V.copy() if V is None else V.copy()
+
+        if us is not None:
+            assert len(us) == U.shape[1]
+            for i in range(U.shape[1]):
+                U[:, i] = binarize(U[:, i], us[i])
+        elif u is not None:
+            U = binarize(U, u)
+
+        if vs is not None:
+            assert len(vs) == V.shape[1]
+            for i in range(V.shape[1]):
+                V[:, i] = binarize(V[:, i], vs[i])
+        elif v is not None:
+            V = binarize(V, v)
+
         self.X_pd = matmul(U, V.T, boolean=boolean, sparse=True)
 
 

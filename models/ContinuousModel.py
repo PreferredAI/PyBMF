@@ -63,14 +63,31 @@ class ContinuousModel(BaseModel):
         self.U, self.V = to_sparse(self.U), to_sparse(self.V)
 
 
-    def normalize_UV(self):
+    def normalize_UV(self, method='balance'):
         '''Normalize factors.
+
+        Parameters
+        ----------
+        method : str, ['balance', 'normalize']
+            'balance': used in `BinaryMFPenalty`.
+            'normalize': used in `BinaryMFThreshold`.
         '''
-        diag_U = to_dense(np.sqrt(np.max(self.U, axis=0))).flatten()
-        diag_V = to_dense(np.sqrt(np.max(self.V, axis=0))).flatten()
-        for i in range(self.k):
-            self.U[:, i] = self.U[:, i] * diag_V[i] / diag_U[i]
-            self.V[:, i] = self.V[:, i] * diag_U[i] / diag_V[i]
+        a, c = [self.U.min(), self.U.max()], [self.V.min(), self.V.max()]
+
+        if method == 'balance':
+            diag_U = to_dense(np.sqrt(np.max(self.U, axis=0))).flatten()
+            diag_V = to_dense(np.sqrt(np.max(self.V, axis=0))).flatten()
+            for i in range(self.k):
+                self.U[:, i] = self.U[:, i] * diag_V[i] / diag_U[i]
+                self.V[:, i] = self.V[:, i] * diag_U[i] / diag_V[i]
+        elif method == 'normalize':
+            for i in range(self.k):
+                self.U[:, i] = self.U[:, i] / self.U[:, i].max()
+                self.V[:, i] = self.V[:, i] / self.V[:, i].max()
+
+        b, d = [self.U.min(), self.U.max()], [self.V.min(), self.V.max()]
+
+        print("[I] Normalized U: {} -> {}, V: {} -> {}".format(a, b, c, d))
 
 
     def show_matrix(self, settings=None, u=None, v=None, boolean=True, **kwargs):
