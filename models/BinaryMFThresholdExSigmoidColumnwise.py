@@ -1,5 +1,5 @@
 from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
-from utils import multiply, subtract, sigmoid, power, add, d_sigmoid
+from utils import multiply, subtract, sigmoid, power, add, d_sigmoid, ignore_warnings
 from scipy.sparse import lil_matrix
 import numpy as np
 from tqdm import tqdm
@@ -8,7 +8,7 @@ from tqdm import tqdm
 class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
     '''Binary matrix factorization, thresholding algorithm, columnwise thresholds, sigmoid link function (experimental).
     '''
-    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, lamda=100, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
+    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, link_lamda=10, lamda=100, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -16,89 +16,93 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
             Initial thresholds for `U` and `V.
             If float is provided, it will be extended to a list of k thresholds.
         '''
-        self.check_params(k=k, U=U, V=V, W=W, us=us, vs=vs, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, us=us, vs=vs, link_lamda=link_lamda, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        
+
+    def check_params(self, **kwargs):
+        super().check_params(**kwargs)
+
+        self.set_params(['link_lamda'], **kwargs)
 
 
-    # def _fit(self):
-    #     '''The gradient descent method.
-    #     '''
-    #     params = self.us + self.vs
-    #     x_last = np.array(params) # initial threshold u, v
-    #     p_last = -self.dF(x_last) # initial gradient dF(u, v)
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super().fit(X_train, X_val, X_test, **kwargs)
 
-    #     n_iter = 0
-    #     is_improving = True
-    #     while is_improving:
-    #         xk = x_last # starting point
-    #         pk = p_last # searching direction
-    #         pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
-    #         print("[I] iter: {}".format(n_iter))
+    def _fit(self):
+        '''The gradient descent method.
+        '''
+        n_iter = 0
+        is_improving = True
 
-    #         alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50, c1=0.1, c2=0.4)
+        params = self.us + self.vs
+        x_last = np.array(params) # initial point
+        p_last = -self.dF(x_last) # descent direction
+        new_fval = self.F(x_last) # initial value
 
-    #         if alpha is None:
-    #             self._early_stop("search direction is not a descent direction.")
-    #             break
+        # initial evaluation
+        self.predict_X(us=self.us, vs=self.vs, boolean=True)
+        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
+        while is_improving:
+            n_iter += 1
+            xk = x_last # starting point
+            pk = p_last # searching direction
+            pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
-    #         x_last = xk + alpha * pk
-    #         p_last = -new_slope # descent direction
+            print("[I] iter: {}".format(n_iter))
+
+            alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50, c1=0.1, c2=0.4)
+
+            if alpha is None:
+                self._early_stop("search direction is not a descent direction.")
+                break
+
+            x_last = xk + alpha * pk
+            p_last = -new_slope # descent direction
             
-    #         self.us, self.vs = x_last[:self.k], x_last[self.k:]
-    #         diff = np.sqrt(np.sum((alpha * pk) ** 2))
+            self.us, self.vs = x_last[:self.k], x_last[self.k:]
+            diff = np.sqrt(np.sum((alpha * pk) ** 2))
             
-    #         print("[I] Wolfe line search for iter   : {}".format(n_iter))
-    #         print("    num of function evals made   : {}".format(fc))
-    #         print("    num of gradient evals made   : {}".format(gc))
-    #         print("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
+            self.print_msg("[I] Wolfe line search for iter   : {}".format(n_iter))
+            self.print_msg("    num of function evals made   : {}".format(fc))
+            self.print_msg("    num of gradient evals made   : {}".format(gc))
+            self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
+            str_xk = ', '.join('{:.2f}'.format(x) for x in xk)
+            str_x_last = ', '.join('{:.2f}'.format(x) for x in x_last)
+            self.print_msg("    threshold update             :")
+            self.print_msg("        [{}]".format(str_xk))
+            self.print_msg("     -> [{}]".format(str_x_last))
+            str_pk = ', '.join('{:.2f}'.format(p) for p in pk)
+            self.print_msg("    threshold update direction   :")
+            self.print_msg("        [{}]".format(str_pk))
+            self.print_msg("    threshold difference         : {:.3f}".format(diff))
 
-    #         str_xk = ', '.join('{:.2f}'.format(x) for x in xk)
-    #         str_x_last = ', '.join('{:.2f}'.format(x) for x in x_last)
-    #         print("    threshold update             :")
-    #         print("        [{}]".format(str_xk))
-    #         print("     -> [{}]".format(str_x_last))
+            # evaluate
+            self.predict_X(us=self.us, vs=self.vs, boolean=True)
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
+
+            # display
+            if self.verbose and self.display and n_iter % 10 == 0:
+                self._show_matrix(title=f"iter {n_iter}")
+
+            # early stop detection
+            is_improving = self.early_stop(diff=diff, n_iter=n_iter)
+
+
+    @ignore_warnings
+    def approximate_X(self, us, vs):
+        '''`BaseModel.predict_X()` with sigmoid relations and sigmoid link function.
+
+        S : input of sigmoid.
+        X_approx : approximation of X_gt.
+        '''
+        U, V = self.U.copy(), self.V.copy()
+        for i in range(self.k):
+            U[:, i] = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
+            V[:, i] = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
             
-    #         str_pk = ', '.join('{:.2f}'.format(p) for p in pk)
-    #         print("    threshold update direction   :")
-    #         print("        [{}]".format(str_pk))
-            
-    #         print("    threshold difference         : {:.3f}".format(diff))
-
-    #         # evaluate
-    #         self.predict_X(us=self.us, vs=self.vs, boolean=True)
-    #         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
-
-    #         # display
-    #         if self.display and n_iter % 10 == 0:
-    #             self._show_matrix(title=f"iter {n_iter}")
-
-    #         # early stop
-    #         is_improving = self.early_stop(diff=diff, n_iter=n_iter)
-    #         n_iter += 1
-
-
-    # def update_patterns(self, us, vs):
-    #     '''Save patterns separately.
-
-    #     Parameters
-    #     ----------
-    #     us, vs : list
-    #         The thresholds.
-    #     '''
-    #     self.patterns = [None] * self.k
-    #     for i in range(self.k):
-    #         U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-    #         V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
-    #         self.patterns[i] = U @ V.T
-
-
-    # def sum_patterns(self, idx):
-    #     '''
-    #     '''
-    #     s = lil_matrix(np.zeros(self.patterns[0].shape))
-    #     for i in idx:
-    #         s = add(s, self.patterns[i])
-    #     return s
+        self.S = subtract(U @ V.T, 1/2) * self.link_lamda
+        self.X_approx = sigmoid(self.S)
     
 
     def F(self, params):
@@ -113,11 +117,10 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
         '''
         us, vs = params[:self.k], params[self.k:]
 
-        # self.update_patterns(us, vs) # generate patterns
-        # X_pd = self.sum_patterns(idx=[i for i in range(self.k)])
-        self.predict_X(us=us, vs=vs, boolean=False)
-        S = 10 * subtract(self.X_pd, 1/2)
-        diff = self.X_train - sigmoid(S)
+        self.approximate_X(us, vs)
+        X_gt, X_pd = self.X_train, self.X_approx
+
+        diff = X_gt - X_pd
         F = 0.5 * np.sum(power(multiply(self.W, diff), 2))
         return F
     
@@ -135,36 +138,29 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
         us, vs = params[:self.k], params[self.k:]
 
         dF = np.zeros(self.k * 2)
-        # self.update_patterns(us, vs) # generate patterns
-        # X_pd = self.sum_patterns(idx=[i for i in range(self.k)])
 
-        self.predict_X(us=us, vs=vs, boolean=False)
-        S = 10 * subtract(self.X_pd, 1/2)
+        self.approximate_X(us, vs)
+        X_gt, X_pd = self.X_train, self.X_approx
+
+        dFdX = X_gt - X_pd # considered '-' and '^2'
+        dFdX = multiply(self.W, dFdX) # dF/dX_pd
 
         # sigmoid link function
-        # S = 10 * subtract(self.X_pd, 1/2) # input of sigmoid
-        dFdS = self.X_train - sigmoid(S) # considered '-' and '^2'
-        dFdS = multiply(self.W, dFdS) # till now it's dF/dsigmoid(S)
-        dFdS = multiply(dFdS, d_sigmoid(S)) # include dsigmoid(S)/dS
+        dXdS = d_sigmoid(self.S) # dX_pd/dS
+        dFdS = multiply(dFdX, dXdS)
 
         for i in range(self.k):
-            # X_gt = self.sum_patterns(idx=[j for j in range(self.k) if j != i])
-            # X_gt = multiply(self.W, self.X_train - X_gt)
-
-            # X_pd = self.patterns[i]
-            # X_pd = multiply(self.W, X_pd)
-
-            # X_gt = multiply(self.W, self.X_train)
-
             U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
             V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
 
             # dFdU = X_gt @ V - X_pd @ V
+            # dFdU = dFdX @ V
             dFdU = dFdS @ V # include dS/dU
             dUdu = self.dXdx(self.U[:, i], us[i])
             dFdu = multiply(dFdU, dUdu)
 
             # dFdV = U.T @ X_gt - U.T @ X_pd
+            # dFdV = U.T @ dFdX
             dFdV = U.T @ dFdS # include dS/dV
             dVdv = self.dXdx(self.V[:, i], vs[i])
             dFdv = multiply(dFdV, dVdv.T)
@@ -174,19 +170,3 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
 
         return dF
 
-
-    # def dXdx(self, X, x):
-    #     '''The fractional term in the gradient.
-
-    #                   dU*     dV*     dW*     dH*
-    #     This computes --- and --- (or --- and --- as in the paper).
-    #                   du      dv      dw      dh
-        
-    #     Parameters
-    #     ----------
-    #     X : X*, sigmoid(X - x) in the paper
-    #     '''
-    #     diff = subtract(X, x)
-    #     num = np.exp(-self.lamda * subtract(X, x)) * self.lamda
-    #     denom_inv = sigmoid(diff * self.lamda) ** 2
-    #     return num * denom_inv

@@ -1,5 +1,5 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, ismat
+from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, ismat, ignore_warnings
 import numpy as np
 from scipy.sparse import spmatrix, lil_matrix
 
@@ -98,19 +98,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             is_improving = self.early_stop(diff=diff, n_iter=n_iter)
 
 
-    def debug(self, n_iter):
-        flag = False
-        if (self.U == 0).sum() + (self.U == 1).sum() == self.U.shape[0] * self.U.shape[1]:
-            print("[{}] U is all zeros or ones.".format(n_iter))
-            flag = True
-        if (self.V == 0).sum() + (self.V == 1).sum() == self.V.shape[0] * self.V.shape[1]:
-            print("[{}] V is all zeros or ones.".format(n_iter))
-            flag = True
-        if not flag:
-            print("[{}] OK.".format(n_iter))
-
-
-
+    @ignore_warnings
     def approximate_X(self, us, vs):
         '''`BaseModel.predict_X()` with sigmoid relations.
         '''
@@ -134,7 +122,9 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         us, vs = params[:self.k], params[self.k:]
 
         self.approximate_X(us, vs)
-        diff = self.X_train - self.X_approx
+        X_gt, X_pd = self.X_train, self.X_approx
+
+        diff = X_gt - X_pd
         F = 0.5 * np.sum(power(multiply(self.W, diff), 2))
         return F
     
@@ -154,8 +144,10 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         dF = np.zeros(self.k * 2)
 
         self.approximate_X(us, vs)
-        diff = self.X_train - self.X_approx
-        dFdX = multiply(self.W, diff)
+        X_gt, X_pd = self.X_train, self.X_approx
+
+        dFdX = X_gt - X_pd # considered '-' and '^2'
+        dFdX = multiply(self.W, dFdX) # dF/dX_pd
 
         for i in range(self.k):
             U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
@@ -163,14 +155,12 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
             # dFdU = X_gt @ V - X_pd @ V
             dFdU = dFdX @ V
-            dUdu = self.dXdx(U, us[i])
-            # dUdu = self.dXdx(self.U[:, i], us[i])
+            dUdu = self.dXdx(self.U[:, i], us[i])
             dFdu = multiply(dFdU, dUdu)
 
             # dFdV = U.T @ X_gt - U.T @ X_pd
             dFdV = U.T @ dFdX
-            dVdv = self.dXdx(V, us[i])
-            # dVdv = self.dXdx(self.V[:, i], vs[i])
+            dVdv = self.dXdx(self.V[:, i], vs[i])
             dFdv = multiply(dFdV, dVdv.T)
 
             dF[i] = np.sum(dFdu)
@@ -178,19 +168,3 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
         return dF
 
-
-    def dXdx(self, X, x):
-        '''The fractional term in the gradient.
-
-                      dU*     dV*     dW*     dH*
-        This computes --- and --- (or --- and --- as in the paper).
-                      du      dv      dw      dh
-        
-        Parameters
-        ----------
-        X : X*, sigmoid(X - x) in the paper
-        '''
-        diff = subtract(X, x)
-        num = np.exp(-self.lamda * subtract(X, x)) * self.lamda
-        denom_inv = sigmoid(diff * self.lamda) ** 2
-        return num * denom_inv

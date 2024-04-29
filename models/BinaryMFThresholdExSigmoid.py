@@ -71,6 +71,7 @@ class BinaryMFThresholdExSigmoid(BinaryMFThreshold):
 
         dFdX = X_gt - X_pd # considered '-' and '^2'
         dFdX = multiply(self.W, dFdX) # dF/dX_pd
+        
         dXdS = d_sigmoid(S) # dX_pd/dS
         dFdS = multiply(dFdX, dXdS)
 
