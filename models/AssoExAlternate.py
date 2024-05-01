@@ -8,7 +8,7 @@ from utils import record
 
 
 class AssoExAlternate(Asso):
-    '''The Asso algorithm with iterative update between the two factors (experimental)
+    '''The Asso algorithm with iterative update between the two factors (experimental).
     '''
     def _fit(self):
         self.n_basis = self.basis.shape[0]

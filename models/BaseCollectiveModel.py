@@ -103,14 +103,14 @@ class BaseCollectiveModel(BaseModel):
         if not hasattr(self, 'Xs_pd'):
             self.Xs_pd = [None] * self.n_matrices
         if Us is None:
-            Us = self.Us # .copy()
+            Us = self.Us.copy()
         if isnum(us):
             us = [us] * (self.k * self.n_factors)
 
         if us is not None:
             for j in range(self.n_factors):
                 for i in range(self.k):
-                    Us[j][:, i] = binarize(Us[j][:, i], self.us[i + j * self.k])
+                    Us[j][:, i] = binarize(Us[j][:, i], us[i + j * self.k])
 
         for i, factors in enumerate(self.factors):
             a, b = factors

@@ -1,6 +1,7 @@
 from .BaseCollectiveModel import BaseCollectiveModel
 import numpy as np
-from utils import to_dense, to_sparse, concat_Xs_into_X
+from utils import to_dense, to_sparse, concat_Xs_into_X, split_U_into_Us
+
 
 class ContinuousCollectiveModel(BaseCollectiveModel):
     '''Continuous collective matrix factorization.
@@ -44,14 +45,9 @@ class ContinuousCollectiveModel(BaseCollectiveModel):
         '''
         if self.init_method == 'bmf':
             # init factors using single binary mf
-            # self.X_train = concat_Xs_into_X(Xs=self.Xs_train, factors=self.factors)
-            # self.W = concat_Xs_into_X(Xs=self.Ws, factors=self.factors)
-            # bmf = BinaryMFPenalty(k=self.k, W=self.W, seed=self.seed)
-            # bmf.fit(X_train=self.X_train)
-            # self.U, self.V = to_dense(bmf.U), to_dense(bmf.V)
-            # self.Us = split_U_into_Us(U=self.U, V=self.V, factors=self.factors, factor_starts=self.factor_starts)
+
             pass
-        elif self.init_method == "normal":
+        elif self.init_method == "normal": # TODO: positive constraint
             # init factors randomly with standard normal distribution
             self.X_train = concat_Xs_into_X(Xs=self.Xs_train, factors=self.factors)
             avg = np.sqrt(self.X_train.mean() / self.k)

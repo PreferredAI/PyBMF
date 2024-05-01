@@ -5,7 +5,7 @@ from scipy.sparse import lil_matrix, hstack
 import pickle
 import time
 from IPython.display import display
-from utils import _make_name
+from utils import _make_name, ismat
 
 class BaseModelTools():
     '''The helper class for BaseModel.
@@ -51,7 +51,14 @@ class BaseModelTools():
             if param in kwargs:
                 value = kwargs.get(param)
                 setattr(self, param, value)
-                print("[I] {:<12} : {}".format(param, value.shape if hasattr(value, 'shape') else value))
+
+                # display
+                if isinstance(value, list):
+                    value = len(value)
+                if ismat(value):
+                    value = value.shape
+
+                print("[I] {:<12} : {}".format(param, value))
 
 
     def set_config(self, **kwargs):

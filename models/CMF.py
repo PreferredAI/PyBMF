@@ -15,7 +15,7 @@ class CMF(ContinuousCollectiveModel):
 
     todo: W
     '''
-    def __init__(self, k, alpha=None, Us=None, Ws=1, link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
+    def __init__(self, k, alpha=None, Us=None, Ws='full', link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
         '''
         Parameters
         ----------
@@ -34,7 +34,7 @@ class CMF(ContinuousCollectiveModel):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        self.set_params(['k', 'alpha', 'Ws', 'link', 'lr', 'reg', 'tol', 'max_iter', 'init_method'], **kwargs)
+        self.set_params(['link'], **kwargs)
         assert self.init_method in ['normal', 'uniform', 'custom']
 
 
@@ -73,28 +73,30 @@ class CMF(ContinuousCollectiveModel):
 
             print("[I] error: {:.3e}, rec_error: {:.3e}, reg_error: {:.3e}, rmse: {:.3e}".format(error, rec_error, reg_error, rmse))
 
-            # # evaluation, boolean
+            # evaluation, boolean
             # self.predict_Xs(us=0, boolean=True)
             # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter})
             # if n_iter % 10 == 0:
             #     self.show_matrix(colorbar=True, discrete=True, center=True, clim=[0, 1])
 
-            # # evaluation, continuous
-            # self.predict_Xs()
-            # self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error, 'rec_error': rec_error, 'reg_error': reg_error}, metrics=['RMSE'])
-            # if n_iter % 10 == 0:
-            #     self.show_matrix(colorbar=True)
+            # evaluation, continuous
+            self.predict_Xs()
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error, 'rec_error': rec_error, 'reg_error': reg_error}, metrics=['RMSE', 'MAE'])
+            if n_iter % 10 == 0:
+                self.show_matrix(colorbar=True)
 
             n_iter += 1
 
 
-    def predict_Xs(self, Us=None, us=None, boolean=False):
-        super().predict_Xs(Us=Us, us=us, boolean=boolean)
+    def predict_Xs(self, Us=None):
+        super().predict_Xs(Us=Us, us=None, boolean=None)
+
         for m in range(self.n_matrices):
             if self.link[m] == 'linear':
                 pass
             elif self.link[m] == 'logistic':
                 self.Xs_pd[m] = sigmoid(self.Xs_pd[m])
+
 
     def error(self):
         reg_error = 0
