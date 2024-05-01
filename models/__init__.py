@@ -6,12 +6,9 @@ from .AssoIter import AssoIter
 from .AssoOpt import AssoOpt
 from .AssoTrans import AssoTrans
 
-# from .AssoOri import AssoOri
 from .Panda import Panda
-
 from .Hyper import Hyper
 from .HyperPlus import HyperPlus
-
 from .MEBF import MEBF
 
 from .AssoExAlternate import AssoExAlternate
@@ -20,10 +17,10 @@ from .AssoExCollective import AssoExCollective
 
 # from .NMF import NMF
 from .NMFSklearn import NMFSklearn
-# from .WeightedNMF import WeightedNMF
+from .WNMF import WNMF
 
 from .BinaryMFPenalty import BinaryMFPenalty
-# from .BinaryMFPenaltyExWeighted import BinaryMFPenaltyExWeighted
+from .BinaryMFPenaltyExSigmoid import BinaryMFPenaltyExSigmoid
 
 from .BinaryMFThreshold import BinaryMFThreshold
 from .BinaryMFThresholdExSigmoid import BinaryMFThresholdExSigmoid

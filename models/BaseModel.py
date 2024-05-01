@@ -83,9 +83,12 @@ class BaseModel(BaseModelTools):
         Simply overwrite this method if you want to drop any parts or include more procedures.
         You can attach this to the end of `fit()` or simply call from outside.
         '''
-        self._show_logs()
-        self._show_matrix()
-        self._save_model()
+        if show_logs:
+            self._show_logs()
+        if show_matrix:
+            self._show_matrix()
+        if save_model:
+            self._save_model()
 
 
     def load_dataset(self, X_train, X_val=None, X_test=None):
@@ -165,7 +168,7 @@ class BaseModel(BaseModelTools):
     def evaluate(self, df_name, 
             head_info={}, train_info={}, val_info={}, test_info={}, 
             metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-            train_metrics=None, val_metrics=None, test_metrics=None):
+            train_metrics=None, val_metrics=None, test_metrics=None, verbose=False):
         '''Evaluate a BMF model on the given train, val and test daatset.
 
         Parameters
@@ -210,7 +213,7 @@ class BaseModel(BaseModelTools):
             columns += c
             results += r
         
-        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)
+        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=verbose)
 
 
     def _evaluate(self, name, info, metrics):

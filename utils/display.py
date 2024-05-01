@@ -142,8 +142,8 @@ def show_matrix(settings,
 
             vmin = dmin - (0.5 if center else 0)
             vmax = dmax + (0.5 if center else 0)
-            cmap = plt.get_cmap(cmap, cnum) # deprecated
-            # cmap = cm.get_cmap(cmap, cnum).copy()
+            # cmap = plt.get_cmap(cmap, cnum) # deprecated
+            cmap = cm.get_cmap(cmap, cnum).copy()
             cmap.set_under(cmin)
             cmap.set_over(cmax)
             cmap.set_bad(cnan)

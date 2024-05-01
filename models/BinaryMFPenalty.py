@@ -5,14 +5,18 @@ from scipy.sparse import spmatrix
 
 
 class BinaryMFPenalty(ContinuousModel):
-    '''Binary matrix factorization, Penalty algorithm
+    '''Binary matrix factorization, penalty function algorithm.
+
+    Solving the problem with multiplicative update:
+
+    min 1/2 ||X - U @ V.T||_F^2 + 1/2 * reg * ||U^2 - U||_F^2 + 1/2 * reg * ||V^2 - V||_F^2
     
     Reference
     ---------
     Binary Matrix Factorization with Applications
     Algorithms for Non-negative Matrix Factorization
     '''
-    def __init__(self, k, U=None, V=None, W='mask', reg=2.0, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='nmf_sklearn', seed=None):
+    def __init__(self, k, U=None, V=None, W='mask', reg=2.0, beta_loss="frobenius", solver="mu", reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -23,13 +27,15 @@ class BinaryMFPenalty(ContinuousModel):
         tol : float
             The error tolerance 'epsilon' in the paper.
         '''
-        self.check_params(k=k, U=U, V=V, W=W, reg=reg, reg_growth=reg_growth, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, reg=reg, beta_loss=beta_loss, solver=solver, reg_growth=reg_growth, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
         
-        self.set_params(['reg_growth'], **kwargs)
+        self.set_params(['beta_loss', 'solver', 'reg_growth'], **kwargs)
+        assert self.beta_loss in ['frobenius']
+        assert self.solver in ['mu']
         assert self.init_method in ['normal', 'uniform', 'custom']
 
 
@@ -37,6 +43,8 @@ class BinaryMFPenalty(ContinuousModel):
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
+
+        self.predict_X(boolean=False)
         self.finish()
 
     
@@ -58,10 +66,14 @@ class BinaryMFPenalty(ContinuousModel):
         # compute error
         error_old, rec_error_old, reg_error_old = self.error()
 
-        # evaluate with naive threshold
-        u, v = 0.5, 0.5
-        self.predict_X(u=u, v=v, boolean=True)
-        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old})
+        # evaluate
+        self.predict_X(boolean=False)
+        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old}, metrics=['RMSE', 'MAE'])
+
+        # # evaluate with naive threshold
+        # u, v = 0.5, 0.5
+        # self.predict_X(u=u, v=v, boolean=True)
+        # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old})
 
         while is_improving:
             # update n_iter, U, V
@@ -74,15 +86,19 @@ class BinaryMFPenalty(ContinuousModel):
             diff = abs(reg_error_old - reg_error_new)
             error_old, rec_error_old, reg_error_old = error_new, rec_error_new, reg_error_new
 
-            # evaluate with naive threshold
-            u, v = 0.5, 0.5
-            self.predict_X(u=u, v=v, boolean=True)
-            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new})
+            # evaluate
+            self.predict_X(boolean=False)
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new}, metrics=['RMSE', 'MAE'])
+
+            # # evaluate with naive threshold
+            # u, v = 0.5, 0.5
+            # self.predict_X(u=u, v=v, boolean=True)
+            # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new})
 
             # display
             self.print_msg("iter: {}, error: {:.2e}, rec_error: {:.2e}, reg: {:.2e}, reg_error: {:.2e}".format(n_iter, error_new, rec_error_new, self.reg, reg_error_new))
             if self.verbose and self.display and n_iter % 10 == 0:
-                self.show_matrix(u=u, v=v, title=f"iter {n_iter}")
+                self.show_matrix(boolean=False, colorbar=True, title=f"iter {n_iter}")
 
             # early stop detection
             is_improving = self.early_stop(error=reg_error_old, diff=diff, n_iter=n_iter)
@@ -114,11 +130,14 @@ class BinaryMFPenalty(ContinuousModel):
     def error(self):
         '''Error for penalty function algorithm.
 
-        In the paper, only reg_error is considered and minimized.
+        In the paper, only reg_error is considered for early stop detection.
         '''
-        diff = self.X_train - self.U @ self.V.T
-        rec_error = np.sum(power(multiply(self.W, diff), 2))
-        reg_error = np.sum(power(power(self.U, 2) - self.U, 2)) + np.sum(power(power(self.V, 2) - self.V, 2))
+        X_gt = self.X_train
+        X_pd = self.U @ self.V.T
+        rec_error = 0.5 * np.sum(multiply(self.W, power(X_gt - X_pd, 2)))
+        
+        reg_error = 0.5 * np.sum(power(power(self.U, 2) - self.U, 2))
+        reg_error += 0.5 * np.sum(power(power(self.V, 2) - self.V, 2))
 
-        error = 1 * rec_error + 0.5 * self.reg * reg_error
+        error = rec_error + self.reg * reg_error
         return error, rec_error, reg_error

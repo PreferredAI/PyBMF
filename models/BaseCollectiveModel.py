@@ -121,7 +121,7 @@ class BaseCollectiveModel(BaseModel):
     def evaluate(self, df_name, 
             head_info={}, train_info={}, val_info={}, test_info={}, 
             metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
-            train_metrics=None, val_metrics=None, test_metrics=None):
+            train_metrics=None, val_metrics=None, test_metrics=None, verbose=False):
         '''Evaluate a CMF model on the given train, val and test daatset.
         '''
         train_metrics = metrics if train_metrics is None else train_metrics
@@ -145,7 +145,7 @@ class BaseCollectiveModel(BaseModel):
             columns += c
             results += r
         
-        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=self.verbose)
+        record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=verbose)
 
 
     def _evaluate(self, name, info, metrics):

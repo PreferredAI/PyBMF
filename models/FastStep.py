@@ -5,8 +5,8 @@ from utils import binarize, matmul, to_dense, to_sparse
 from scipy.sparse import csr_matrix
 
 
-class BinaryMF(ContinuousModel):
-    '''Binary MF template class.
+class FastStep(ContinuousModel):
+    '''FastStep.
 
     Instantiate BinaryMFPenalty or BinaryMFThreshold instead.
     '''

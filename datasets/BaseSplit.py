@@ -68,6 +68,9 @@ class BaseSplit:
 
         This is fast but intractable for large dataset. Use trial-and-error for large dataset.
         '''
+        if n_negatives == 0:
+            return np.array([]), np.array([])
+        
         m, n = self.X.shape
         if type == "uniform":
             p = np.ones((m, n))
@@ -107,8 +110,10 @@ class BaseSplit:
 
         # SparseEfficiencyWarning
         self.X_train[U_neg[train_idx], V_neg[train_idx]] = 0
-        self.X_val[U_neg[val_idx], V_neg[val_idx]] = 0
-        self.X_test[U_neg[test_idx], V_neg[test_idx]] = 0
+        if len(val_idx) > 0:
+            self.X_val[U_neg[val_idx], V_neg[val_idx]] = 0
+        if len(test_idx) > 0:
+            self.X_test[U_neg[test_idx], V_neg[test_idx]] = 0
 
         self.neg_train_size = len(train_idx)
         self.neg_val_size = len(val_idx)

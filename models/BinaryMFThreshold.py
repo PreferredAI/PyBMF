@@ -1,9 +1,6 @@
 from .ContinuousModel import ContinuousModel
-from .BaseModel import BaseModel
-from .NMF import NMF
 from utils import multiply, power, sigmoid, to_dense, dot, add, subtract
 import numpy as np
-from scipy.sparse import spmatrix
 
 
 class BinaryMFThreshold(ContinuousModel):

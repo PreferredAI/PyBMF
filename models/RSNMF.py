@@ -3,8 +3,13 @@ from .ContinuousModel import ContinuousModel
 from utils import to_sparse
 
 
-class NMF(ContinuousModel):
-    '''Weighted NMF.
+class RSNMF(ContinuousModel):
+    '''Regularized single-element-based NMF.
+
+    Reference
+    ---------
+    An Efficient Non-Negative Matrix-Factorization-Based Approach to Collaborative Filtering for Recommender Systems
+    https://github.com/zhengyaochang/RSNMF
     '''
     def __init__(self, k, U=None, V=None, init_method='nndsvd', tol=1e-4, max_iter=1000, seed=None):
         '''

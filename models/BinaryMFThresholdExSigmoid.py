@@ -1,8 +1,6 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from .NMF import NMF
 from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, d_sigmoid
 import numpy as np
-from scipy.sparse import spmatrix
 
 
 class BinaryMFThresholdExSigmoid(BinaryMFThreshold):

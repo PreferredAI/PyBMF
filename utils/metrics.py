@@ -1,4 +1,4 @@
-from .boolean_utils import multiply, matmul, dot, power
+from .boolean_utils import multiply, matmul, dot, power, ismat
 from .sparse_utils import to_dense, to_triplet, to_sparse
 from scipy.sparse import spmatrix, issparse, csr_matrix
 import numpy as np
@@ -34,7 +34,7 @@ def get_metrics(gt, pd, metrics, axis=None):
         'TPR': TPR, 'FPR': FPR, 'TNR': TNR, 'FNR': FNR,
         'PPV': PPV, 'ACC': ACC, 'ERR': ERR, 'F1': F1,
         'Recall': TPR, 'Precision': PPV, 'Accuracy': ACC, 'Error': ERR, # alias
-        'RMSE': RMSE, # real distances
+        'RMSE': RMSE, 'MAE': MAE, # real distances
     }
     sklearn_metrics = { 
         'recall_score': recall_score, 'precision_score': precision_score, 
@@ -139,9 +139,25 @@ def F1(gt, pd, axis=None):
     return 2 * precision * recall / denom if denom > 0 else 0
 
 
+def _get_size(X, axis=None):
+    if axis is not None:
+        return X.shape[axis]
+    else:
+        return X.shape[0] * X.shape[1] if len(X.shape) == 2 else len(X)
+
+
 def RMSE(gt, pd, axis=None):
-    rmse = np.sqrt(power(gt - pd, 2).sum(axis) / gt.sum(axis))
+    N = _get_size(gt, axis=axis)
+    rmse = np.sqrt(power(gt - pd, 2).sum(axis) / N)
+
     return rmse
+
+
+def MAE(gt, pd, axis=None):
+    N = _get_size(gt, axis=axis)
+    mae = np.abs(gt - pd).sum(axis) / N
+
+    return mae
 
 
 def cover(gt, pd, w, axis=None):
