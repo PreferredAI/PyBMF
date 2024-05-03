@@ -9,14 +9,14 @@ class BinaryMFPenalty(ContinuousModel):
 
     Solving the problem with multiplicative update:
 
-    min 1/2 ||X - U @ V.T||_F^2 + 1/2 * reg * ||U^2 - U||_F^2 + 1/2 * reg * ||V^2 - V||_F^2
+    min 1/2 * ||X - U @ V.T||_F^2 + 1/2 * reg * ||U^2 - U||_F^2 + 1/2 * reg * ||V^2 - V||_F^2
     
     Reference
     ---------
     Binary Matrix Factorization with Applications
     Algorithms for Non-negative Matrix Factorization
     '''
-    def __init__(self, k, U=None, V=None, W='mask', reg=2.0, beta_loss="frobenius", solver="mu", reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='custom', seed=None):
+    def __init__(self, k, U=None, V=None, W='full', reg=2.0, beta_loss="frobenius", solver="mu", reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -54,7 +54,11 @@ class BinaryMFPenalty(ContinuousModel):
         super().init_model()
 
         self.init_UV()
-        self.normalize_UV(method="balance")
+        # self.normalize_UV(method="balance")
+        self.normalize_UV(method="normalize")
+
+        self._to_float()
+        self._to_dense()
 
 
     def _fit(self):
@@ -70,16 +74,10 @@ class BinaryMFPenalty(ContinuousModel):
         self.predict_X(boolean=False)
         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old}, metrics=['RMSE', 'MAE'])
 
-        # # evaluate with naive threshold
-        # u, v = 0.5, 0.5
-        # self.predict_X(u=u, v=v, boolean=True)
-        # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old})
-
         while is_improving:
             # update n_iter, U, V
             n_iter += 1
-            self.update_V()
-            self.update_U()
+            self.update()
 
             # compute error, diff
             error_new, rec_error_new, reg_error_new = self.error()
@@ -89,11 +87,6 @@ class BinaryMFPenalty(ContinuousModel):
             # evaluate
             self.predict_X(boolean=False)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new}, metrics=['RMSE', 'MAE'])
-
-            # # evaluate with naive threshold
-            # u, v = 0.5, 0.5
-            # self.predict_X(u=u, v=v, boolean=True)
-            # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new})
 
             # display
             self.print_msg("iter: {}, error: {:.2e}, rec_error: {:.2e}, reg: {:.2e}, reg_error: {:.2e}".format(n_iter, error_new, rec_error_new, self.reg, reg_error_new))
@@ -108,23 +101,48 @@ class BinaryMFPenalty(ContinuousModel):
 
 
     @ignore_warnings
-    def update_U(self):
-        '''Multiplicative update of U.
+    def update(self):
+        '''Multiplicative update.
         '''
-        num = multiply(self.W, self.X_train) @ self.V + 3 * self.reg * power(self.U, 2)
-        denom = multiply(self.W, self.U @ self.V.T) @ self.V + 2 * self.reg * power(self.U, 3) + self.reg * self.U
-        denom[denom == 0] = np.finfo(np.float64).eps
-        self.U = multiply(self.U, num / denom)
+        if self.beta_loss == 'frobenius':
+            # update V
+            num = multiply(self.W, self.X_train).T @ self.U
+            num += 3 * self.reg * power(self.V, 2)
+
+            denom = multiply(self.W, self.U @ self.V.T).T @ self.U
+            denom += 2 * self.reg * power(self.V, 3) + self.reg * self.V
+            denom[denom == 0] = np.finfo(np.float64).eps
+
+            self.V = multiply(self.V, num / denom)
+
+            # update U
+            num = multiply(self.W, self.X_train) @ self.V
+            num += 3 * self.reg * power(self.U, 2)
+            denom = multiply(self.W, self.U @ self.V.T) @ self.V
+            denom += 2 * self.reg * power(self.U, 3) + self.reg * self.U
+            denom[denom == 0] = np.finfo(np.float64).eps
+
+            self.U = multiply(self.U, num / denom)
+
+            
+    # @ignore_warnings
+    # def update_U(self):
+    #     '''Multiplicative update of U.
+    #     '''
+    #     num = multiply(self.W, self.X_train) @ self.V + 3 * self.reg * power(self.U, 2)
+    #     denom = multiply(self.W, self.U @ self.V.T) @ self.V + 2 * self.reg * power(self.U, 3) + self.reg * self.U
+    #     denom[denom == 0] = np.finfo(np.float64).eps
+    #     self.U = multiply(self.U, num / denom)
 
 
-    @ignore_warnings
-    def update_V(self):
-        '''Multiplicative update of V.
-        '''
-        num = multiply(self.W, self.X_train).T @ self.U + 3 * self.reg * power(self.V, 2)
-        denom = multiply(self.W, self.U @ self.V.T).T @ self.U + 2 * self.reg * power(self.V, 3) + self.reg * self.V
-        denom[denom == 0] = np.finfo(np.float64).eps
-        self.V = multiply(self.V, num / denom)
+    # @ignore_warnings
+    # def update_V(self):
+    #     '''Multiplicative update of V.
+    #     '''
+    #     num = multiply(self.W, self.X_train).T @ self.U + 3 * self.reg * power(self.V, 2)
+    #     denom = multiply(self.W, self.U @ self.V.T).T @ self.U + 2 * self.reg * power(self.V, 3) + self.reg * self.V
+    #     denom[denom == 0] = np.finfo(np.float64).eps
+    #     self.V = multiply(self.V, num / denom)
 
 
     def error(self):
@@ -134,6 +152,10 @@ class BinaryMFPenalty(ContinuousModel):
         '''
         X_gt = self.X_train
         X_pd = self.U @ self.V.T
+
+        # X_gt[X_gt == 0] = np.finfo(np.float64).eps
+        # X_pd[X_pd == 0] = np.finfo(np.float64).eps
+
         rec_error = 0.5 * np.sum(multiply(self.W, power(X_gt - X_pd, 2)))
         
         reg_error = 0.5 * np.sum(power(power(self.U, 2) - self.U, 2))

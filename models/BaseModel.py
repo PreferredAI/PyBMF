@@ -130,6 +130,8 @@ class BaseModel(BaseModelTools):
             The shared threshold for U and V.
         us, vs : list of length k, float
             The thresholds for each factor in U and V.
+        boolean : bool
+            Whether to apply Boolean multiplication.
         '''
         U = self.U.copy() if U is None else U.copy()
         V = self.V.copy() if V is None else V.copy()
@@ -212,7 +214,7 @@ class BaseModel(BaseModelTools):
             c, r = self._evaluate('test', test_info, test_metrics)
             columns += c
             results += r
-        
+
         record(df_dict=self.logs, df_name=df_name, columns=columns, records=results, verbose=verbose)
 
 

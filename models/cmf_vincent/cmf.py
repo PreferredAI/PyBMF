@@ -13,19 +13,7 @@ sys.path.append('../../')
 from models import BaseCollectiveModel
 from utils import sigmoid, binarize
 
-class cmf_vincent(BaseCollectiveModel):
-     def __init__(self) -> None:
-          pass
-     
-     def predict_Xs(self):
-        if not hasattr(self, 'Xs'):
-            self.Xs_pd = [None] * self.n_matrices
-        for i, factors in enumerate(self.factors):
-            a, b = factors
-            X = matmul(U=self.Us[a], V=self.Us[b].T, boolean=False, sparse=False)
 
-            X = sigmoid(X)
-            self.Xs_pd[i] = binarize(X)
 
 # def parse_args():
 #     parser = argparse.ArgumentParser(description = 'Collective Matrix Factorization')
@@ -98,9 +86,9 @@ def learn(Xs, Xstst, rc_schema, modes, alphas, K, reg, learn_rate, max_iter, tol
 
         # ===============================================================
 
-        model.Us=[scipy.sparse.lil_matrix(U) for U in Us]
-        model.predict_Xs()
-        model.evaluate(df_name='updates')
+        # model.Us=[scipy.sparse.lil_matrix(U) for U in Us]
+        # model.predict_Xs()
+        # model.evaluate(df_name='updates')
 
         # toc = time.time()
         # logger.info('Iter {}/{}. Time: {:.1f}'.format(i, max_iter, toc - tic))

@@ -6,7 +6,7 @@ from .sparse_utils import sparse_indexing
 from scipy.sparse import spmatrix
 from .sparse_utils import to_sparse
 from .boolean_utils import multiply
-
+from .decorator_utils import ignore_warnings
 
 def get_rng(seed, rng):
     '''Get random number generator
@@ -71,12 +71,11 @@ def binarize(X, threshold=0.5):
         Y = to_sparse(Y, type=X.format)
     return Y
 
-
+@ignore_warnings
 def sigmoid(X):
     '''Sigmoid function.
     '''
-    X = X.astype(float)
-    X[X == 0] = 1e-9
+    X = X.astype(np.float64)
     Y = 1.0 / (1.0 + np.exp(-X))
     return Y
 

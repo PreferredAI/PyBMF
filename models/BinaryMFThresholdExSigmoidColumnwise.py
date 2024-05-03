@@ -1,14 +1,15 @@
 from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
-from utils import multiply, subtract, sigmoid, power, add, d_sigmoid, ignore_warnings
+from .BinaryMFThreshold import BinaryMFThreshold
+from utils import multiply, subtract, sigmoid, power, add, d_sigmoid, ignore_warnings, ismat, isnum
 from scipy.sparse import lil_matrix
 import numpy as np
 from tqdm import tqdm
 
 
 class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
-    '''Binary matrix factorization, thresholding algorithm, columnwise thresholds, sigmoid link function (experimental).
+    '''Binary matrix factorization, thresholding algorithm, sigmoid link function, columnwise thresholds (experimental).
     '''
-    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, link_lamda=10, lamda=100, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
+    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, link_lamda=10, lamda=10, lamda_rate=1.0, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -16,17 +17,29 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
             Initial thresholds for `U` and `V.
             If float is provided, it will be extended to a list of k thresholds.
         '''
-        self.check_params(k=k, U=U, V=V, W=W, us=us, vs=vs, link_lamda=link_lamda, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, us=us, vs=vs, link_lamda=link_lamda, lamda=lamda, lamda_rate=lamda_rate, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
 
     def check_params(self, **kwargs):
-        super().check_params(**kwargs)
+        super(BinaryMFThreshold, self).check_params(**kwargs)
 
-        self.set_params(['link_lamda'], **kwargs)
+        self.set_params(['lamda', 'lamda_rate', 'link_lamda', 'us', 'vs'], **kwargs)
+
+        assert self.init_method in ['custom']
+
+        if 'W' in kwargs:
+            assert ismat(self.W) or self.W in ['mask', 'full']
+        if 'us' in kwargs and isnum(self.us):
+            self.us = [self.us] * self.k
+        if 'vs' in kwargs and isnum(self.vs):
+            self.vs = [self.vs] * self.k
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
-        super().fit(X_train, X_val, X_test, **kwargs)
+        super(BinaryMFThreshold, self).fit(X_train, X_val, X_test, **kwargs)
+
+        self._fit()
+        self.finish()
 
 
     def _fit(self):
@@ -42,7 +55,7 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
 
         # initial evaluation
         self.predict_X(us=self.us, vs=self.vs, boolean=True)
-        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
+        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'lamda': self.lamda, 'F': new_fval})
         while is_improving:
             n_iter += 1
             xk = x_last # starting point
@@ -79,7 +92,7 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
 
             # evaluate
             self.predict_X(us=self.us, vs=self.vs, boolean=True)
-            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'lamda': self.lamda, 'F': new_fval})
 
             # display
             if self.verbose and self.display and n_iter % 10 == 0:
@@ -87,6 +100,9 @@ class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
 
             # early stop detection
             is_improving = self.early_stop(diff=diff, n_iter=n_iter)
+
+            # debug
+            self.lamda *= self.lamda_rate
 
 
     @ignore_warnings

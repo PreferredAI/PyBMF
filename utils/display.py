@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix, spmatrix
 from matplotlib import cm
 from .sparse_utils import to_triplet, to_dense
 import platform
+import warnings
 
 
 def show_matrix(settings, 
@@ -142,8 +143,11 @@ def show_matrix(settings,
 
             vmin = dmin - (0.5 if center else 0)
             vmax = dmax + (0.5 if center else 0)
-            # cmap = plt.get_cmap(cmap, cnum) # deprecated
-            cmap = cm.get_cmap(cmap, cnum).copy()
+            with warnings.catch_warnings():
+                try:
+                    cmap = cm.get_cmap(cmap, cnum).copy()
+                except Warning as e:
+                    cmap = plt.get_cmap(cmap, cnum) # to be deprecated
             cmap.set_under(cmin)
             cmap.set_over(cmax)
             cmap.set_bad(cnan)

@@ -25,6 +25,7 @@ from .BinaryMFPenaltyExSigmoid import BinaryMFPenaltyExSigmoid
 from .BinaryMFThreshold import BinaryMFThreshold
 from .BinaryMFThresholdExSigmoid import BinaryMFThresholdExSigmoid
 from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
+# from .BinaryMFThresholdExSigmoidColumnwiseLamda import BinaryMFThresholdExColumnwiseLamda
 from .BinaryMFThresholdExCollective import BinaryMFThresholdExCollective
 from .BinaryMFThresholdExSigmoidColumnwise import BinaryMFThresholdExSigmoidColumnwise
 

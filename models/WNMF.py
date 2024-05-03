@@ -44,7 +44,9 @@ class WNMF(ContinuousModel):
         super().init_model()
 
         self.init_UV()
-        # self._to_dense()
+        
+        self._to_float()
+        self._to_dense()
 
 
     def _fit(self):
@@ -125,7 +127,8 @@ class WNMF(ContinuousModel):
 
     @ignore_warnings
     def error(self):
-
+        '''The error function.
+        '''
         X_gt = self.X_train
         X_pd = self.U @ self.V.T
 
@@ -137,7 +140,7 @@ class WNMF(ContinuousModel):
             error = rec_error
             
         elif self.beta_loss == 'kullback-leibler':
-            rec_error = np.sum(self.W * (X_gt * (np.log(X_gt / X_pd)) - X_gt + X_pd))
+            rec_error = np.sum(multiply(self.W, multiply(X_gt, np.log(X_gt / X_pd)) - X_gt + X_pd))
             error = rec_error
             
         return error

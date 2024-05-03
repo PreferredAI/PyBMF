@@ -10,7 +10,7 @@ class BinaryMFThreshold(ContinuousModel):
         'Binary Matrix Factorization with Applications', 
         'Algorithms for Non-negative Matrix Factorization'.
     '''
-    def __init__(self, k, U, V, W='mask', u=0.5, v=0.5, lamda=100, min_diff=1e-6, max_iter=100, init_method='custom', seed=None):
+    def __init__(self, k, U, V, W='mask', u=0.5, v=0.5, lamda=100, min_diff=1e-3, max_iter=100, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -42,6 +42,9 @@ class BinaryMFThreshold(ContinuousModel):
 
         self.normalize_UV(method="normalize")
 
+        self._to_dense()
+        self._to_float()
+
 
     def _fit(self):
         '''The gradient descent method.
@@ -61,7 +64,7 @@ class BinaryMFThreshold(ContinuousModel):
             n_iter += 1
             xk = x_last # starting point
             pk = p_last # searching direction
-            pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
+            # pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
             print("[I] iter: {}, start: [{:.3f}, {:.3f}], direction: [{:.3f}, {:.3f}]".format(n_iter, *xk, *pk))
 
@@ -82,6 +85,7 @@ class BinaryMFThreshold(ContinuousModel):
             self.print_msg("    num of gradient evals made   : {}".format(gc))
             self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
             self.print_msg("    threshold update             : [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]".format(*xk, *x_last))
+            self.print_msg("    threshold update direction   : [{:.3f}, {:.3f}]".format(*(alpha * pk)))
             self.print_msg("    threshold difference         : {:.6f}".format(diff))
 
             # evaluate
@@ -114,6 +118,7 @@ class BinaryMFThreshold(ContinuousModel):
 
         while n_iter <= maxiter:
             n_iter = n_iter + 1
+
             x = xk + alpha * pk
 
             armojo_cond = f(x) - fk <= alpha * c1 * dot(gk, pk)
@@ -173,6 +178,7 @@ class BinaryMFThreshold(ContinuousModel):
         dF : [dF(u, v)/du, dF(u, v)/dv], the ascend direction
         '''
         u, v = params
+        
         U = sigmoid(subtract(self.U, u) * self.lamda)
         V = sigmoid(subtract(self.V, v) * self.lamda)
         

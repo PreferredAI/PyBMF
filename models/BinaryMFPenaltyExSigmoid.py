@@ -11,7 +11,7 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
 
     min 1/2 ||X - sigmoid(U @ V.T - 1/2)||_F^2 + 1/2 * reg * ||U^2 - U||_F^2 + 1/2 * reg * ||V^2 - V||_F^2
     '''
-    def __init__(self, k, U=None, V=None, W='mask', reg=2.0, beta_loss="frobenius", solver="mu", link_lamda=10, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='custom', seed=None):
+    def __init__(self, k, U=None, V=None, W='full', reg=2.0, beta_loss="frobenius", solver="mu", link_lamda=10, reg_growth=3, tol=0.01, min_diff=0.0, max_iter=100, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -30,7 +30,7 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
 
         self._fit()
 
-        self.predict_X(boolean=False)
+        self.predict_X()
         self.finish()
         
 
@@ -49,7 +49,11 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
         super(BinaryMFPenalty, self).init_model()
 
         self.init_UV()
-        self.normalize_UV(method="balance")
+        # self.normalize_UV(method="balance")
+        self.normalize_UV(method="normalize")
+
+        self._to_float()
+        self._to_dense()
 
 
     def _fit(self):
@@ -62,13 +66,8 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
         error_old, rec_error_old, reg_error_old = self.error()
 
         # evaluate
-        self.predict_X(boolean=False)
+        self.predict_X()
         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old}, metrics=['RMSE', 'MAE'])
-
-        # # evaluate with naive threshold
-        # u, v = 0.5, 0.5
-        # self.predict_X(u=u, v=v, boolean=True)
-        # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old})
 
         while is_improving:
             # update n_iter, U, V
@@ -82,13 +81,8 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
             error_old, rec_error_old, reg_error_old = error_new, rec_error_new, reg_error_new
 
             # evaluate
-            self.predict_X(boolean=False)
+            self.predict_X()
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new}, metrics=['RMSE', 'MAE'])
-
-            # # evaluate with naive threshold
-            # u, v = 0.5, 0.5
-            # self.predict_X(u=u, v=v, boolean=True)
-            # self.evaluate(df_name='updates_boolean', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new})
 
             # display
             self.print_msg("iter: {}, error: {:.2e}, rec_error: {:.2e}, reg: {:.2e}, reg_error: {:.2e}".format(n_iter, error_new, rec_error_new, self.reg, reg_error_new))
@@ -102,7 +96,11 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
             self.reg *= self.reg_growth
 
 
-    def predict_X(self, U=None, V=None, u=None, v=None, us=None, vs=None, boolean=True):
+    def predict_X(self):
+        '''Generate X_pd with sigmoid link function.
+
+        This overwrites `BaseModel.predict_X()`.
+        '''
         S = subtract(self.U @ self.V.T, 1/2) * self.link_lamda # input of sigmoid
         self.X_pd = sigmoid(S) # approximation of X_gt
 
@@ -122,9 +120,13 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
         dXdS = d_sigmoid(S) # dX_pd/dS
         # dFdS = multiply(dFdX, dXdS)
 
-        num = multiply(multiply(self.W, self.X_train), dXdS) @ self.V + 3 * self.reg * power(self.U, 2)
-        denom = multiply(multiply(self.W, X_pd), dXdS) @ self.V + 2 * self.reg * power(self.U, 3) + self.reg * self.U
+        num = multiply(multiply(self.W, self.X_train), dXdS) @ self.V
+        num += 3 * self.reg * power(self.U, 2)
+
+        denom = multiply(multiply(self.W, X_pd), dXdS) @ self.V
+        denom += 2 * self.reg * power(self.U, 3) + self.reg * self.U
         denom[denom == 0] = np.finfo(np.float64).eps
+
         self.U = multiply(self.U, num / denom)
 
 
@@ -143,9 +145,13 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
         dXdS = d_sigmoid(S) # dX_pd/dS
         # dFdS = multiply(dFdX, dXdS)
 
-        num = multiply(multiply(self.W, self.X_train), dXdS).T @ self.U + 3 * self.reg * power(self.V, 2)
-        denom = multiply(multiply(self.W, X_pd), dXdS).T @ self.U + 2 * self.reg * power(self.V, 3) + self.reg * self.V
+        num = multiply(multiply(self.W, self.X_train), dXdS).T @ self.U
+        num += 3 * self.reg * power(self.V, 2)
+
+        denom = multiply(multiply(self.W, X_pd), dXdS).T @ self.U
+        denom += 2 * self.reg * power(self.V, 3) + self.reg * self.V
         denom[denom == 0] = np.finfo(np.float64).eps
+
         self.V = multiply(self.V, num / denom)
 
 

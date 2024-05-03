@@ -1,3 +1,4 @@
+from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
 from .BinaryMFThreshold import BinaryMFThreshold
 from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, ismat, ignore_warnings
 import numpy as np
@@ -5,12 +6,12 @@ from scipy.sparse import spmatrix, lil_matrix
 from tqdm import tqdm
 
 
-class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
-    '''Binary matrix factorization, thresholding algorithm, columnwise thresholds (experimental).
+class BinaryMFThresholdExSigmoidColumnwiseLamda(BinaryMFThresholdExColumnwise):
+    '''Binary matrix factorization, thresholding algorithm, sigmoid link function, columnwise thresholds, varying `lamda` (experimental).
 
-    Implemented solver includes projected line search and projected coordinate descent.
+    Implemented solver includes projected line search for now.
     '''
-    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, lamda=100, min_diff=1e-3, max_iter=30, init_method='custom', solver='line-search', seed=None):
+    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, u_lamda=1, v_lamda=1, link_lamda=10, min_diff=1e-3, max_iter=30, init_method='custom', solver='line-search', seed=None):
         '''
         Parameters
         ----------
@@ -18,15 +19,18 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             Initial thresholds for `U` and `V.
             If float is provided, it will be extended to a list of k thresholds.
         solver : str, ['line-search', 'cd']
+        u_lamda, v_lamda : int, float
+            The initial `lamda`. Here `lamda` is to be optimized. It's better to start with a small value.
+        link_lamda : float
         '''
-        self.check_params(k=k, U=U, V=V, W=W, us=us, vs=vs, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, solver=solver, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, us=us, vs=vs, u_lamda=u_lamda, v_lamda=v_lamda, link_lamda=link_lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, solver=solver, seed=seed)
         
 
     def check_params(self, **kwargs):
         super(BinaryMFThreshold, self).check_params(**kwargs)
 
-        self.set_params(['us', 'vs', 'lamda', 'solver'], **kwargs)
-        
+        self.set_params(['us', 'vs', 'u_lamda', 'v_lamda', 'solver', 'link_lamda'], **kwargs)
+
         assert self.solver in ['line-search', 'cd']
         assert self.init_method in ['custom']
 
@@ -41,12 +45,15 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         super(BinaryMFThreshold, self).fit(X_train, X_val, X_test, **kwargs)
 
+        self._fit()
+        self.finish()
+
+
+    def _fit(self):
         if self.solver == 'line-search':
             self._fit_line_search()
         elif self.solver == 'cd':
-            self._fit_coordinate_descent()
-
-        self.finish()
+            self._fit_coordinate_descent()        
 
 
     def _fit_line_search(self):
@@ -56,13 +63,16 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         is_improving = True
 
         params = self.us + self.vs
+        params.append(self.u_lamda)
+        params.append(self.v_lamda)
+
         x_last = np.array(params) # initial point
         p_last = -self.dF(x_last) # descent direction
         new_fval = self.F(x_last) # initial value
 
         # initial evaluation
         self.predict_X(us=self.us, vs=self.vs, boolean=True)
-        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
+        self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'u_lamda': self.u_lamda, 'v_lamda': self.v_lamda, 'F': new_fval})
         while is_improving:
             n_iter += 1
             xk = x_last # starting point
@@ -79,24 +89,27 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
                 self._early_stop("search direction is not a descent direction.")
                 break
 
-            x_last = xk + alpha * pk
+            # debug: scheduled update for u_lamda and v_lamda
+            # x_last = xk + alpha * pk
+            x_last[-2] = x_last[-2] * 1.2
+            x_last[-1] = x_last[-1] * 1.2
+
 
             # debug: put on constraint so that x_last is in [0, 1]
-            # if np.any(x_last < 0) or np.any(x_last > 1):
-            #     alpha = np.where(x_last < 0, -xk / pk, (1 - xk) / pk)
-            #     x_last = xk + alpha * pk
-            #     alpha = np.min(alpha)
-            #     new_slope = self.dF(x_last)
-            x_last[x_last <= 0] = np.finfo(np.float64).eps
-            x_last[x_last >= 1] = 1 - np.finfo(np.float64).eps
+            lb, ub = np.finfo(np.float64).eps, 1.0 - np.finfo(np.float64).eps
+            for i in range(self.k * 2):
+                x_last[i] = max(lb, min(ub, x_last[i]))
+            # debug: put on constraint so that lamda is > 0
+            # for i in [-2, -1]:
+            #     x_last[i] = max(lb, x_last[i])
 
             new_slope = self.dF(x_last)
             new_fval = self.F(x_last)
 
             p_last = -new_slope # descent direction
             
-            self.us, self.vs = x_last[:self.k], x_last[self.k:]
-            diff = np.sqrt(np.sum((alpha * pk) ** 2))
+            self.us, self.vs, self.u_lamda, self.v_lamda = x_last[:self.k], x_last[self.k:-2], x_last[-2], x_last[-1]
+            diff = np.sqrt(np.sum((alpha * pk[:self.k * 2]) ** 2))
             
             self.print_msg("[I] Wolfe line search for iter   : {}".format(n_iter))
             self.print_msg("    num of function evals made   : {}".format(fc))
@@ -114,7 +127,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
             # evaluate
             self.predict_X(us=self.us, vs=self.vs, boolean=True)
-            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
+            self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'u_lamda': self.u_lamda, 'v_lamda': self.v_lamda, 'F': new_fval})
 
             # display
             if self.verbose and self.display and n_iter % 10 == 0:
@@ -125,13 +138,14 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
 
     @ignore_warnings
-    def approximate_X(self, us, vs):
+    def approximate_X(self, us, vs, u_lamda, v_lamda):
         '''`BaseModel.predict_X()` with sigmoid relations.
         '''
         U, V = self.U.copy(), self.V.copy()
+
         for i in range(self.k):
-            U[:, i] = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-            V[:, i] = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
+            U[:, i] = sigmoid(subtract(self.U[:, i], us[i]) * u_lamda)
+            V[:, i] = sigmoid(subtract(self.V[:, i], vs[i]) * v_lamda)
         self.X_approx = U @ V.T
     
 
@@ -139,15 +153,15 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         '''
         Parameters
         ----------
-        params : [u1, ..., uk, v1, ..., vk]
+        params : [u1, ..., uk, v1, ..., vk, u_lamda, v_lamda]
 
         Returns
         -------
-        F : F(u1, ..., uk, v1, ..., vk)
+        F : F(u1, ..., uk, v1, ..., vk, u_lamda, v_lamda)
         '''
-        us, vs = params[:self.k], params[self.k:]
+        us, vs, u_lamda, v_lamda = params[:self.k], params[self.k:self.k*2], params[-2], params[-1]
 
-        self.approximate_X(us, vs)
+        self.approximate_X(us=us, vs=vs, u_lamda=u_lamda, v_lamda=v_lamda)
         X_gt, X_pd = self.X_train, self.X_approx
 
         diff = X_gt - X_pd
@@ -160,38 +174,48 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         '''
         Parameters
         ----------
-        params : [u1, ..., uk, v1, ..., vk]
+        params : [u1, ..., uk, v1, ..., vk, u_lamda, v_lamda]
 
         Returns
         -------
-        dF : dF/d(u1, ..., uk, v1, ..., vk), the ascend direction
+        dF : dF/d(u1, ..., uk, v1, ..., vk, u_lamda, v_lamda), the ascend direction
         '''
-        us, vs = params[:self.k], params[self.k:]
+        us, vs, u_lamda, v_lamda = params[:self.k], params[self.k:self.k*2], params[-2], params[-1]
 
-        dF = np.zeros(self.k * 2)
+        dF = np.zeros(self.k * 2 + 2)
 
-        self.approximate_X(us, vs)
+        self.approximate_X(us=us, vs=vs, u_lamda=u_lamda, v_lamda=v_lamda)
         X_gt, X_pd = self.X_train, self.X_approx
 
         dFdX = X_gt - X_pd # considered '-' and '^2'
         dFdX = multiply(self.W, dFdX) # dF/dX_pd
 
         for i in range(self.k):
-            U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-            V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
+            U = sigmoid(subtract(self.U[:, i], us[i]) * u_lamda)
+            V = sigmoid(subtract(self.V[:, i], vs[i]) * v_lamda)
 
             # dFdU = X_gt @ V - X_pd @ V
             dFdU = dFdX @ V
-            dUdu = self.dXdx(self.U[:, i], us[i])
+            dUdu = self.dXdx(self.U[:, i], us[i], u_lamda)
             dFdu = multiply(dFdU, dUdu)
 
             # dFdV = U.T @ X_gt - U.T @ X_pd
             dFdV = U.T @ dFdX
-            dVdv = self.dXdx(self.V[:, i], vs[i])
+            dVdv = self.dXdx(self.V[:, i], vs[i], v_lamda)
             dFdv = multiply(dFdV, dVdv.T)
 
             dF[i] = np.sum(dFdu)
             dF[i + self.k] = np.sum(dFdv)
+
+        # dFdu_lamda and dFdv_lamda
+        dUdu_lamda = self.dXdlamda(self.U[:, i], us[i], u_lamda)
+        dFdU_lamda = multiply(dFdU, dUdu_lamda)
+
+        dVdv_lamda = self.dXdlamda(self.V[:, i], vs[i], v_lamda)
+        dFdV_lamda = multiply(dFdV, dVdv_lamda)
+
+        dF[-2] = np.sum(dFdU_lamda)
+        dF[-1] = np.sum(dFdV_lamda)
 
         return dF
 
@@ -264,8 +288,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         dFdX = multiply(self.W, dFdX) # dF/dX_pd
 
         for i in range(self.k):
-            U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-            V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
+            U = sigmoid(subtract(self.U[:, i], us[i]) * self.u_lamda)
+            V = sigmoid(subtract(self.V[:, i], vs[i]) * self.v_lamda)
 
             # dFdU = X_gt @ V - X_pd @ V
             dFdU = dFdX @ V
@@ -289,34 +313,49 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         return d2F
 
 
-    # def dXdx(self, X, x):
-    #     '''The fractional term in the gradient.
+    def dXdx(self, X, x, lamda):
+        '''The fractional term in the gradient.
 
-    #                   dU*     dV*     dW*     dH*
-    #     This computes --- and --- (or --- and --- as in the paper).
-    #                   du      dv      dw      dh
+                      dU*     dV*     dW*     dH*
+        This computes --- and --- (or --- and --- as in the paper).
+                      du      dv      dw      dh
         
-    #     Parameters
-    #     ----------
-    #     X : X*, sigmoid(X - x) in the paper
-    #     '''
-    #     diff = subtract(X, x)
-    #     num = np.exp(-self.lamda * subtract(X, x)) * self.lamda
-    #     denom_inv = sigmoid(diff * self.lamda) ** 2
-    #     return num * denom_inv
+        Parameters
+        ----------
+        X :
+            X*, sigmoid(X - x) in the paper
+        lamda : int, float
+            The shape parameter of the sigmoid function.
+        '''
+        diff = subtract(X, x)
+        num = np.exp(-lamda * subtract(X, x)) * lamda
+        denom_inv = sigmoid(diff * lamda) ** 2
+        return num * denom_inv
+    
+
+    def dXdlamda(self, X, x, lamda):
+        '''
+                        dU*          dV*
+        This computes -------- and --------.
+                      du_lamda     dv_lamda
+        '''
+        diff = subtract(X, x)
+        num = multiply(np.exp(-lamda * subtract(X, x)), subtract(X, x))
+        denom_inv = sigmoid(diff * lamda) ** 2
+        return multiply(num, denom_inv)
 
 
-    def d2Xdx2(self, X, x):
+    def d2Xdx2(self, X, x, lamda):
         '''
         '''
-        e = np.exp(-self.lamda * subtract(X, x)) # exp(-lamda * (X - x))
+        e = np.exp(-lamda * subtract(X, x)) # exp(-lamda * (X - x))
         ep1 = add(e, 1) # 1 + exp(-lamda * (X - x))
 
-        num = multiply(self.lamda ** 2, e)
+        num = multiply(lamda ** 2, e)
         denom = power(ep1, 2)
         d2Xdx2 = num / denom
 
-        num *= multiply(2 * self.lamda ** 2, power(e, 2))
+        num *= multiply(2 * lamda ** 2, power(e, 2))
         denom = power(ep1, 3)
         d2Xdx2 += -num / denom
 

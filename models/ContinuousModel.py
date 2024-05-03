@@ -46,7 +46,7 @@ class ContinuousModel(BaseModel):
             elif self.W == 'full':
                 self.W = np.ones((self.m, self.n))
 
-        self.W = to_sparse(self.W)
+        self.W = to_sparse(self.W, type='csr')
         
 
     def init_UV(self):
@@ -127,13 +127,30 @@ class ContinuousModel(BaseModel):
 
 
     def _to_dense(self):
-        '''Turn X and W into dense matrices.
+        '''Turn X, W, U and V into dense matrices.
 
         For temporary use during development.
         '''
         self.X_train = to_dense(self.X_train)
         self.W = to_dense(self.W)
+        self.U = to_dense(self.U)
+        self.V = to_dense(self.V)
         if self.X_val is not None:
             self.X_val = to_dense(self.X_val)
         if self.X_test is not None:
             self.X_test = to_dense(self.X_test)
+
+
+    def _to_float(self):
+        '''Turn X, W, U and V into float matrices.
+
+        For temporary use during development.
+        '''
+        self.X_train = self.X_train.astype(np.float64)
+        self.W = self.W.astype(np.float64)
+        self.U = self.U.astype(np.float64)
+        self.V = self.V.astype(np.float64)
+        if self.X_val is not None:
+            self.X_val = self.X_val.astype(np.float64)
+        if self.X_test is not None:
+            self.X_test = self.X_test.astype(np.float64)
