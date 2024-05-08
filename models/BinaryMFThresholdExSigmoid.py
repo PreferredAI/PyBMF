@@ -19,7 +19,7 @@ class BinaryMFThresholdExSigmoid(BinaryMFThreshold):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        self.set_params(['link_lamda'], **kwargs)
+        # self.set_params(['link_lamda'], **kwargs)
 
 
     def F(self, params):

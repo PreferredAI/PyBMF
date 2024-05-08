@@ -25,7 +25,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
     def check_params(self, **kwargs):
         super(BinaryMFThreshold, self).check_params(**kwargs)
 
-        self.set_params(['us', 'vs', 'lamda', 'solver'], **kwargs)
+        # self.set_params(['us', 'vs', 'lamda', 'solver'], **kwargs)
         
         assert self.solver in ['line-search', 'cd']
         assert self.init_method in ['custom']

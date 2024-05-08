@@ -24,7 +24,7 @@ class AssoIter(Asso):
         super().check_params(**kwargs)
         
         # weight to use for refinement
-        self.set_params(['w'], **kwargs)
+        # self.set_params(['w'], **kwargs)
         # model to import
         if 'model' in kwargs:
             model = kwargs.get('model')

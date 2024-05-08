@@ -22,7 +22,7 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel, BinaryMFThresholdExColu
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        self.set_params(['us', 'lamda'], **kwargs)
+        # self.set_params(['us', 'lamda'], **kwargs)
 
         if 'us' in kwargs and isnum(self.us):
             self.us = [self.us] * (self.k * self.n_factors)

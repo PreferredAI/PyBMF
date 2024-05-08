@@ -33,7 +33,7 @@ class Panda(BaseModel):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['w'], **kwargs)
+        # self.set_params(['w'], **kwargs)
         assert len(self.w) == 2
         assert self.init_method in ['frequency', 'couples-frequency', 'correlation']
 

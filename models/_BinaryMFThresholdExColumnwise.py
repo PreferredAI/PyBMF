@@ -22,7 +22,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
     def check_params(self, **kwargs):
         super(BinaryMFThreshold, self).check_params(**kwargs)
 
-        self.set_params(['us', 'vs', 'lamda'], **kwargs)
+        # self.set_params(['us', 'vs', 'lamda'], **kwargs)
 
         if 'W' in kwargs:
             assert isinstance(self.W, spmatrix) or self.W in ['mask', 'full']

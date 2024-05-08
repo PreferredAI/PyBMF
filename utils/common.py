@@ -66,7 +66,7 @@ def binarize(X, threshold=0.5):
     -------
     result : int ndarray, spmatrix
     '''
-    Y = (X >= threshold).astype(int)
+    Y = (X > threshold).astype(int)
     if isinstance(X, spmatrix):
         Y = to_sparse(Y, type=X.format)
     return Y

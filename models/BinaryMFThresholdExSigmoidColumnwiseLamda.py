@@ -29,7 +29,7 @@ class BinaryMFThresholdExSigmoidColumnwiseLamda(BinaryMFThresholdExColumnwise):
     def check_params(self, **kwargs):
         super(BinaryMFThreshold, self).check_params(**kwargs)
 
-        self.set_params(['us', 'vs', 'u_lamda', 'v_lamda', 'solver', 'link_lamda'], **kwargs)
+        # self.set_params(['us', 'vs', 'u_lamda', 'v_lamda', 'solver', 'link_lamda'], **kwargs)
 
         assert self.solver in ['line-search', 'cd']
         assert self.init_method in ['custom']

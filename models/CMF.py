@@ -34,7 +34,7 @@ class CMF(ContinuousCollectiveModel):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        self.set_params(['link'], **kwargs)
+        # self.set_params(['link'], **kwargs)
         assert self.init_method in ['normal', 'uniform', 'custom']
 
 

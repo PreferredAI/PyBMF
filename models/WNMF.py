@@ -25,7 +25,7 @@ class WNMF(ContinuousModel):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        self.set_params(['beta_loss', 'solver', 'reg_growth'], **kwargs)
+        # self.set_params(['beta_loss', 'solver', 'reg_growth'], **kwargs)
         assert self.beta_loss in ['frobenius', 'kullback-leibler']
         assert self.solver in ['mu']
         assert self.init_method in ['uniform', 'normal', 'custom']

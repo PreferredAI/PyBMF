@@ -30,7 +30,7 @@ class HyperPlus(Hyper):
 
     def check_params(self, **kwargs):
         super(Hyper, self).check_params(**kwargs)
-        self.set_params(['beta', 'target_k', 'samples'], **kwargs)
+        # self.set_params(['beta', 'target_k', 'samples'], **kwargs)
         assert self.beta is not None or self.target_k is not None, "Please specify beta or target_k or both."
 
         # import model

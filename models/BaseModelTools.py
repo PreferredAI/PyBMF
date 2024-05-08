@@ -13,12 +13,10 @@ class BaseModelTools():
     def __init__(self):
         raise NotImplementedError('This is a helper class.')
     
-    def set_params(self, params, **kwargs):
-        '''Set model parameters.
+    def set_params(self, **kwargs):
+        '''Model parameters.
 
-        Parameters
-        ----------
-        params : str or list of str
+        The parameter list shows the commonly used meanings of them.
 
         Model parameters
         ----------------
@@ -34,7 +32,7 @@ class BaseModelTools():
             Masking weight matrices.
         alpha : list of float
             Importance weights for matrices.
-        lf : float
+        lr : float
             Learning rate.
         reg : float
             Regularization weight.
@@ -47,18 +45,21 @@ class BaseModelTools():
         init_method : str
             Initialization method.
         '''
-        for param in list(params):
-            if param in kwargs:
-                value = kwargs.get(param)
-                setattr(self, param, value)
+        kwconfigs = ['task', 'seed', 'display', 'verbose', 'scaling', 'pixels']
+        for param in kwargs:
+            if param in kwconfigs:
+                continue
 
-                # display
-                if isinstance(value, list):
-                    value = len(value)
-                if ismat(value):
-                    value = value.shape
+            value = kwargs.get(param)
+            setattr(self, param, value)
 
-                print("[I] {:<12} : {}".format(param, value))
+            # display
+            if isinstance(value, list):
+                value = len(value)
+            if ismat(value):
+                value = value.shape
+
+            print("[I] {:<12} : {}".format(param, value))
 
 
     def set_config(self, **kwargs):

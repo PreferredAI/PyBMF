@@ -37,7 +37,7 @@ class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
     def check_params(self, **kwargs):
         super(BinaryMFPenalty, self).check_params(**kwargs)
         
-        self.set_params(['beta_loss', 'solver', 'link_lamda', 'reg_growth'], **kwargs)
+        # self.set_params(['beta_loss', 'solver', 'link_lamda', 'reg_growth'], **kwargs)
         assert self.beta_loss in ['frobenius']
         assert self.solver in ['mu']
         assert self.init_method in ['normal', 'uniform', 'custom']

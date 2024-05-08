@@ -25,7 +25,7 @@ class BinaryMFThreshold(ContinuousModel):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        self.set_params(['u', 'v', 'lamda'], **kwargs)
+        # self.set_params(['u', 'v', 'lamda'], **kwargs)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):

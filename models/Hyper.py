@@ -20,7 +20,7 @@ class Hyper(BaseModel):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['min_support'], **kwargs)
+        # self.set_params(['min_support'], **kwargs)
     
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):

@@ -29,7 +29,7 @@ class Asso(BaseModel):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        self.set_params(['k', 'tau', 'w'], **kwargs)
+        # self.set_params(['k', 'tau', 'w'], **kwargs)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
@@ -98,7 +98,7 @@ class Asso(BaseModel):
 
             # early stop detection
             if n_basis == 0:
-                self.early_stop(msg="No basis left.", k=k)
+                self.early_stop(k=k)
                 break
 
             self.predict_X()
@@ -114,7 +114,7 @@ class Asso(BaseModel):
 
             # early stop detection
             if best_idx is None:
-                self.early_stop(msg="Coverage stops improving.", k=k)
+                # self.early_stop(msg="Coverage stops improving.", k=k)
                 break
 
             # update factors

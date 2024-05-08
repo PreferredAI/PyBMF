@@ -19,7 +19,7 @@ class NMFSklearn(ContinuousModel):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        self.set_params(['beta_loss', 'solver'], **kwargs)
+        # self.set_params(['beta_loss', 'solver'], **kwargs)
         assert self.solver in ['cd', 'mu']
         assert self.beta_loss in ['frobenius', 'kullback-leibler', 'itakura-saito']
         assert self.init_method in ['random', 'nndsvd', 'nndsvda', 'nndsvdar', 'custom']
