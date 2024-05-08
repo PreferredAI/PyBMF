@@ -27,13 +27,17 @@ class BaseModel(BaseModelTools):
         
         .. code-block:: python
             # include this in your model class:
+
             def __init__(self, k, W, alpha):
                 self.check_params(k=k, W=W, alpha=alpha)
+
             def fit(self, X_train, X_val=None, X_test=None, **kwargs):
                 self.check_params(**kwargs)
-                
+
             # call them when initializing and fitting:
+
             model = MyModel(k=10, W='mask', alpha=0.1, seed=1997)
+            
             model.fit(X_train, X_val, X_test, seed=2024, task='prediction', verbose=False, display=True)
         '''
         self.set_params(**kwargs)

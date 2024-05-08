@@ -3,7 +3,7 @@ from .BinaryMFPenalty import BinaryMFPenalty
 import numpy as np
 from utils import concat_Xs_into_X, split_U_into_Us
 from utils import to_dense, sigmoid, d_sigmoid, matmul, multiply, binarize
-from utils import RMSE, TPR, PPV, ACC, F1, get_metrics
+from utils import RMSE, TPR, PPV, ACC, F1, get_metrics, ismat
 
 
 class CMF(ContinuousCollectiveModel):
@@ -15,7 +15,7 @@ class CMF(ContinuousCollectiveModel):
 
     todo: W
     '''
-    def __init__(self, k, alpha=None, Us=None, Ws='full', link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
+    def __init__(self, k, alpha, Us=None, Ws='full', link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
         '''
         Parameters
         ----------
@@ -23,8 +23,7 @@ class CMF(ContinuousCollectiveModel):
             Rank.
         alpha : list of float
             Importance weights of each matrix.
-        Ws : list of ndarray or spmatrix, None or 1, default: 1
-            When Ws is None, Ws is the same as Xs_train. When Ws is 1, Ws is the same as full 1's matrices.
+        Ws : list of ndarray or spmatrix, or str in ['mask', 'full']
         init_method : list of str in ['bmf', 'normal', 'uniform']
         link : list of str in ['linear', 'sigmoid']
         '''
@@ -34,7 +33,9 @@ class CMF(ContinuousCollectiveModel):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        # self.set_params(['link'], **kwargs)
+        # check Ws
+        assert all((W in ['mask', 'full']) or ismat(W) for W in self.Ws)
+        # check init_method
         assert self.init_method in ['normal', 'uniform', 'custom']
 
 

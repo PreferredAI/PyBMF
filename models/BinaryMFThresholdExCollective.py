@@ -1,31 +1,55 @@
 from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
 from .BaseCollectiveModel import BaseCollectiveModel
-from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum
+from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, d_sigmoid
 import numpy as np
 from scipy.optimize import line_search
-from scipy.sparse import spmatrix, lil_matrix
+from scipy.sparse import spmatrix, lil_matrix, issparse
 
 
-class BinaryMFThresholdExCollective(BaseCollectiveModel, BinaryMFThresholdExColumnwise):
+class BinaryMFThresholdExCollective(BaseCollectiveModel):
     '''Collective thresholding algorithm (experimental).
     '''
-    def __init__(self, k, Us, alpha, Ws='mask', us=0.5, lamda=100, min_diff=1e-6, max_iter=100, init_method='custom', seed=None):
+    def __init__(self, k, Us, alpha, Ws='full', us=0.5, sigmoid_link=True, link_lamda=10, columnwise=False, lamda=10, lamda_rate=1.0, min_diff=1e-3, max_iter=50, init_method='custom', seed=None):
         '''
         Parameters
         ----------
-        us : list of list of length k, float
-            Initial thresholds for `Us`.
+        Us : list of ndarray or spmatrix
+            Initial factors.
+        alpha : list of float
+            Importance weights of each matrix.
+        Ws : list of ndarray or spmatrix, or str in ['mask', 'full']
+        us : list of float, or float
+            Initial thresholds for `Us`. 
+            If `columnwise` is True, it is a list of length `n_factors` * `k` thresholds.
+            If `columnwise` is False, it is a list of length `n_factors` thresholds.
+            If float is provided, it will be extended to a proper structure.
+        sigmoid_link : bool
+            Whether to use sigmoid link function.
+        link_lamda : float
+            The shape parameter for sigmoid link function.
+        columnwise : bool
+            Whether to use columnwise thresholds.
+        lamda : float
+            The initial `lamda` in the objective function. 
+        lamda_rate : float
+            The rate of `lamda` update.
         '''
-        self.check_params(k=k, Us=Us, Ws=Ws, us=us, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, Us=Us, alpha=alpha, Ws=Ws, us=us, sigmoid_link=sigmoid_link, link_lamda=link_lamda, columnwise=columnwise, lamda=lamda, lamda_rate=lamda_rate, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        # self.set_params(['us', 'lamda'], **kwargs)
+        # only accept custom factors
+        assert self.init_method in ['custom']
 
-        if 'us' in kwargs and isnum(self.us):
-            self.us = [self.us] * (self.k * self.n_factors)
+        # check thresholds
+        if isnum(self.us):
+            self.us = [self.us] * (self.n_factors * self.k) if self.columnwise else [self.us] * self.n_factors
+        if self.columnwise:
+            assert len(self.us) == self.n_factors * self.k
+        else:
+            assert len(self.us) == self.n_factors
 
 
     def fit(self):
@@ -92,30 +116,58 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel, BinaryMFThresholdExColu
             n_iter += 1
 
 
+    def approximate_Xs(self, us):
+        '''Counterpart of `BaseCollectiveModel.predict_Xs()`.
+        '''
+        # init X_approx
+        if not hasattr(self, 'Xs_approx'):
+            self.Xs_approx = [None] * self.n_matrices
+        # init S, input of sigmoid
+        if self.sigmoid_link and not hasattr(self, 'S'):
+            self.S = [None] * self.n_matrices
+        # load Us
+        if Us is None:
+            Us = self.Us.copy()
+        # reformat us
+        if isnum(us):
+            us = [us] * (self.n_factors * self.k)
+        # replicate us
+        if len(us) == self.n_factors:
+            us = [u for u in us for _ in range(self.k)]
+        # binarize
+        for j in range(self.n_factors):
+            for i in range(self.k):
+                Us[j][:, i] = sigmoid(subtract(self.Us[j][:, i], us[i + j * self.k]) * self.lamda)
+        # generate prediction
+        for i, factors in enumerate(self.factors):
+            a, b = factors
+            if self.sigmoid_link:
+                self.S[i] = subtract(Us[a] @ Us[b].T, 1/2) * self.link_lamda
+                self.Xs_approx[i] = sigmoid(self.S[i])
+            else:
+                self.Xs_approx[i] = Us[a] @ Us[b].T
+
+
     def F(self, params):
         '''
         Parameters
         ----------
-        params : [u00, u01, ..., u10, u11, ...]
+        params : [u01, ..., u0k, ..., un1, ..., unk]
 
         Returns
         -------
-        F : F(u00, u01, ..., u10, u11, ...)
+        F : F(u01, ..., u0k, ..., un1, ..., unk)
         '''
 
         us = params
 
         F = 0
+        self.approximate_Xs(us)
         for m in range(self.n_matrices):
-            a, b = self.n_factors[m]
-            X_pd = lil_matrix(np.zeros(self.Xs_train[m].shape))
-            for i in range(self.k):
-                U = sigmoid(subtract(self.Us[a][:, i], us[i + a * self.k]) * self.lamda)
-                V = sigmoid(subtract(self.Us[b][:, i], us[i + b * self.k]) * self.lamda)
-                X_pd = add(X_pd, U @ V.T)
+            X_gt, X_pd = self.X_train[m], self.X_approx[m]
 
-            diff = self.X_train[m] - X_pd
-            F += 0.5 * self.alpha[m] * np.sum(power(multiply(self.W, diff), 2))
+            diff = X_gt - X_pd
+            F += 0.5 * self.alpha[m] * np.sum(power(multiply(self.Ws[m], diff), 2))
         return F
     
 
@@ -123,43 +175,64 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel, BinaryMFThresholdExColu
         '''
         Parameters
         ----------
-        params : [u00, u01, ..., u10, u11, ...]
+        params : [u01, ..., u0k, ..., un1, ..., unk]
 
         Returns
         -------
-        dF : dF/d(u00, u01, ..., u10, u11, ...), the ascend direction
+        dF : dF/d(u01, ..., u0k, ..., un1, ..., unk), the ascend direction
         '''
         us = params
 
-        dF = np.zeros(self.k * self.n_factors)
-        for f in range(self.n_factors):
-            for m in self.matrices[f]:
+        dF = np.zeros(self.n_factors * self.k) if self.columnwise else np.zeros(self.n_factors)
+        self.approximate_Xs(us)
+        for m, factors in enumerate(self.factors):
+            a, b = factors
+
+            X_gt, X_pd = self.X_train[m], self.X_approx[m]
+
+            dFdX = X_gt - X_pd # considered '-' and '^2'
+            dFdX = multiply(self.Ws[m], dFdX) # dF/dX_pd
+
+            if self.sigmoid_link:
+                # sigmoid link function
+                dXdS = d_sigmoid(self.S[m]) # dX_pd/dS
+                dFdS = multiply(dFdX, dXdS)
+            else:
+                dFdS = dFdX
+
+            if self.colunmwise:
                 for i in range(self.k):
-                    U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-                    V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
+                    U = sigmoid(subtract(self.Us[a][:, i], us[i + a * self.k]) * self.lamda)
+                    V = sigmoid(subtract(self.Us[b][:, i], us[i + b * self.k]) * self.lamda)
 
-                    X_gt = lil_matrix(np.zeros((self.m, self.n)))
-                    for j in range(self.k):
-                        if j == i:
-                            continue
-                        U = sigmoid(subtract(self.U[:, j], us[j]) * self.lamda)
-                        V = sigmoid(subtract(self.V[:, j], vs[j]) * self.lamda)
-                        X_gt = add(X_gt, U @ V.T)
-                    
-                    # X_gt = multiply(self.W, self.X_train)
-                    X_gt = multiply(self.W, self.X_train - X_gt)
-                    X_pd = multiply(self.W, U @ V.T)
-
-                    dFdU = X_gt @ V - X_pd @ V
-                    dUdu = self.dXdx(self.U[:, i], us[i])
+                    # dFdU = X_gt @ V - X_pd @ V
+                    dFdU = dFdX @ V
+                    dUdu = self.dXdx(self.Us[a][:, i], us[i + a * self.k])
                     dFdu = multiply(dFdU, dUdu)
 
-                    dFdV = U.T @ X_gt - U.T @ X_pd
-                    dVdv = self.dXdx(self.V[:, i], vs[i])
+                    # dFdV = U.T @ X_gt - U.T @ X_pd
+                    dFdV = U.T @ dFdX
+                    dVdv = self.dXdx(self.Us[b][:, i], us[i + b * self.k])
                     dFdv = multiply(dFdV, dVdv.T)
 
-                    dF[i] = np.sum(dFdu)
-                    dF[i + self.k] = np.sum(dFdv)
+                    dF[i + a * self.k] += np.sum(dFdu)
+                    dF[i + b * self.k] += np.sum(dFdv)
+            else:
+                U = sigmoid(subtract(self.Us[a], us[a]) * self.lamda)
+                V = sigmoid(subtract(self.Us[b], us[b]) * self.lamda)
+
+                # dFdU = X_gt @ V - X_pd @ V
+                dFdU = dFdX @ V
+                dUdu = self.dXdx(self.Us[a], us[a])
+                dFdu = multiply(dFdU, dUdu)
+
+                # dFdV = U.T @ X_gt - U.T @ X_pd
+                dFdV = U.T @ dFdX
+                dVdv = self.dXdx(self.Us[b], us[b])
+                dFdv = multiply(dFdV, dVdv.T)
+
+                dF[a] += np.sum(dFdu)
+                dF[b] += np.sum(dFdv)
 
         return dF
 

@@ -9,7 +9,7 @@ from tqdm import tqdm
 class BinaryMFThresholdExSigmoidColumnwise(BinaryMFThresholdExColumnwise):
     '''Binary matrix factorization, thresholding algorithm, sigmoid link function, columnwise thresholds (experimental).
     '''
-    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, link_lamda=10, lamda=10, lamda_rate=1.0, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
+    def __init__(self, k, U, V, W='full', us=0.5, vs=0.5, link_lamda=10, lamda=10, lamda_rate=1.0, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
         '''
         Parameters
         ----------

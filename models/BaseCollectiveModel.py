@@ -99,19 +99,29 @@ class BaseCollectiveModel(BaseModel):
 
     def predict_Xs(self, Us=None, us=None, boolean=True):
         '''Get predictions.
+
+        us : list of float or float, optional
+            If not None, the `us` are used to binarize the factors.
+            If len(us) == self.n_factors, `us` are extended to `self.n_factors` * `self.k`.
         '''
+        # init Xs_pd
         if not hasattr(self, 'Xs_pd'):
             self.Xs_pd = [None] * self.n_matrices
+        # load Us
         if Us is None:
             Us = self.Us.copy()
+        # reformat us
         if isnum(us):
-            us = [us] * (self.k * self.n_factors)
-
+            us = [us] * (self.n_factors * self.k)
+        # replicate us
+        if len(us) == self.n_factors:
+            us = [u for u in us for _ in range(self.k)]
+        # binarize
         if us is not None:
             for j in range(self.n_factors):
                 for i in range(self.k):
                     Us[j][:, i] = binarize(Us[j][:, i], us[i + j * self.k])
-
+        # generate prediction
         for i, factors in enumerate(self.factors):
             a, b = factors
             X = matmul(U=Us[a], V=Us[b].T, boolean=boolean, sparse=None)
