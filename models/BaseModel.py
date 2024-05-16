@@ -63,14 +63,19 @@ class BaseModel(BaseModelTools):
 
 
     def init_model(self):
-        '''Initialize the model.
-
-        The default initialization procedure.
-        Simply overwrite this method if you want to drop any parts or include more procedures.
-        E.g. when you choose to import the factors from another model.
+        '''Initialize the model. Called after params are set and datasets are loaded.
         '''
         self._init_factors()
         self._init_logs()
+
+        # attach more in your models if needed, for example:
+
+        # if you have more initialization methods:
+        # self.init_U() or self.init_Us()
+        # if you accept masking matrices:
+        # self.init_W() or self.init_Ws()
+        # if you want to force the model to work with dense `ndarray`:
+        # self._to_dense()
 
 
     def _fit(self):

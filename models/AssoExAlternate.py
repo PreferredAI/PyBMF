@@ -4,14 +4,125 @@ from .Asso import Asso
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
 import pandas as pd
-from utils import record
+from utils import record, isnum
 
 
 class AssoExAlternate(Asso):
     '''The Asso algorithm with alternative update between the two factors (experimental).
     '''
+    def __init__(self, k, w, init_method='asso', tau=None, p=None, n_basis=None, seed=None):
+        '''
+        Parameters
+        ----------
+        k : int
+            The rank.
+        w : float, or list of float in [0, 1]
+            The overcoverage (FP) penalty weight in the objective function during factorization. 
+            It's also the lower bound of true positive ratio at each iteration of factorization. 
+            If there's more than 1 `w`, we will find matching patterns with all these values and find the best among them.
+        init_method : {'asso', 'random_rows', 'random_bits'}, default 'asso'
+            'asso' : build basis from real-valued association matrix, like in `Asso`.
+            'random_rows' : build basis from random rows of `X_train`.
+            'random_bits' : build basis using random binary vector with density `p`.
+        tau : float
+            The binarization threshold when building basis with `init_method='asso'`.
+        p : float in [0, 1]
+            The density of random bits when `init_method='random_bits'`.
+        n_basis : int
+            The number of basis candidates.
+            If `None`, use the number of columns of `X_train`.
+            If `init_method='asso'`, when `n_basis` is less than the number of columns of `X_train`, it will randomly pick `n_basis` candidates from the `basis` of `Asso`.
+        '''
+        self.check_params(k=k, w=w, init_method=init_method, tau=tau, p=p, n_basis=n_basis, seed=seed)
+        
+
+    def check_params(self, **kwargs):
+        super(Asso, self).check_params(**kwargs)
+
+        # check init_method
+        assert self.init_method in ['asso', 'random_rows', 'random_bits']
+        if self.init_method == 'asso':
+            assert self.tau is not None
+        if self.init_method == 'random_bits':
+            assert self.p is not None
+        # # check weights
+        # if isnum(self.w):
+        #     self.w = [self.w]
+
+
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        super(Asso, self).fit(X_train, X_val, X_test, **kwargs)
+
+        self._fit()
+
+        self.predict_X()
+        self.finish()
+
+
+    def init_model(self):
+        self._init_factors()
+        self._init_logs()
+
+        if self.init_method == 'asso':
+            if self.n_basis is None:
+                self.n_basis = self.n
+                print("[I] {:<12} : {}".format('n_basis', self.n_basis))
+
+            # n_basis should be no greater than the dimension of association matrix
+            assert self.n_basis <= self.n
+
+            # real-valued association matrix
+            self.assoc = self.build_assoc(X=self.X_train, dim=1)
+            # binary-valued basis candidates
+            self.basis = self.build_basis(assoc=self.assoc, tau=self.tau)
+
+            if self.n_basis < self.n:
+                # down-sampling
+                idx = np.random.choice(self.n, size=self.n_basis, replace=False)
+                self.basis = self.basis[idx, :]
+
+        elif self.init_method == 'random_rows':
+            if self.n_basis is None:
+                self.n_basis = min(self.m, self.n)
+                print("[I] {:<12} : {}".format('n_basis', self.n_basis))
+
+            # n_basis should be no greater than the number of rows of X_train
+            assert self.n_basis <= self.m
+
+            # down-sampling
+            idx = np.random.choice(self.m, size=self.n_basis, replace=False)
+            self.basis = self.X_train[idx, :]
+
+        elif self.init_method == 'random_bits':
+            if self.n_basis is None:
+                self.n_basis = min(self.m, self.n)
+                print("[I] {:<12} : {}".format('n_basis', self.n_basis))
+
+            # sampling
+            self.basis = np.random.choice([0, 1], size=(self.n_basis, self.n), p=[1 - self.p, self.p])
+            self.basis = lil_matrix(self.basis, dtype=np.float64)
+
+
+    def distribute(self):
+        n_weights = len(self.w)
+
+        self.basis_trials = []
+        self.scores_trials = np.tile(self.scores, (n_weights, 1))
+
+        for _ in self.w:
+            self.basis_trials.append(self.basis.copy())
+
+
+    def collect(self, i):
+        '''
+        Let i-th weigth be the main track.
+        '''
+        self.basis = self.basis_trials[i]
+        self.scores = self.scores_trials[i]
+
+
     def _fit(self):
-        self.n_basis = self.basis.shape[0]
+        # self.n_basis = self.basis.shape[0]
         self.basis = [lil_matrix(np.zeros((self.n_basis, self.m))), self.basis]
         self.scores = np.zeros(self.n_basis)
         
@@ -24,16 +135,33 @@ class AssoExAlternate(Asso):
 
             n_iter = 0
             n_stop = 0
+
+            # n_trials = 0
+            # trial_interval = 3
+
             is_improving = True
 
             while is_improving:
                 for basis_dim in [1, 0]:
+                    # debug
+                    # if n_trials == trial_interval:
+                    #     n_trials = 0
+                    #     self.collect(i=idx_best_w)
+                    #     self.distribute()
+                    # else:
+                    #     n_trials += 1
+
 
                     # update basis of basis_dim
                     self.update_basis(basis_dim)
+                    # # debug
+                    # self.update_trials(basis_dim)
 
                     # highest score among all patterns
                     score = np.max(self.scores)
+                    # # debug
+                    # score = np.max(self.scores_trials, axis=0)
+                    # idx_best_w = np.argmax(self.scores_trials, axis=0)
 
                     # check if it improves
                     if score > best_score:
@@ -96,3 +224,21 @@ class AssoExAlternate(Asso):
                 basis=self.basis[basis_dim][i], 
                 basis_dim=basis_dim, 
                 w=self.w)
+            
+
+    def update_trials(self, basis_dim):
+        self.predict_X()
+        target_dim = 1 - basis_dim
+
+        for j, w in enumerate(self.w):
+            cover_before = cover(gt=self.X_train, pd=self.X_pd, w=w, axis=basis_dim)
+
+            for i in range(self.n_basis):
+                self.scores_trials[j][i], self.basis_trials[j][target_dim][i] = Asso.get_vector(
+                    X_gt=self.X_train, 
+                    X_old=self.X_pd, 
+                    s_old=cover_before, 
+                    basis=self.basis_trials[j][basis_dim][i], 
+                    basis_dim=basis_dim, 
+                    w=w)
+                

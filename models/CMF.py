@@ -15,7 +15,7 @@ class CMF(ContinuousCollectiveModel):
 
     todo: W
     '''
-    def __init__(self, k, alpha, Us=None, Ws='full', link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='normal', seed=None):
+    def __init__(self, k, alpha, Us=None, Ws='full', link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -33,9 +33,6 @@ class CMF(ContinuousCollectiveModel):
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        # check Ws
-        assert all((W in ['mask', 'full']) or ismat(W) for W in self.Ws)
-        # check init_method
         assert self.init_method in ['normal', 'uniform', 'custom']
 
 
@@ -72,7 +69,7 @@ class CMF(ContinuousCollectiveModel):
                 is_improving = False
                 break
 
-            print("[I] error: {:.3e}, rec_error: {:.3e}, reg_error: {:.3e}, rmse: {:.3e}".format(error, rec_error, reg_error, rmse))
+            self.print_msg("error: {:.3e}, rec_error: {:.3e}, reg_error: {:.3e}, rmse: {:.3e}".format(error, rec_error, reg_error, rmse))
 
             # evaluation, boolean
             # self.predict_Xs(us=0, boolean=True)
@@ -90,7 +87,7 @@ class CMF(ContinuousCollectiveModel):
 
 
     def predict_Xs(self, Us=None):
-        super().predict_Xs(Us=Us, us=None, boolean=None)
+        super().predict_Xs(Us=Us, us=None, boolean=False)
 
         for m in range(self.n_matrices):
             if self.link[m] == 'linear':

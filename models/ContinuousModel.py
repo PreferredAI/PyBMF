@@ -17,13 +17,14 @@ class ContinuousModel(BaseModel):
     
 
     def init_model(self):
-        '''Wrapper of `BaseModel.init_model()` for continuous models.
+        '''The `BaseModel.init_model()` for continuous models.
         '''
-        if self.init_method != 'custom':
-            # init factors and logging variables
-            super().init_model()
+        if hasattr(self, 'init_method') and self.init_method == 'custom':
+            # init logging variables
+            self._init_logs()
         else:
-            # do not overwrite factors if they've been imported
+            # init factors and logging variables
+            self._init_factors()
             self._init_logs()
 
         if hasattr(self, 'W'):

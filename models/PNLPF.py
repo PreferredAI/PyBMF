@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import spmatrix
 
 
-class BinaryMFPenaltyExSigmoid(BinaryMFPenalty):
+class PNLPF(BinaryMFPenalty):
     '''Binary matrix factorization, penalty function algorithm, sigmmoid link function (experimental).
 
     Solving the problem with multiplicative update:

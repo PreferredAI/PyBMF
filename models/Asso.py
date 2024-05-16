@@ -1,6 +1,6 @@
 import numpy as np
 from utils import matmul, add, to_sparse, to_dense, binarize, binarize
-from utils import invert, cover, eval, record, header
+from utils import invert, cover, eval, record, header, description_length
 from .BaseModel import BaseModel
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
@@ -29,13 +29,14 @@ class Asso(BaseModel):
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        # self.set_params(['k', 'tau', 'w'], **kwargs)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
+
+        self.predict_X()
         self.finish()
 
 
@@ -47,9 +48,9 @@ class Asso(BaseModel):
         # binary-valued basis candidates
         self.basis = self.build_basis(assoc=self.assoc, tau=self.tau)
 
-        if self.verbose:
-            settings = [(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')]
-            self.show_matrix(settings, colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
+        # if self.verbose:
+        # settings = [(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')]
+        # self.show_matrix(settings, colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
 
 
     @staticmethod
@@ -127,7 +128,11 @@ class Asso(BaseModel):
                 self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
 
             self.predict_X()
-            self.evaluate(df_name='updates', head_info={'k': k}, train_info={'score': best_score})
+            score_w0_5 = cover(gt=self.X_train, pd=self.X_pd, w=0.5, axis=None)
+            desc_len = description_length(gt=self.X_train, pd=self.X_pd, U=self.U, V=self.V, w_fp=self.w, w_fn=1-self.w)
+
+            self.evaluate(df_name='updates', head_info={'k': k}, train_info={'score': best_score, 'score_w0.5': score_w0_5, 'DL': desc_len}, 
+                          metrics=['TP', 'TPR', 'FP', 'FPR', 'FN', 'FNR', 'ERR', 'ACC', 'Recall'], verbose=self.verbose)
 
 
     @staticmethod

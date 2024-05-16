@@ -46,6 +46,10 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
             pd_data = matmul(U=U, V=V.T, sparse=True, boolean=True)
         else:
             pd_data = to_sparse(X_pd, type='csr')
+
+        # # debug
+        # gt_data = to_dense(X_gt)
+        # pd_data = to_dense(X_pd)
     
     results = get_metrics(gt=gt_data, pd=pd_data, metrics=metrics)
     return results

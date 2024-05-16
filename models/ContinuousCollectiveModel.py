@@ -11,9 +11,14 @@ class ContinuousCollectiveModel(BaseCollectiveModel):
     
 
     def init_model(self):
-        if self.init_method != 'custom':
-            super().init_model()
+        '''The `BaseModel.init_model()` for continuous collective models.
+        '''
+        if hasattr(self, 'init_method') and self.init_method == 'custom':
+            # init logging variables
+            self._init_logs()
         else:
+            # init factors and logging variables
+            self._init_factors()
             self._init_logs()
 
         if hasattr(self, 'Ws'):

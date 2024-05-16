@@ -203,3 +203,18 @@ def invert(X):
     else:
         raise TypeError
     return X
+
+
+def description_length(gt, U, V, pd=None, w_model=1.0, w_fp=1.0, w_fn=1.0):
+    '''
+    penalty : float
+        The penalty for errors per bit.
+    '''
+    if pd is None:
+        pd = matmul(U, V, sparse=True, boolean=True)
+        
+    desc_len = w_model * (U.sum() + V.sum())
+    desc_len += w_fp * FP(gt, pd)
+    desc_len += w_fn * FN(gt, pd)
+
+    return desc_len

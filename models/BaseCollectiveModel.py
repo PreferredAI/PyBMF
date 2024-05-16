@@ -72,7 +72,7 @@ class BaseCollectiveModel(BaseModel):
         
 
     def init_model(self):
-        '''The collective wrapper for `BaseModel.init_model()`.
+        '''The `BaseModel.init_model()` for collective models.
         '''
         self._init_factors()
         self._init_logs()
@@ -114,7 +114,7 @@ class BaseCollectiveModel(BaseModel):
         if isnum(us):
             us = [us] * (self.n_factors * self.k)
         # replicate us
-        if len(us) == self.n_factors:
+        if us is not None and len(us) == self.n_factors:
             us = [u for u in us for _ in range(self.k)]
         # binarize
         if us is not None:

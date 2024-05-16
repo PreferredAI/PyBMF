@@ -7,7 +7,7 @@ from .sparse_utils import to_dense, to_sparse, to_triplet, check_sparse, sparse_
 from .data_utils import summarize, sum, mean, median, sample, sort_order
 
 from .evaluate_utils import get_metrics, record, eval, header
-from .metrics import TP, FP, TN, FN, TPR, FPR, TNR, FNR, ACC, ERR, PPV, F1, RMSE, MAE, cover, invert
+from .metrics import TP, FP, TN, FN, TPR, FPR, TNR, FNR, ACC, ERR, PPV, F1, RMSE, MAE, cover, invert, description_length
 
 from .collective_utils import get_dummy_factor_info, get_factor_list, get_factor_dims, get_factor_starts, split_factor_list, get_matrices
 from .collective_transform_utils import concat_Xs_into_X, concat_Us_into_U, concat_factor_info, split_X_into_Xs, split_U_into_Us

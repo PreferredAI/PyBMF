@@ -1,12 +1,13 @@
-from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
-from .BaseCollectiveModel import BaseCollectiveModel
+from .BinaryMFThreshold import BinaryMFThreshold
+from .ContinuousCollectiveModel import ContinuousCollectiveModel
 from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, d_sigmoid
 import numpy as np
-from scipy.optimize import line_search
+# from scipy.optimize import line_search
+from solvers import line_search
 from scipy.sparse import spmatrix, lil_matrix, issparse
 
 
-class BinaryMFThresholdExCollective(BaseCollectiveModel):
+class BinaryMFThresholdExCollective(ContinuousCollectiveModel):
     '''Collective thresholding algorithm (experimental).
     '''
     def __init__(self, k, Us, alpha, Ws='full', us=0.5, sigmoid_link=True, link_lamda=10, columnwise=False, lamda=10, lamda_rate=1.0, min_diff=1e-3, max_iter=50, init_method='custom', seed=None):
@@ -43,6 +44,17 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel):
         # only accept custom factors
         assert self.init_method in ['custom']
 
+
+    def fit(self, Xs_train, factors, Xs_val=None, Xs_test=None, **kwargs):
+        super().fit(Xs_train, factors, Xs_val, Xs_test, **kwargs)
+
+        self._fit()
+        # self.finish() # todo
+
+
+    def init_model(self):
+        super().init_model()
+
         # check thresholds
         if isnum(self.us):
             self.us = [self.us] * (self.n_factors * self.k) if self.columnwise else [self.us] * self.n_factors
@@ -50,13 +62,7 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel):
             assert len(self.us) == self.n_factors * self.k
         else:
             assert len(self.us) == self.n_factors
-
-
-    def fit(self):
-        super().fit()
-
-        self._fit()
-        # self.finish() # todo
+    
     
 
     def _fit(self):
@@ -75,7 +81,7 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel):
 
             print("[I] iter: {}".format(n_iter))
 
-            alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50, c1=0.1, c2=0.4)
+            alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50, c1=0.1, c2=0.4)
 
             if alpha is None:
                 self._early_stop("search direction is not a descent direction.")
@@ -126,8 +132,7 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel):
         if self.sigmoid_link and not hasattr(self, 'S'):
             self.S = [None] * self.n_matrices
         # load Us
-        if Us is None:
-            Us = self.Us.copy()
+        Us = self.Us.copy()
         # reformat us
         if isnum(us):
             us = [us] * (self.n_factors * self.k)
@@ -164,7 +169,7 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel):
         F = 0
         self.approximate_Xs(us)
         for m in range(self.n_matrices):
-            X_gt, X_pd = self.X_train[m], self.X_approx[m]
+            X_gt, X_pd = self.Xs_train[m], self.Xs_approx[m]
 
             diff = X_gt - X_pd
             F += 0.5 * self.alpha[m] * np.sum(power(multiply(self.Ws[m], diff), 2))
@@ -188,7 +193,7 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel):
         for m, factors in enumerate(self.factors):
             a, b = factors
 
-            X_gt, X_pd = self.X_train[m], self.X_approx[m]
+            X_gt, X_pd = self.Xs_train[m], self.Xs_approx[m]
 
             dFdX = X_gt - X_pd # considered '-' and '^2'
             dFdX = multiply(self.Ws[m], dFdX) # dF/dX_pd
@@ -200,7 +205,7 @@ class BinaryMFThresholdExCollective(BaseCollectiveModel):
             else:
                 dFdS = dFdX
 
-            if self.colunmwise:
+            if self.columnwise:
                 for i in range(self.k):
                     U = sigmoid(subtract(self.Us[a][:, i], us[i + a * self.k]) * self.lamda)
                     V = sigmoid(subtract(self.Us[b][:, i], us[i + b * self.k]) * self.lamda)
