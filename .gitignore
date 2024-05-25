@@ -4,4 +4,6 @@
 *.pickle
 *.bak
 *.html
+*.pdf
 .*/
+visualization/

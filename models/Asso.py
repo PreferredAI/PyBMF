@@ -48,9 +48,14 @@ class Asso(BaseModel):
         # binary-valued basis candidates
         self.basis = self.build_basis(assoc=self.assoc, tau=self.tau)
 
+        # original
         # if self.verbose:
-        # settings = [(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')]
-        # self.show_matrix(settings, colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
+        #     settings = [(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')]
+        #     self.show_matrix(settings, colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
+
+        # ex01
+        settings = [(self.assoc, [0, 0], 'assoc'), (self.basis, [0, 1], 'basis')]
+        self.show_matrix(settings, colorbar=True, clim=[0, 1], title=f'tau: {self.tau}')
 
 
     @staticmethod
@@ -128,8 +133,14 @@ class Asso(BaseModel):
                 self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
 
             self.predict_X()
+
+            # original
+            # self.evaluate(df_name='updates', head_info={'k': k}, train_info={'score': best_score}, verbose=self.verbose)
+
+            # ex01: MDL under different w
             score_w0_5 = cover(gt=self.X_train, pd=self.X_pd, w=0.5, axis=None)
-            desc_len = description_length(gt=self.X_train, pd=self.X_pd, U=self.U, V=self.V, w_fp=self.w, w_fn=1-self.w)
+            # desc_len = description_length(gt=self.X_train, pd=self.X_pd, U=self.U, V=self.V, w_model=3.0, w_fp=self.w, w_fn=1-self.w)
+            desc_len = description_length(gt=self.X_train, pd=self.X_pd, U=self.U, V=self.V, w_model=1, w_fp=1, w_fn=1)
 
             self.evaluate(df_name='updates', head_info={'k': k}, train_info={'score': best_score, 'score_w0.5': score_w0_5, 'DL': desc_len}, 
                           metrics=['TP', 'TPR', 'FP', 'FPR', 'FN', 'FNR', 'ERR', 'ACC', 'Recall'], verbose=self.verbose)

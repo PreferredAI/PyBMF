@@ -99,7 +99,7 @@ def log2latex(model, df_name, file_path=r'..\logs', file_name=None, browser_path
         _open_html(full_path, browser_path)
 
 
-def _make_name(model, file_name=None, format="%d-%m-%y_%I-%M-%S_"):
+def _make_name(model, file_name=None, format="%y-%m-%d_%H-%M-%S_"):
     if file_name is None:
         file_name = str(type(model))
         file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', file_name)[-3]
@@ -111,6 +111,7 @@ def _make_html(file_path, file_name, html):
     full_path = os.path.join(os.path.abspath(file_path), file_name + ".html")
     with open(full_path, "w") as f:
         f.write(html)
+    print("[I] HTML saved as: {}.html".format(file_name))
     return full_path
 
 

@@ -76,7 +76,9 @@ def sigmoid(X):
     '''Sigmoid function.
     '''
     X = X.astype(np.float64)
-    Y = 1.0 / (1.0 + np.exp(-X))
+    Y = np.zeros(X.shape)
+    Y[X >= 0] = 1.0 / (1.0 + np.exp( - X[X >= 0]) )
+    Y[X < 0] = np.exp(X[X < 0]) / (1 + np.exp(X[X < 0]))
     return Y
 
 

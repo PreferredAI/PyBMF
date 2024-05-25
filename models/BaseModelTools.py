@@ -142,7 +142,8 @@ class BaseModelTools():
         '''
         for log in self.logs.values():
             if isinstance(log, pd.DataFrame):
-                display(log)
+                with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                    display(log)
 
 
     def _show_matrix(self):
@@ -162,6 +163,7 @@ class BaseModelTools():
         with open(path, 'wb') as handle:
             pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+        print("[I] model saved as: {}.pickle".format(name))
 
     def import_model(self, **kwargs):
         '''Import or inherit variables and parameters from another model.
@@ -176,8 +178,8 @@ class BaseModelTools():
         '''Initialize the factors.
         '''
         if not hasattr(self, 'U') or not hasattr(self, 'V'):
-            self.U = lil_matrix(np.zeros((self.m, self.k)))
-            self.V = lil_matrix(np.zeros((self.n, self.k)))
+            self.U = lil_matrix((self.m, self.k))
+            self.V = lil_matrix((self.n, self.k))
 
 
     def _init_logs(self):

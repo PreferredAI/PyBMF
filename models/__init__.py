@@ -11,9 +11,9 @@ from .Hyper import Hyper
 from .HyperPlus import HyperPlus
 from .MEBF import MEBF
 
-from .AssoExAlternate import AssoExAlternate
-from .AssoExInterleave import AssoExInterleave
-from .AssoExCollective import AssoExCollective
+from .BMFAlternate import BMFAlternate
+from .BMFInterleave import BMFInterleave
+from .BMFCollective import BMFCollective
 
 # from .NMF import NMF
 from .NMFSklearn import NMFSklearn

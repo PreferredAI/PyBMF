@@ -42,7 +42,7 @@ class SyntheticMatrixGenerator(BaseGenerator):
         array
             The n-by-k factor matrix
         '''        
-        X = lil_matrix(np.zeros([n, k]))
+        X = lil_matrix((n, k))
         l = np.ceil(n / 100).astype(int)
         for c in range(k):
             X[c*l:(c+1)*l, c] = 1

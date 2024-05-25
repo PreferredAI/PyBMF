@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import ctypes
 import numpy as np
 from scipy.sparse import csr_matrix, spmatrix
-from matplotlib import cm
+from matplotlib import cm, colormaps, MatplotlibDeprecationWarning
 from .sparse_utils import to_triplet, to_dense
 import platform
 import warnings
@@ -143,6 +143,7 @@ def show_matrix(settings,
 
             vmin = dmin - (0.5 if center else 0)
             vmax = dmax + (0.5 if center else 0)
+            warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
             with warnings.catch_warnings():
                 try:
                     cmap = cm.get_cmap(cmap, cnum).copy()
@@ -197,8 +198,11 @@ def show_matrix(settings,
     
     if title is not None:
         fig.suptitle(title, fontsize=fontsize)
-        
+
+    fig = plt.gcf() 
     plt.show(block=False)
+    plt.draw()
+    fig.savefig("../experiment/display.pdf", dpi=100)
 
 
 def get_size_inches(scaling, ppi, hds, pixels, width_cells, height_cells):

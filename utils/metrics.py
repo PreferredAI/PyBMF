@@ -180,16 +180,18 @@ def cover(gt, pd, w, axis=None):
     overcovered = FP(gt, pd, axis=axis)
     # debug: adaptive w
     c_all = covered + overcovered
-    if w >= 1 and axis is not None:
-        to_be_covered = np.asarray(gt.sum(axis=axis)).squeeze()
-        n_all = gt.shape[axis]
-        # score = covered * n_all - w * multiply(to_be_covered, c_all)
-    elif w >= 1 and axis is None:
-        to_be_covered = gt.sum()
-        n_all = gt.shape[0] * gt.shape[1]
-        # score = covered * n_all - w * to_be_covered * c_all
-    else:
-        score = (1 - w) * covered - w * overcovered
+    # if w >= 1 and axis is not None:
+    #     to_be_covered = np.asarray(gt.sum(axis=axis)).squeeze()
+    #     n_all = gt.shape[axis]
+    #     # score = covered * n_all - w * multiply(to_be_covered, c_all)
+    # elif w >= 1 and axis is None:
+    #     to_be_covered = gt.sum()
+    #     n_all = gt.shape[0] * gt.shape[1]
+    #     # score = covered * n_all - w * to_be_covered * c_all
+    # else:
+    
+    score = (1 - w) * covered - w * overcovered
+    
     # print(axis, w)
     # print(type(gt), type(pd), gt.shape, pd.shape, covered.shape, overcovered.shape, score.shape)
     return score
@@ -211,7 +213,7 @@ def description_length(gt, U, V, pd=None, w_model=1.0, w_fp=1.0, w_fn=1.0):
         The penalty for errors per bit.
     '''
     if pd is None:
-        pd = matmul(U, V, sparse=True, boolean=True)
+        pd = matmul(U, V.T, sparse=True, boolean=True)
         
     desc_len = w_model * (U.sum() + V.sum())
     desc_len += w_fp * FP(gt, pd)

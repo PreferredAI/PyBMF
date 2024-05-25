@@ -28,7 +28,7 @@ def concat_Xs_into_X(Xs, factors):
     '''
     Xs_transpose, Xs_positions = sort_matrices(Xs, factors)
     row_starts, col_starts = get_factor_starts(Xs=Xs, factors=factors)
-    X = lil_matrix(np.zeros((row_starts[-1], col_starts[-1])))
+    X = lil_matrix((row_starts[-1], col_starts[-1]))
     for i in range(len(factors)):
         x = Xs_transpose[i] # x with transposition if necessary
         r, c = Xs_positions[i] # position in the concatenated matrix

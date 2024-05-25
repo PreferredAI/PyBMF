@@ -28,6 +28,7 @@ class BlockDiagonalMatrixGenerator(BaseGenerator):
     def generate_factor(self, n, k, overlap, span):
         # trials for a point sequence with proper intervals
         min_gap = np.ceil(n / k / 2)
+
         while True:
             points_all = self.rng.randint(1, n, size=k-1)
             points_all = np.sort(points_all)

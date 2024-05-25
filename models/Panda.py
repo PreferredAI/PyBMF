@@ -61,11 +61,11 @@ class Panda(BaseModel):
         T : list
             The user or transaction list.
         '''
-        self.X_uncovered = to_sparse(self.X_train.copy(), 'csr')
-        self.X_covered = to_sparse(self.X_train.copy(), 'csr')
+        self.X_uncovered = to_sparse(self.X_train.copy(), 'lil')
+        self.X_covered = to_sparse(self.X_train.copy(), 'lil')
 
-        self.I = lil_matrix(np.zeros((self.n, 1)))
-        self.T = lil_matrix(np.zeros((self.m, 1)))
+        self.I = lil_matrix((self.n, 1))
+        self.T = lil_matrix((self.m, 1))
         cost_old = self.cost(self.I, self.T)
 
         for k in range(self.k): # tqdm(range(self.k), position=0):
@@ -75,8 +75,8 @@ class Panda(BaseModel):
             self.find_core()
             print(f"[I]   find core  : {self.cost_now}") # self.cost(self.I, self.T)
 
-            self.extend_core()
-            print(f"[I]   extension  : {self.cost_now}") # self.cost(self.I, self.T)
+            # self.extend_core()
+            # print(f"[I]   extension  : {self.cost_now}") # self.cost(self.I, self.T)
 
             diff = self.cost_now - cost_old
             self.early_stop(diff=diff, k=k)
@@ -111,8 +111,8 @@ class Panda(BaseModel):
             The user or transaction list.
         '''
         self.E = list(range(self.n)) # start with all items
-        self.I = lil_matrix(np.zeros((self.n, 1)))
-        self.T = lil_matrix(np.zeros((self.m, 1)))
+        self.I = lil_matrix((self.n, 1))
+        self.T = lil_matrix((self.m, 1))
 
         # initialize extension list
         if self.init_method == 'frequency' or self.init_method == 'correlation':
@@ -125,7 +125,7 @@ class Panda(BaseModel):
         self.T = self.X_uncovered[:, self.E[0]]
         self.E.pop(0)
 
-        cost_old = self.cost(self.I, self.T)
+        cost_old = self.cost(I=self.I, T=self.T)
 
         i = 0
         while i < len(self.E):
@@ -238,15 +238,16 @@ class Panda(BaseModel):
         T : (m, 1) boolean spmatrix
         I : (n, 1) boolean spmatrix
         '''
-        idx_I = bool_to_index(I)
-        idx_T = bool_to_index(T)
         width, height = I.sum(), T.sum()
         cost_width = self.U.sum() + width
         cost_height = self.V.sum() + height
 
+        idx_I = bool_to_index(I)
+        idx_T = bool_to_index(T)
         fn = self.X_uncovered.sum() - self.X_uncovered[idx_T][:, idx_I].sum()
         fp = width * height - self.X_covered[idx_T][:, idx_I].sum()
 
         cost_noise = self.w[0] * fn + self.w[1] * fp
         cost = (cost_width + cost_height) + self.reg * cost_noise
+
         return cost

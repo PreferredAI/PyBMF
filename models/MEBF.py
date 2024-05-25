@@ -52,8 +52,8 @@ class MEBF(BaseModel):
         self.X_cover = self.X_train.copy()
         self.cost = self.X_res.sum()
 
-        self.u = lil_matrix(np.zeros((self.m, 1)))
-        self.v = lil_matrix(np.zeros((self.n, 1)))
+        self.u = lil_matrix((self.m, 1))
+        self.v = lil_matrix((self.n, 1))
 
         k = 0
 

@@ -114,8 +114,8 @@ class Hyper(BaseModel):
             self.I_final.append(self.I[0])
 
             # update factors U, V
-            U = lil_matrix(np.zeros((self.m, 1)))
-            V = lil_matrix(np.zeros((self.n, 1)))
+            U = lil_matrix((self.m, 1))
+            V = lil_matrix((self.n, 1))
             U[self.T[0]] = 1
             V[self.I[0]] = 1
 

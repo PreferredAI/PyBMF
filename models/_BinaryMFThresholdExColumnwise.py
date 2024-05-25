@@ -118,7 +118,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
         us, vs = params[:self.k], params[self.k:]
 
-        X_pd = lil_matrix(np.zeros((self.m, self.n)))
+        X_pd = lil_matrix((self.m, self.n))
         for i in range(self.k):
             U = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
             V = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)

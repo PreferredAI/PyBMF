@@ -80,7 +80,7 @@ class BaseCollectiveModel(BaseModel):
 
     def _init_factors(self):
         if not hasattr(self, 'Us'):
-            self.Us = [lil_matrix(np.zeros((dim, self.k))) for dim in self.factor_dims]
+            self.Us = [lil_matrix((dim, self.k)) for dim in self.factor_dims]
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
@@ -116,6 +116,7 @@ class BaseCollectiveModel(BaseModel):
         # replicate us
         if us is not None and len(us) == self.n_factors:
             us = [u for u in us for _ in range(self.k)]
+        print(us)
         # binarize
         if us is not None:
             for j in range(self.n_factors):
@@ -177,8 +178,9 @@ class BaseCollectiveModel(BaseModel):
             m_info = [v[m] for v in info.values()]
 
             columns += list(product([name], [m], list(info.keys()) + metrics))
-            results += m_info + m_results
 
+            results += m_info + m_results
+            
             r_array[m] = m_info + m_results
 
         w_results = weighted_score(r_array, self.alpha).flatten()

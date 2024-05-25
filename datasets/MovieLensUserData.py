@@ -74,7 +74,7 @@ class MovieLensUserData(MovieLensData):
             attr_vals = sorted(self.df_profiles[attr].unique())
             
             # new sub-matrix
-            Z = lil_matrix(np.zeros((Y.shape[0], len(attr_vals))))
+            Z = lil_matrix((Y.shape[0], len(attr_vals)))
 
             for col, val in enumerate(attr_vals):
                 rows = self.df_profiles.index[self.df_profiles[attr] == val]

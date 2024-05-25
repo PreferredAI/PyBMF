@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from utils import cover, matmul, add, to_dense, invert, record
-from utils import collective_cover, weighted_score, harmonic_score
+from utils import collective_cover, weighted_score, harmonic_score, concat_Xs_into_X
 from .Asso import Asso
 from .BaseCollectiveModel import BaseCollectiveModel
 from scipy.sparse import lil_matrix, vstack, hstack
@@ -9,7 +9,7 @@ from tqdm import tqdm
 from itertools import accumulate
 
 
-class AssoExCollective(BaseCollectiveModel, Asso):
+class BMFCollective(BaseCollectiveModel, Asso):
     '''The Asso algorithm for collective MF (experimental)
     '''
     def __init__(self, k, tau=None, w=None, p=None, n_basis=None):
@@ -61,7 +61,11 @@ class AssoExCollective(BaseCollectiveModel, Asso):
         i = self.row_factors.index(self.root) if is_row else self.col_factors.index(self.root)
         a = self.row_starts[i] if is_row else self.col_starts[i]
         b = self.row_starts[i+1] if is_row else self.col_starts[i+1]
-        X = self.X_train[a:b, :] if is_row else self.X_train[:, a:b]
+
+        # X = self.X_train[a:b, :] if is_row else self.X_train[:, a:b]
+        self.update_cover()
+        X = self.X_uncovered[a:b, :] if is_row else self.X_uncovered[:, a:b]
+
         A = self.build_assoc(X=X, dim=0 if is_row else 1)
         B = self.build_basis(assoc=A, tau=self.tau)
 
@@ -71,7 +75,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             self.n_basis = r
             print("[I] n_basis is updated to: {}".format(r))
 
-        self.basis = [lil_matrix(np.zeros((self.n_basis, d))) for d in self.factor_dims]
+        self.basis = [lil_matrix((self.n_basis, d)) for d in self.factor_dims]
 
         if self.n_basis == r: # use all possible basis
             self.basis[self.root] = B
@@ -79,6 +83,14 @@ class AssoExCollective(BaseCollectiveModel, Asso):
             idx = np.random.choice(a=r, size=self.n_basis, replace=False)
             self.basis[self.root] = B[idx]
         self.scores = np.zeros((self.n_matrices, self.n_basis))
+
+
+    def update_cover(self):
+        self.predict_Xs()
+        self.X_pd = concat_Xs_into_X(self.Xs_pd, self.factors)
+        self.X_uncovered = self.X_train.copy()
+        self.X_uncovered[self.X_pd.astype(bool)] = 0
+
 
 
     def set_init_order(self, order='bfs'):
@@ -119,7 +131,7 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                 f0_dim = 1 - f1_dim
                 f0.append(self.factors[i][f0_dim])
                 m.append(i)
-            self.update_order.append((f0, f1, m))     
+            self.update_order.append((f0, f1, m))
 
 
     def _fit(self):
@@ -186,8 +198,11 @@ class AssoExCollective(BaseCollectiveModel, Asso):
                 for f in range(self.n_factors):
                     self.Us[f][:, k] = self.basis[f][best_idx].T
 
-            self.evaluate(df_name='results', head_info={'k': k, 'iter': n_iter, 'index': best_idx, 'w. score': best_ws}, 
-                train_info={'score': self.scores[:, best_idx].tolist()})
+            self.evaluate(
+                df_name='results', 
+                head_info={'k': k, 'iter': n_iter, 'index': best_idx, 'w. score': best_ws}, 
+                # train_info={'score': self.scores[:, best_idx].tolist()}
+                )
 
     
     def update_basis(self, f0, f1, m, k, n_iter):
