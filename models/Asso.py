@@ -104,7 +104,7 @@ class Asso(BaseModel):
             self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
             # show matrix at every step
             if self.verbose and self.display:
-                self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {self.w}")
+                self.show_matrix(title=f"k: {k}, tau: {self.tau}, w: {[self.w_fp, self.w_fn]}")
 
             # original
             # self.evaluate(df_name='updates', head_info={'k': k}, train_info={'score': best_score}, verbose=self.verbose)

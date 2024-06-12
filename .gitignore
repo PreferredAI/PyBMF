@@ -1,6 +1,6 @@
 *.pyc
 *.pkl
-*.ipynb
+# *.ipynb
 *.pickle
 *.bak
 *.html
