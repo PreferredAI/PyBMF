@@ -1,11 +1,11 @@
 import numpy as np
 import time
 import numbers
-from scipy.sparse import isspmatrix
+from scipy.sparse import isspmatrix, lil_matrix
 from .sparse_utils import sparse_indexing
 from scipy.sparse import spmatrix
 from .sparse_utils import to_sparse
-from .boolean_utils import multiply
+from .boolean_utils import multiply, matmul
 from .decorator_utils import ignore_warnings
 
 def get_rng(seed, rng):
@@ -86,3 +86,52 @@ def d_sigmoid(X):
     Y = sigmoid(X)
     Z = multiply(Y, 1 - Y)
     return Z
+
+
+def get_prediction(U, V, boolean=True):
+    '''Get prediction.
+
+    Parameters
+    ----------
+    U, V : array, spmatrix
+    boolean : bool
+        Whether to apply Boolean multiplication.
+    '''
+    return matmul(U, V.T, boolean=boolean, sparse=True)
+
+
+def get_thresholded_prediction(U, V, u=None, v=None, us=None, vs=None):
+    '''Get prediction with thresholded factors.
+
+    Parameters
+    ----------
+    U, V : array, spmatrix
+    u, v : float
+        The shared threshold for U and V.
+    us, vs : list of length k, float
+        The thresholds for each factor in U and V.
+    '''
+    if us is not None:
+        assert len(us) == U.shape[1]
+        for i in range(U.shape[1]):
+            U[:, i] = binarize(U[:, i], us[i])
+    elif u is not None:
+        U = binarize(U, u)
+
+    if vs is not None:
+        assert len(vs) == V.shape[1]
+        for i in range(V.shape[1]):
+            V[:, i] = binarize(V[:, i], vs[i])
+    elif v is not None:
+        V = binarize(V, v)
+
+    return matmul(U, V.T, boolean=True, sparse=True)
+
+
+def get_residual(X, U, V):
+    '''Get residual matrix of X.
+    '''
+    pattern = get_prediction(U, V, boolean=True)
+    X = lil_matrix(X.copy())
+    X[pattern.astype(bool)] = 0
+    return X

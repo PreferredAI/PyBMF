@@ -30,7 +30,7 @@ class PNLPF(BinaryMFPenalty):
 
         self._fit()
 
-        self.predict_X()
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         self.finish()
         
 
@@ -66,7 +66,7 @@ class PNLPF(BinaryMFPenalty):
         error_old, rec_error_old, reg_error_old = self.error()
 
         # evaluate
-        self.predict_X()
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_old, 'rec_error': rec_error_old, 'reg': float(self.reg), 'reg_error': reg_error_old}, metrics=['RMSE', 'MAE'])
 
         while is_improving:
@@ -81,7 +81,7 @@ class PNLPF(BinaryMFPenalty):
             error_old, rec_error_old, reg_error_old = error_new, rec_error_new, reg_error_new
 
             # evaluate
-            self.predict_X()
+            self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_new, 'rec_error': rec_error_new, 'reg': float(self.reg), 'reg_error': reg_error_new}, metrics=['RMSE', 'MAE'])
 
             # display

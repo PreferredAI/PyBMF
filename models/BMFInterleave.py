@@ -1,14 +1,14 @@
 import numpy as np
-from utils import matmul, add, to_sparse, cover, show_matrix, to_dense, invert, multiply
+from utils import matmul, add, to_sparse, coverage_score, show_matrix, to_dense, invert, multiply, binarize
 from .Asso import Asso
-from .BMFAlternateTools import BMFAlternateTools, w_schedulers
-from scipy.sparse import lil_matrix
+from .BMFTools import BMFTools, w_schedulers
+from scipy.sparse import lil_matrix, vstack
 from tqdm import tqdm
 import pandas as pd
 from utils import record, isnum, ignore_warnings, bool_to_index
 
 
-class BMFInterleave(BMFAlternateTools):
+class BMFInterleave(BMFTools):
     '''The BMFAlternate alternative that lazily updates covered and uncovered data, so that parallelism is possible.
 
     TODO:
@@ -55,7 +55,7 @@ class BMFInterleave(BMFAlternateTools):
 
         self._fit()
 
-        self.predict_X()
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         self.finish()
 
 
@@ -66,73 +66,91 @@ class BMFInterleave(BMFAlternateTools):
         self.init_cover()
         self.init_basis()
 
-        self.init_basis_list()
         self.scores = np.zeros(self.n_basis)
 
         # init schedulers
         self.w_schedulers = w_schedulers(w_list=self.w_list, n_basis=self.n_basis)
-
         # w_now maintains a list of wieghts used by each of the n_basis patterns during update
         self.w_now = [self.w_schedulers.step(basis_id) for basis_id in range(self.n_basis)]
 
+        # current basis dim
+        self.basis_dim = [1] * self.n_basis
+
 
     def _fit(self):
-        '''Fitting process of the model.
+        '''Fitting process of the model. ===================================================
         '''
         n_iter = 0
         # n_stop = 0
         is_improving = True
 
         while is_improving:
-            '''Update weights of each basis, based on the change of pattern.
-
-            Here we take exclusive score as the indicator of pattern change.
-            '''
-            scores_new = self.scores
 
             if n_iter > 0:
-                # check diff and update ws
-                diff_threshold = 0.1
-                for i in range(self.n_basis):
-                    scores_diff = abs(scores_new[i] - scores_old[i]) / scores_old[i]
-                    if scores_diff < diff_threshold:
-                        self.w_now[i] = self.w_schedulers.step(i)
+                print(self.scores)
+                print(scores_last)
+                converged_ids = self.check_converge(now=self.scores, last=scores_last, diff_threshold=0.05)
 
-            scores_old = self.scores.copy()
+                print(f"[D] iter: {n_iter}, converged_ids: {converged_ids}")
+
+                ########## to run upon convergence under each weight ##########
+
+                # converged_ids = self.check_remove(basis_ids=converged_ids, lazy_update=False)
+
+                # converged_ids = self.check_merge(basis_ids=converged_ids, lazy_update=False, greater_id_only=True)
+
+                # converged_ids = self.check_overlap(basis_ids=converged_ids, lazy_update=False, greater_id_only=False)
+
+                self.update_weights(basis_ids=converged_ids)
+            scores_last = self.scores.copy()
             
             '''Start updating each basis, updating factors one by one.
+            Lazy update used and basis_list is collected in the beginning of each step.
             '''
+            self.update_basis(lazy_update=True)
 
-            for basis_dim in [1, 0]:
+            self._record(n_iter)
 
-                self.update_basis(basis_dim, n_iter)
-                n_iter += 1
+            self._show_patterns(basis_list=self.basis_list, n_iter=n_iter)
+
+            ########## to run after each (batch) update of basis ##########
+
+            self.update_basis_dim()
+
+            n_iter += 1
                 
-                if n_iter == 40:
-                    is_improving = False # break the outer loop
-                    break # break the inner loop
-            
+            if n_iter == 30:
+                is_improving = False # break the outer loop
+                break # break the inner loop
 
-    def update_basis(self, basis_dim, n_iter):
+
+
+
+
+    def update_weights(self, basis_ids):
+        '''Update weights of each basis, based on the change of pattern.
+
+        Here we take exclusive score as the indicator of pattern change.
+        '''
+        for i in basis_ids:
+            self.w_now[i] = self.w_schedulers.step(i)
+
+
+    def update_basis(self, lazy_update=True):
         '''Update one basis at target_dim using basis_dim.
+        
+        Lazy update: every iteration each pattern can only see the last update of other patterns, simulating a parallel set up.
         '''
-        target_dim = 1 - basis_dim
 
-        '''Lazy update.
-
-        Every iteration each pattern can only see the last update of other patterns.
-        '''
-        basis_list = self.basis_list.copy()
+        if lazy_update:
+            basis_list = self.basis_list.copy()
 
         for i in range(self.n_basis):
+            X_pd_rest = self.get_X_pd_rest(basis_list if lazy_update else self.basis_list, basis_id=i)
 
-            '''Make X_pd_rest with other patterns using the copy from last lazy update.'''
-            other_id = [j for j in range(self.n_basis) if i != j]
-            U=basis_list[0][other_id].T
-            V=basis_list[1][other_id].T
-            X_pd_rest = matmul(U, V.T, sparse=True, boolean=True)
+            basis_dim, target_dim = self.get_basis_dim(basis_id=i)
             
-            '''Coverage without i-th pattern, over target_dim, with i-th weight.'''
+            # coverage without i-th pattern, over target_dim, with i-th weight
             cover_before = cover(
                 gt=self.X_train, 
                 pd=X_pd_rest, 
@@ -151,91 +169,92 @@ class BMFInterleave(BMFAlternateTools):
 
             # self.evaluate(df_name='results', head_info={'k': k, 'iter': n_iter, 'index': best_idx}, train_info={'score': best_score})
 
-        ''' Recording. ################################################################################
 
-        - weight
-        - exclusive desc len (decrease of desc len with i-th pattern)
-        - exclusive score upon update
-        - exclusive score after updating all patterns
-        - density of exclusive pattern
+
+
+
+
+
+    def get_overlappings(self, basis_list, basis_id, greater_id_only=True, overlap_dims=2):
+        '''Find overlappings on any or both dimensions.
         '''
-        records = [n_iter, target_dim]
-        columns = ['n_iter', 'target_dim']
+        overlaps = [] # overlapping basis ids of basis_id
+        overlap_ratio = []
 
-        for i in range(self.n_basis):
-            dl_0, dl_1, u, v, tp, fp = self.exclusive_dl(basis_id=i)
-            columns += [str(i) + suffix for suffix in ["_w", "_ex_dl", "_ex_s", "_ex_s", "_dl1v0", ' ']]
-            records += [self.w_now[i], dl_0 - dl_1, self.scores[i], tp - fp, dl_1 / dl_0, ' ']
+        if greater_id_only:
+            possible_overlaps = range(basis_id, self.n_basis)
+        else:
+            possible_overlaps = range(self.n_basis)
 
-        record(df_dict=self.logs, df_name='updates', columns=columns, records=records, verbose=self.verbose)
+        for j in possible_overlaps:
+            if j == basis_id:
+                continue
 
-        '''############################################################################################'''
+            ol_rows = basis_list[0][j][basis_list[0][basis_id].astype(bool)]
+            ol_cols = basis_list[1][j][basis_list[1][basis_id].astype(bool)]
 
-        ### Plot all patterns. ########################################################################
-        self._show_matrix(self, basis_list, basis_dim, target_dim, n_iter)
-        ###############################################################################################
+            is_ol_rows, is_ol_cols = ol_rows.sum() > 0, ol_cols.sum() > 0
 
-        ''' Find overlappings. ########################################################################'''
+            if overlap_dims == 1:
+                is_overlapped = is_ol_rows or is_ol_cols
+            else:
+                is_overlapped = is_ol_rows and is_ol_cols
 
-        # self.
+            if is_overlapped:
+                overlaps.append(j)
 
-        # # plot again
-        # self.X_pd = lil_matrix(self.X_train.shape)
-        # for i in range(self.n_basis):
-        #     # pattern after update
-        #     pattern = matmul(U=basis_list[0][i].T, V=basis_list[1][i], sparse=True, boolean=True)
-        #     pattern = pattern * (i + 1)
-        #     self.X_pd[pattern > 0] = pattern[pattern > 0]
+                ratio = ol_rows.sum() * ol_cols.sum()
+                ratio /= basis_list[0][basis_id].sum() * basis_list[1][basis_id].sum()
+                overlap_ratio.append(ratio)
 
-        # # self.show_matrix(colorbar=True, clim=[0, self.n_basis], discrete=True, center=True, 
-        # #     title=f'n_iter: {n_iter} ({basis_dim} -> {target_dim}), basis: {i+1}/{self.n_basis}')
-        # self.show_matrix(
-        #     settings=[(self.X_pd, [0, 0], 'patterns')], 
-        #     colorbar=True, 
-        #     cmap='tab20', 
-        #     clim=[0, self.n_basis], 
-        #     discrete=True, 
-        #     center=True, 
-        #     title=f'n_iter: {n_iter} ({basis_dim} -> {target_dim}), basis: {i+1}/{self.n_basis}')
+        return overlaps, overlap_ratio
 
 
-    # def find_overlappings(self):
-    #     pairs = []
-    #     for i in range(self.n_basis - 1):
-    #         _pairs = []
-    #         for j in range(i + 1, self.n_basis):
-    #             ol_rows = self.basis_list[0][j][self.basis_list[0][i].astype(bool)]
-    #             ol_cols = self.basis_list[1][j][self.basis_list[1][i].astype(bool)]
-    #             if ol_rows.sum() > 0 and ol_cols.sum() > 0:
-    #                 pairs.append((i, j))
-    #                 _pairs.append(j)
-    #         print(f"overlappings of {i}: ", _pairs)
+    def refine_overlapping(self, basis_id, overlap_id):
+        '''
+        '''
+        i_rows = bool_to_index(self.basis_list[0][basis_id])
+        i_cols = bool_to_index(self.basis_list[1][basis_id])
 
-    # def group_and_split(self, pair):
-    #     i, j = pair
-    #     ol_rows = self.basis_list[0][j][self.basis_list[0][i].astype(bool)]
-    #     ol_cols = self.basis_list[1][j][self.basis_list[1][i].astype(bool)]
+        j_rows = bool_to_index(self.basis_list[0][overlap_id])
+        j_cols = bool_to_index(self.basis_list[1][overlap_id])
 
-    #     ol_rows = bool_to_index(ol_rows)
-    #     ol_cols = bool_to_index(ol_cols)
+        ol_rows = np.intersect1d(i_rows, j_rows)
+        ol_cols = np.intersect1d(i_cols, j_cols)
 
-    #     i_all_rows = bool_to_index(self.basis_list[0][i])
-    #     i_all_cols = bool_to_index(self.basis_list[1][i])
-    #     i_ex_rows = np.setdiff1d(i_all_rows, ol_rows)
-    #     i_ex_cols = np.setdiff1d(i_all_cols, ol_cols)
+        i_ex_rows = np.setdiff1d(i_rows, ol_rows)
+        i_ex_cols = np.setdiff1d(i_cols, ol_cols)
 
-    #     j_all_rows = bool_to_index(self.basis_list[0][j])
-    #     j_all_cols = bool_to_index(self.basis_list[1][j])
-    #     j_ex_rows = np.setdiff1d(j_all_rows, ol_rows)
-    #     j_ex_cols = np.setdiff1d(j_all_cols, ol_cols)
+        j_ex_rows = np.setdiff1d(j_rows, ol_rows)
+        j_ex_cols = np.setdiff1d(j_cols, ol_cols)
 
+        # if 
 
-    # def merge_and_split(self, pair):
+        rest_rows = [r for r in range(self.m) if r not in i_rows and r not in j_rows]
+        rest_cols = [c for c in range(self.n) if c not in i_cols and c not in j_cols]
+        X_pd_rest = lil_matrix(self.X_train.shape)
+        X_pd_rest[rest_rows, :] = 1
+        X_pd_rest[:, rest_cols] = 1
 
+        i = basis_id
+    
+        # coverage without i-th pattern, over target_dim, with i-th weight
+        cover_before = cover(
+            gt=self.X_train, 
+            pd=X_pd_rest, 
+            w=self.w_now[i], 
+            axis=basis_dim
+        )
+        # update basis
+        self.scores[i], self.basis_list[target_dim][i] = self.get_vector(
+            X_gt=self.X_train, 
+            X_old=X_pd_rest, 
+            s_old=cover_before, 
+            basis=self.basis_list[basis_dim][i], 
+            basis_dim=basis_dim, 
+            w=self.w_now[i]
+        )
 
-    # def just_split(self, basis_id):
-    #     pass
-            
 
     # @staticmethod
     def get_vector(self, X_gt, X_old, s_old, basis, basis_dim, w):
@@ -259,7 +278,7 @@ class BMFInterleave(BMFAlternateTools):
         Returns
         -------
         score : float
-            The coverage score.
+            The exclusive coverage score.
         vector : (1, n) spmatrix
             The matched vector.
         '''
@@ -289,72 +308,62 @@ class BMFInterleave(BMFAlternateTools):
         return score * 2, vector
 
 
-    def reinit_basis(self, basis_id, basis_dim):
-        print(f"[I] Re-initializing basis {basis_id}, dim {basis_dim}")
+    # def reinit_basis(self, basis_id, basis_dim):
+    #     print(f"[I] Re-initializing basis {basis_id}, dim {basis_dim}")
 
-        other_id = [j for j in range(self.n_basis) if basis_id != j]
-        U = self.basis_list[0][other_id].T
-        V = self.basis_list[1][other_id].T
+    #     other_id = [j for j in range(self.n_basis) if basis_id != j]
+    #     U = self.basis_list[0][other_id].T
+    #     V = self.basis_list[1][other_id].T
 
-        self.update_cover(U=U, V=V)
-        basis, _ = self.init_basis_random_rows(
-            X=self.X_uncovered, n_basis=1, axis=basis_dim)
+    #     self.update_cover(U=U, V=V)
+    #     basis, _ = self.init_basis_random_rows(
+    #         X=self.X_uncovered, n_basis=1, axis=basis_dim)
 
-        self.basis_list[basis_dim][basis_id] = basis
-        self.basis_list[1 - basis_dim][basis_id] = 0
+    #     self.basis_list[basis_dim][basis_id] = basis
+    #     self.basis_list[1 - basis_dim][basis_id] = 0
 
 
-    def exclusive_dl(self, basis_id):
+    def exclusive_dl(self, basis_ids, U=None, V=None):
         '''Description length of the exclusive area.
+
+        The lower the better.
         '''
-        other_id = [j for j in range(self.n_basis) if basis_id != j]
-        U = self.basis_list[0][other_id].T
-        V = self.basis_list[1][other_id].T
-        X_pd_rest = matmul(U, V.T, sparse=True, boolean=True)
+        # other patterns
+        other_ids = [j for j in range(self.n_basis) if j not in basis_ids]
+        u, v = self.basis_list[0][other_ids].T, self.basis_list[1][other_ids].T
+        X_pd_rest = matmul(u, v.T, sparse=True, boolean=True)
 
-        U = self.basis_list[0][basis_id].T
-        V = self.basis_list[1][basis_id].T
-        X_pattern = matmul(U, V.T, sparse=True, boolean=True)
+        # load pattern
+        if U is None and V is None:
+            u, v = self.basis_list[0][basis_ids].T, self.basis_list[1][basis_ids].T
+        else:
+            u, v = U, V
+        X_pattern = matmul(u, v.T, sparse=True, boolean=True)
+        
+        # merged pattern
+        u_merged = binarize(u.sum(axis=1), threshold=0.5)
+        v_merged = binarize(v.sum(axis=1), threshold=0.5)
+        X_merged = matmul(u_merged, v_merged.T, sparse=True, boolean=True)
+
         X_pattern[X_pd_rest.astype(bool)] = 0
-        
-        # exclusive pattern size
-        u = (X_pattern.sum(axis=1) > 0).sum()
-        v = (X_pattern.sum(axis=0) > 0).sum()
+        X_merged[X_pd_rest.astype(bool)] = 0
 
-        # tp
-        tp = self.X_train[X_pattern.astype(bool)].sum()
+        # description length of none/pattern/merged
+        dl_none = self.X_train[X_merged.astype(bool)].sum()
 
-        # fp
-        fp = X_pattern.sum() - tp
+        dl_pattern = u.sum() + v.sum()
+        dl_pattern += self.X_train[X_merged.astype(bool)].sum() - self.X_train[X_pattern.astype(bool)].sum() # under-covered
+        dl_pattern += X_pattern.sum() - self.X_train[X_pattern.astype(bool)].sum() # over-covered
 
-        # dl
-        dl_0 = tp
-        dl_1 = u + v + fp
+        dl_merged = u_merged.sum() + v_merged.sum()
+        dl_merged += X_merged.sum() - self.X_train[X_merged.astype(bool)].sum() # over-covered
 
-        return dl_0, dl_1, u, v, tp, fp
+        return dl_none, dl_pattern, dl_merged
+    
 
+    def exclusive_score(self, basis_ids, U=None, V=None):
+        '''Score of the exclusive area.
 
-    def get_neighbors(self, basis_id):
-        other_id = [j for j in range(self.n_basis) if basis_id != j]
-        U = self.basis_list[0][other_id].T
-        V = self.basis_list[1][other_id].T
-        X_pd_rest = matmul(U, V.T, sparse=True, boolean=True)
-
-
-    def _show_matrix(self, basis_list, basis_dim, target_dim, n_iter):
-        X = lil_matrix(self.X_train.shape)
-        for i in range(self.n_basis):
-            pattern = matmul(U=basis_list[0][i].T, V=basis_list[1][i], sparse=True, boolean=True)
-            pattern = pattern * (i + 1)
-            X[pattern > 0] = pattern[pattern > 0]
-
-        name = f'n_iter: {n_iter} ({basis_dim} -> {target_dim}), basis: {i+1}/{self.n_basis}'
-
-        self.show_matrix(
-            settings=[(X, [0, 0], name)], 
-            cmap="tab20", 
-            colorbar=True, 
-            clim=[0, self.n_basis], 
-            discrete=True, 
-            center=True)
-        
+        The higher the better.
+        '''
+        pass

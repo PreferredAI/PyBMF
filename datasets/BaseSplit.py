@@ -5,7 +5,7 @@ import numpy as np
 from typing import Union
 
 class BaseSplit:
-    '''Common functions for NoSplit, RatioSplit and CrossValidation
+    '''Initialization for `NoSplit`, `RatioSplit` and `CrossValidation`.
     '''
     def __init__(self, X: Union[np.ndarray, spmatrix]):
         # input
@@ -18,14 +18,16 @@ class BaseSplit:
 
 
     def negative_sample(self):
-        '''Add negative to the matrix in RatioSplit and CrossValidation
+        '''Negative sampling.
 
-        Note that we can only add 0's using csr/csc_matrix, and validate negative samples using coo_matrix or triplet.
+        Note: 
+        
+        We can only add 0's using csr/csc_matrix, and validate negative samples using coo_matrix or triplet.
 
-        coo_matrix does not support value assignment;
-        lil_matrix has no effect when adding 0's onto it.
+        `coo_matrix` does not support value assignment;
+        `lil_matrix` has no effect when adding 0's onto it.
 
-        Any arithmetic operation or csr_matrix.eliminate_zeros() will lose the negative samples.
+        Any arithmetic operation or `csr_matrix.eliminate_zeros()` will lose the negative samples.
         '''
         raise NotImplementedError("Missing negative_sample method.")
 

@@ -160,43 +160,6 @@ def MAE(gt, pd, axis=None):
     return mae
 
 
-def cover(gt, pd, w, axis=None):
-    '''Measure the coverage of X using Y.
-
-    Parameters
-    ----------
-    w : float in [0, 1], optional
-        The weights [1 - `w`, `w`] are the reward for coverage and the penalty for over-coverage. It can also be considered as the lower-bound of true positive ratio when `cover` is used as a factorization criteria.
-    axis : int in {0, 1}, default: None
-        The dimension of the basis.
-        When `axis` is None, return the overall coverage score. When `axis` is 0, the basis is at dimension 0, thus return the column-wise coverage scores.
-
-    Returns
-    -------
-    score : float, array
-        The overall or the column/row-wise coverage score.
-    '''
-    covered = TP(gt, pd, axis=axis)
-    overcovered = FP(gt, pd, axis=axis)
-    # debug: adaptive w
-    c_all = covered + overcovered
-    # if w >= 1 and axis is not None:
-    #     to_be_covered = np.asarray(gt.sum(axis=axis)).squeeze()
-    #     n_all = gt.shape[axis]
-    #     # score = covered * n_all - w * multiply(to_be_covered, c_all)
-    # elif w >= 1 and axis is None:
-    #     to_be_covered = gt.sum()
-    #     n_all = gt.shape[0] * gt.shape[1]
-    #     # score = covered * n_all - w * to_be_covered * c_all
-    # else:
-    
-    score = (1 - w) * covered - w * overcovered
-    
-    # print(axis, w)
-    # print(type(gt), type(pd), gt.shape, pd.shape, covered.shape, overcovered.shape, score.shape)
-    return score
-
-
 def invert(X):
     if issparse(X):
         X = csr_matrix(np.ones(X.shape)) - X
@@ -208,15 +171,32 @@ def invert(X):
 
 
 def description_length(gt, U, V, pd=None, w_model=1.0, w_fp=1.0, w_fn=1.0):
-    '''
-    penalty : float
-        The penalty for errors per bit.
-    '''
-    if pd is None:
-        pd = matmul(U, V.T, sparse=True, boolean=True)
-        
-    desc_len = w_model * (U.sum() + V.sum())
-    desc_len += w_fp * FP(gt, pd)
-    desc_len += w_fn * FN(gt, pd)
+    '''The vanilla description length function.
 
-    return desc_len
+    Will compute X_pd from U and V if pd is None.
+    '''
+    pd = matmul(U, V.T, sparse=True, boolean=True) if pd is None else pd
+    return w_model * (U.sum() + V.sum()) + w_fp * FP(gt, pd) + w_fn * FN(gt, pd)
+
+
+def weighted_error(gt, pd, w_fp=0.5, w_fn=None, axis=None):
+    '''Coverage cost function to be minimized.
+    '''
+    w_fn = 1 - w_fp if w_fn is None else w_fn
+    return w_fp * FP(gt, pd, axis=axis) + w_fn * FN(gt, pd, axis=axis)
+
+
+def coverage_score(gt, pd, w_fp=0.5, w_fn=None, axis=None):
+    '''Covergage score function to be maximized.
+
+    Measure the coverage of X using Y.
+
+    Parameters
+    ----------
+    axis : int in {0, 1}, default: None
+        The dimension to which the basis belongs.
+        When `axis` is None, return the overall coverage score.
+        When `axis` is 0, the basis is at dimension 0, thus return the column-wise coverage scores.
+    '''
+    w_fn = 1 - w_fp if w_fn is None else w_fn
+    return - w_fp * FP(gt, pd, axis=axis) + w_fn * TP(gt, pd, axis=axis) # P - weighted_error()

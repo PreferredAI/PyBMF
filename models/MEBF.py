@@ -1,7 +1,7 @@
 import numpy as np
-from utils import matmul, multiply, sum, bool_to_index, multiply, ERR
+from utils import matmul, multiply, sum, bool_to_index, multiply, weighted_error, get_prediction, get_residual, ERR
 from .BaseModel import BaseModel
-from scipy.sparse import issparse, lil_matrix, csr_matrix
+from scipy.sparse import issparse, lil_matrix, csr_matrix, hstack
 
 
 class MEBF(BaseModel):
@@ -9,141 +9,172 @@ class MEBF(BaseModel):
     
     From the paper 'Fast And Efficient Boolean Matrix Factorization By Geometric Segmentation'.
     '''
-    def __init__(self, k=None, t=None, w=None) -> None:
+    def __init__(self, k=None, tol=0, t=None, w_fp=1, w_fn=1):
         '''
-        k:
-            suggested rank.
-        t:
-            threshold.
-        w:
-            reward and penalty parameters.
-            w[0]: reward the covered true-positives.
-            w[1]: penalize the over-covered false-positives.
-            this is not included in the original paper, which is equivalent to the default w = [1, 1].
+        k : int, optional
+            The target rank.
+            If `None`, it will factorize until the error is smaller than `tol`, or when other stopping criteria is met.
+        tol : float, default: 0
+            The target error.
+        t :
+            Threshold.
+        w_fp, w_fn : float
+            The penalty weights for FP and FN, respectively. 
         '''
-        self.check_params(k=k, t=t, w=w)
+        self.check_params(k=k, tol=tol, t=t, w_fp=w_fp, w_fn=w_fn)
 
 
-    def check_params(self, **kwargs):
-        super().check_params(**kwargs)
-        if 't' in kwargs:
-            t = kwargs.get("t")
-            if t is None:
-                t = 0.5
-            self.t = t
-            print("[I] t            :", self.t)
-        if 'w' in kwargs:
-            w = kwargs.get("w")
-            if w is None:
-                w = [1, 1]
-            self.w = w
-            print("[I] w            :", self.w)
-
-
-    def fit(self, X_train, X_val=None, **kwargs):
+    def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         self.check_params(**kwargs)
-        self.k = min(X_train.shape) if self.k is None else self.k
-        self.load_dataset(X_train=X_train, X_val=X_val)
+        self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
+        self.init_model()
+        
         self._fit()
+
+        self.finish()
 
 
     def _fit(self):
-        self.X_res = self.X_train.copy()
-        self.X_cover = self.X_train.copy()
-        self.cost = self.X_res.sum()
+        # update residual and coverage
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
+        self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)
+
+        self.cost = self.X_train.sum()
 
         self.u = lil_matrix((self.m, 1))
         self.v = lil_matrix((self.n, 1))
 
         k = 0
-
-        while True:
+        is_improving = True
+        while is_improving:
             self.bidirectional_growth()
+
+            if self.u.sum() == 0 or self.v.sum() == 0:
+                is_improving = self.early_stop(msg="No pattern found", k=k)
+                break
+
             if self.d_cost > 0: # cost increases
-                self.print_msg("[I] k: {}, cost increases by {}".format(k, self.d_cost))
+                self.print_msg("k: {}, cost increases by {}".format(k, self.d_cost))
                 self.weak_signal_detection() # fall back to small pattern
+
                 if self.d_cost > 0: # cost still increases
-                    self.early_stop(msg="Cost stops decreasing", k=k)
+                    is_improving = self.early_stop(msg="Cost stops decreasing", k=k)
                     break
-            self.U[:, k] = self.u
-            self.V[:, k] = self.v
+
+            if self.u.sum() == 0 or self.v.sum() == 0:
+                is_improving = self.early_stop(msg="No pattern found", k=k)
+                break
+
+            self.set_factors(k, u=self.u, v=self.v)
+
             self.cost = self.cost + self.d_cost
-            self.print_msg("[I] k: {}, pattern: {}, d_cost: {}, cost: {}".format(
-                k, (self.u.sum(), self.v.sum()), self.d_cost, self.cost))
 
-            # debug: verify cost (slow)
-            # X = matmul(self.U, self.V.T, sparse=True, boolean=True)
-            # err = ERR(self.X_train, X) * self.m * self.n
-            # err = np.round(err)
-            # print("[I] k: {}, pattern: {}, d_cost: {}, cost: {}  ( {} )".format(k, (self.u.sum(), self.v.sum()), self.d_cost, self.cost, err))
+            # update residual and coverage
+            self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
+            self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)
 
-            pattern = matmul(self.u, self.v.T, sparse=True, boolean=True).astype(bool)
-            self.X_res[pattern] = 0
-            self.X_cover[pattern] = 1
+            self.print_msg("k: {}, pattern: {}, d_cost: {}, cost: {}, e: {}, rs: {}, err: {}".format(
+                k, 
+                [self.u.sum(), self.v.sum()], 
+                self.d_cost, 
+                self.cost, 
+                np.round(ERR(gt=self.X_train, pd=self.X_pd) * self.m * self.n), 
+                self.X_rs.sum(), 
+                ERR(gt=self.X_train, pd=self.X_pd), 
+            ))
+
+            # evaluate
+            self.evaluate(
+                df_name='updates', 
+                head_info={
+                    'cost': self.cost, 
+                    'shape': [self.u.sum(), self.v.sum()], 
+                    'rs': self.X_rs.sum(), 
+                }
+            )
+
+            # early stop detection
+            is_improving = self.early_stop(error=ERR(gt=self.X_train, pd=self.X_pd), k=k)
+            is_improving = self.early_stop(n_factor=k+1)
+            if self.X_rs.sum() == 0:
+                break
 
             k += 1
-            
-            if k == self.k:
-                self.early_stop(msg="Reached requested rank", k=k)
-                break
 
 
     def bidirectional_growth(self):
-        '''Bi-directional growth algorithm
-        '''
+        '''Bi-directional growth algorithm.
+        '''      
+        error = weighted_error(gt=self.X_train, pd=self.X_pd, w_fp=self.w_fp, w_fn=self.w_fn)
+
         u_0, v_0 = self.get_factor(axis=0)
-        d_cost_0 = self.get_factor_cost(u_0, v_0)
+        if u_0.sum() == 0 or v_0.sum() == 0:
+            e_0 = error
+        else:
+            U_0, V_0 = hstack([self.U, u_0]), hstack([self.V, v_0])
+            X_0 = matmul(U=U_0, V=V_0.T, sparse=True, boolean=True)
+            e_0 = weighted_error(gt=self.X_train, pd=X_0, w_fp=self.w_fp, w_fn=self.w_fn)
         
         u_1, v_1 = self.get_factor(axis=1)
-        d_cost_1 = self.get_factor_cost(u_1, v_1)
-
-        if d_cost_0 <= d_cost_1:
-            self.u, self.v, self.d_cost = u_0, v_0, d_cost_0
+        if u_1.sum() == 0 or v_1.sum() == 0:
+            e_1 = error
         else:
-            self.u, self.v, self.d_cost = u_1, v_1, d_cost_1
+            U_1, V_1 = hstack([self.U, u_1]), hstack([self.V, v_1])
+            X_1 = matmul(U=U_1, V=V_1.T, sparse=True, boolean=True)
+            e_1 = weighted_error(gt=self.X_train, pd=X_1, w_fp=self.w_fp, w_fn=self.w_fn)
+
+        if e_0 <= e_1:
+            self.u, self.v, self.d_cost = u_0, v_0, e_0 - error
+        else:
+            self.u, self.v, self.d_cost = u_1, v_1, e_1 - error
 
 
     def weak_signal_detection(self):
-        '''Weak signal detection algorithm
+        '''Weak signal detection algorithm.
         '''
+        error = weighted_error(gt=self.X_train, pd=self.X_pd, w_fp=self.w_fp, w_fn=self.w_fn)
+
         u_0, v_0 = self.get_weak_signal(axis=0)
-        d_cost_0 = self.get_factor_cost(u_0, v_0)
-        
-        u_1, v_1 = self.get_weak_signal(axis=1)
-        d_cost_1 = self.get_factor_cost(u_1, v_1)
-
-        if d_cost_0 <= d_cost_1:
-            self.u, self.v, self.d_cost = u_0, v_0, d_cost_0
+        if u_0.sum() == 0 or v_0.sum() == 0:
+            e_0 = error
         else:
-            self.u, self.v, self.d_cost = u_1, v_1, d_cost_1
+            U_0, V_0 = hstack([self.U, u_0]), hstack([self.V, v_0])
+            X_0 = matmul(U=U_0, V=V_0.T, sparse=True, boolean=True)
+            e_0 = weighted_error(gt=self.X_train, pd=X_0, w_fp=self.w_fp, w_fn=self.w_fn)
+        
+        u_1, v_1 = self.get_weak_signal(axis=0)
+        if u_1.sum() == 0 or v_1.sum() == 0:
+            e_1 = error
+        else:
+            U_1, V_1 = hstack([self.U, u_1]), hstack([self.V, v_1])
+            X_1 = matmul(U=U_1, V=V_1.T, sparse=True, boolean=True)
+            e_1 = weighted_error(gt=self.X_train, pd=X_1, w_fp=self.w_fp, w_fn=self.w_fn)
 
-
-    def get_factor_cost(self, u, v):
-        '''Get the difference of cost d_cost given the new pattern
-        '''
-        pattern = matmul(u, v.T, sparse=True, boolean=True).astype(bool)
-        tp = self.X_res[pattern].sum() # covered
-        fp = pattern.sum() - self.X_cover[pattern].sum() # over-covered
-        d_cost = self.w[1] * fp - self.w[0] * tp
-
-        return d_cost
+        if e_0 <= e_1:
+            self.u, self.v, self.d_cost = u_0, v_0, e_0 - error
+        else:
+            self.u, self.v, self.d_cost = u_1, v_1, e_1 - error
     
     
     def get_factor(self, axis):
-        '''Get factor for bi-directional growth
+        '''Get factor for bi-directional growth.
 
-        axis:
+        axis :
             0, sort cols, find middle u and grow on v
             1, sort rows, find middle v and grow on u
-        a, b: np.matrix
+        a, b : np.matrix
         '''
-        scores = sum(X=self.X_res, axis=axis)
+        scores = sum(X=self.X_rs, axis=axis)
         idx = np.flip(np.argsort(scores)).astype(int)
-        idx = idx[scores > 0]
-        mid = idx[int(len(idx) / 2)]
-        a = self.X_res[:, mid] if axis == 0 else self.X_res[mid, :]
+        idx = [i for i in idx if scores[i] > 0]
+        
+        if len(idx) == 0:
+            return (csr_matrix([]), csr_matrix([]))
+
+        mid = idx[int(np.floor(len(idx) / 2))]
+        a = self.X_rs[:, mid] if axis == 0 else self.X_rs[mid, :]
         idx = bool_to_index(a)
-        X_sub = self.X_res[idx, :] if axis == 0 else self.X_res[:, idx]
+        X_sub = self.X_rs[idx, :] if axis == 0 else self.X_rs[:, idx]
         b = sum(X=X_sub, axis=axis) > self.t * a.sum()
         b = csr_matrix(b)
         a = a.reshape(-1, 1)
@@ -153,22 +184,22 @@ class MEBF(BaseModel):
     
 
     def get_weak_signal(self, axis):
-        '''Get factor for weak signal detection
+        '''Get factor for weak signal detection.
 
-        axis:
+        axis :
             0, find u and grow on v
             1, find v and grow on u
-        a, b: np.matrix
+        a, b : np.matrix
         '''
-        scores = sum(X=self.X_res, axis=axis)
+        scores = sum(X=self.X_rs, axis=axis)
         idx = np.flip(np.argsort(scores)).astype(int)
         first, second = idx[0], idx[1]
         if axis == 0:
-            a = multiply(self.X_res[:, first], self.X_res[:, second], boolean=True)
+            a = multiply(self.X_rs[:, first], self.X_rs[:, second], boolean=True)
         else:
-            a = multiply(self.X_res[first, :], self.X_res[second, :], boolean=True)
+            a = multiply(self.X_rs[first, :], self.X_rs[second, :], boolean=True)
         idx = bool_to_index(a)
-        X_sub = self.X_res[idx, :] if axis == 0 else self.X_res[:, idx]
+        X_sub = self.X_rs[idx, :] if axis == 0 else self.X_rs[:, idx]
         b = sum(X=X_sub, axis=axis) > self.t * a.sum()
         b = csr_matrix(b)
         a = a.reshape(-1, 1)

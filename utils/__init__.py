@@ -1,5 +1,6 @@
 from .display import show_matrix, fill_nan
 from .common import get_rng, safe_indexing, sigmoid, d_sigmoid, binarize
+from .common import get_prediction, get_thresholded_prediction, get_residual
 
 from .boolean_utils import multiply, dot, matmul, add, subtract, power, isnum, ismat
 from .generator_utils import shuffle_by_dim, shuffle_matrix, add_noise, reverse_index
@@ -7,7 +8,8 @@ from .sparse_utils import to_dense, to_sparse, to_triplet, check_sparse, sparse_
 from .data_utils import summarize, sum, mean, median, sample, sort_order
 
 from .evaluate_utils import get_metrics, record, eval, header
-from .metrics import TP, FP, TN, FN, TPR, FPR, TNR, FNR, ACC, ERR, PPV, F1, RMSE, MAE, cover, invert, description_length
+from .metrics import TP, FP, TN, FN, TPR, FPR, TNR, FNR, ACC, ERR, PPV, F1, RMSE, MAE
+from .metrics import invert, description_length, coverage_score, weighted_error
 
 from .collective_utils import get_dummy_factor_info, get_factor_list, get_factor_dims, get_factor_starts, split_factor_list, get_matrices
 from .collective_transform_utils import concat_Xs_into_X, concat_Us_into_U, concat_factor_info, split_X_into_Xs, split_U_into_Us

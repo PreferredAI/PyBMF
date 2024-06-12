@@ -4,7 +4,7 @@ from .BaseCollectiveModel import BaseCollectiveModel
 from .Asso import Asso
 from .AssoIter import AssoIter
 from .AssoOpt import AssoOpt
-from .AssoTrans import AssoTrans
+from .TransposedModel import TransposedModel
 
 from .Panda import Panda
 from .Hyper import Hyper
@@ -33,7 +33,7 @@ from .CMF import  CMF
 # from .cmf_pycmf import PyCMF
 
 # __all__ = ['Asso',
-#            'AssoTrans',
+#            'TransposedModel',
 #            'AssoOpt',
 #            'AssoIter',
 #            'NMF',

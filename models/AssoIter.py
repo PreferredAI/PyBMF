@@ -1,8 +1,8 @@
-from .Asso import Asso
+from .Asso import Asso, get_vector
 import numpy as np
 from multiprocessing import Pool
 import time
-from utils import matmul, add, ERR, cover
+from utils import matmul, get_prediction, ERR, coverage_score
 from copy import deepcopy
 from scipy.sparse import issparse, lil_matrix
 from functools import reduce
@@ -16,16 +16,13 @@ class AssoIter(Asso):
     ---------
     The discrete basis problem. Zhang et al. 2007.
     '''
-    def __init__(self, model, w):
-        self.check_params(model=model, w=w)
+    def __init__(self, model, w_fp=0.5, w_fn=None):
+        self.check_params(model=model, w_fp = w_fp, w_fn = w_fn)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
-        
-        # weight to use for refinement
-        # self.set_params(['w'], **kwargs)
-        # model to import
+
         if 'model' in kwargs:
             model = kwargs.get('model')
             self.import_model(k=model.k, U=model.U, V=model.V, logs=model.logs)
@@ -45,35 +42,36 @@ class AssoIter(Asso):
     def _fit(self):
         '''Using iterative search to refine U
 
-        In the paper, the algorithm uses cover function with the same weight for coverage and over-coverage (w = [0.5, 0.5]) as updating criteria, and uses error function as stopping criteria. This will not lead to the optimal solution. Change them to improve the performance.
+        In the paper, the algorithm uses cover function with the same weight for coverage and over-coverage as updating criteria, and uses error function as stopping criteria.
+        Changing them may improve the performance.
         '''
-        self.predict_X()
-        best_score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
+        best_score = coverage_score(gt=self.X_train, pd=self.X_pd, w_fp=self.w_fp, w_fn=self.w_fn)
         best_error = ERR(gt=self.X_train, pd=self.X_pd)
-        counter = 0
 
-        while True:
+        n_stop = 0
+        is_improving = True
+        while is_improving:
             for k in range(self.k):
                 score, col = self.get_refined_column(k)
                 self.U[:, k] = col.T
 
-                self.predict_X()
+                self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
                 error = ERR(gt=self.X_train, pd=self.X_pd)
                 if error < best_error:
-                    print("[I] Refined column i: {}, error: {:.4f} ---> {:.4f}, score: {:.2f} ---> {:.2f}.".format(k, best_error, error, best_score, score))
+                    print("[I] Refined column i: {}, error: {:.4f} -> {:.4f}, score: {:.2f} -> {:.2f}.".format(k, best_error, error, best_score, score))
                     best_error = error
                     best_score = score
 
                     self.evaluate(df_name='refinements', head_info={'k': k}, train_info={'score': best_score, 'error': best_error})
-                    counter = 0
+                    n_stop = 0
                 else:
-                    counter += 1
+                    n_stop += 1
                     print("[I] Skipped column i: {}.".format(k))
-                    if counter == self.k:
+                    if n_stop == self.k:
+                        print("[I] Error stops decreasing.")
+                        is_improving = False
                         break
-            if counter == self.k:
-                print("[I] Error stops decreasing.")
-                break
 
 
     def get_refined_column(self, k):
@@ -83,9 +81,17 @@ class AssoIter(Asso):
         '''
         idx = [i for i in range(self.k) if k != i]
         X_old = matmul(self.U[:, idx], self.V[:, idx].T, sparse=True, boolean=True)
-        s_old = cover(gt=self.X_train, pd=X_old, w=self.w, axis=1)
+        s_old = coverage_score(gt=self.X_train, pd=X_old, w_fp=self.w_fp, w_fn=self.w_fn, axis=1)
         basis = self.V[:, k].T
 
-        score, col = self.get_vector(X_gt=self.X_train, X_old=X_old, s_old=s_old, basis=basis, basis_dim=1, w=self.w)
+        score, col = get_vector(
+            X_gt=self.X_train, 
+            X_old=X_old, 
+            s_old=s_old, 
+            basis=basis, 
+            basis_dim=1, 
+            w_fp=self.w_fp, 
+            w_fn=self.w_fn,
+        )
 
         return score, col

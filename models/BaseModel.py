@@ -12,24 +12,19 @@ class BaseModel(BaseModelTools):
     def __init__(self, **kwargs):
         '''Initialize the model with parameters.
         '''
-        self.check_params(**kwargs)
         raise NotImplementedError('This is a template class.')
     
 
     def check_params(self, **kwargs):
-        '''Check parameters upon model initialization and fitting.
-
-        Model parameters are those frequently used when initializing the model.
-
-        System configurations are those involved when calling the `fit()` method.
-        They controls the random seed generator and the verbosity and display settings.
-        They also identify the type of task the model is dealing with, which affects the evaluation procedure.
+        '''Check and load model parameters and experiment configurations.
+        
+        Called upon model initialization and fitting.
         
         .. code-block:: python
             # include this in your model class:
 
-            def __init__(self, k, W, alpha):
-                self.check_params(k=k, W=W, alpha=alpha)
+            def __init__(self, k, tol, alpha):
+                self.check_params(k=k, tol=tol, alpha=alpha)
 
             def fit(self, X_train, X_val=None, X_test=None, **kwargs):
                 self.check_params(**kwargs)
@@ -159,6 +154,8 @@ class BaseModel(BaseModelTools):
             V = binarize(V, v)
 
         self.X_pd = matmul(U, V.T, boolean=boolean, sparse=True)
+
+
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):

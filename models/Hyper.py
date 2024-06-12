@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import lil_matrix, hstack
 from tqdm import tqdm
-from utils import matmul
+from utils import matmul, get_prediction, get_residual
 
 
 class Hyper(BaseModel):
@@ -16,11 +16,6 @@ class Hyper(BaseModel):
             The 'alpha' in the paper. The min support of frequent itemsets.
         '''
         self.check_params(min_support=min_support)
-
-
-    def check_params(self, **kwargs):
-        super().check_params(**kwargs)
-        # self.set_params(['min_support'], **kwargs)
     
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
@@ -31,8 +26,8 @@ class Hyper(BaseModel):
 
 
     def init_model(self):
-        if not hasattr(self, 'logs'):
-            self.logs = {}
+        self._init_factors()
+        self._init_logs()
 
         self.init_itemsets()
         self.init_transactions()
@@ -63,14 +58,14 @@ class Hyper(BaseModel):
 
         T : list of int list
         c : list of float
-        X_uncovered : spmatrix
+        X_rs : spmatrix
         '''
         self.T = []
         self.c = []
         i = 0
         progress = tqdm(range(len(self.I)), position=0, desc="[I] Initializing transactions")
         for _ in progress:
-            t, c = self.find_hyper(I=self.I[i], X_gt=self.X_train, X_uncovered=self.X_train)
+            t, c = self.find_hyper(I=self.I[i], X_gt=self.X_train, X_rs=self.X_train)
             if t == []:
                 self.I.pop(i)
                 # progress.reset(total=len(self.I))
@@ -91,12 +86,12 @@ class Hyper(BaseModel):
 
     def _fit(self):
         self.T_final, self.I_final = [], []
-        self.X_uncovered = self.X_train.copy().tolil()
+        self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)
 
         k = 0
         progress = tqdm(range(len(self.I)), position=0, desc=f"[I] Finding exact decomposition")
         for _ in progress:
-            self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
+            self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_rs=self.X_rs)
             while self.T[0] == []:
                 self.T.pop(0)
                 self.I.pop(0)
@@ -106,7 +101,7 @@ class Hyper(BaseModel):
             n_iter = 0
             while self.c[0] > self.c[1]:
                 self.sort_by_cost()
-                self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
+                self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_rs=self.X_rs)
                 n_iter += 1
 
             # record lists T, I
@@ -119,21 +114,21 @@ class Hyper(BaseModel):
             U[self.T[0]] = 1
             V[self.I[0]] = 1
 
-            self.U = U if k == 0 else hstack([self.U, U], format='lil')
-            self.V = V if k == 0 else hstack([self.V, V], format='lil')
-                
-            # update residual X_uncovered
-            pattern = matmul(U, V.T, sparse=True, boolean=True).astype(bool)
-            self.X_uncovered[pattern] = 0
+            self.set_factors(k, u=U, v=V)
 
             # evaluate
-            self.predict_X()
-            self.evaluate(df_name='updates', head_info={'k': k, 'iter': n_iter, 'size': pattern.sum(), 'uncovered': self.X_uncovered.sum()})
+            self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
+            self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)
+            self.evaluate(df_name='updates', head_info={
+                'k': k, 
+                'iter': n_iter, 
+                'shape': [U.sum(), V.sum()],
+                })
 
-            if self.X_uncovered.sum() == 0:
+            if self.X_rs.sum() == 0:
                 break
 
-            self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_uncovered=self.X_uncovered)
+            self.T[0], self.c[0] = self.find_hyper(I=self.I[0], X_gt=self.X_train, X_rs=self.X_rs)
             self.sort_by_cost()
             k += 1
 
@@ -143,7 +138,7 @@ class Hyper(BaseModel):
 
 
     @staticmethod
-    def find_hyper(I, X_gt, X_uncovered):
+    def find_hyper(I, X_gt, X_rs):
         '''
         queue : list
             The indices of rows with non-zero uncoverage, in descending order. Row must be a support of I.
@@ -151,7 +146,7 @@ class Hyper(BaseModel):
         covered = X_gt[:, I].sum(axis=1)
         covered = np.array(covered).flatten()
 
-        uncovered = X_uncovered[:, I].sum(axis=1)
+        uncovered = X_rs[:, I].sum(axis=1)
         uncovered = np.array(uncovered).flatten()
 
         idx = np.argsort(uncovered)[::-1]
@@ -163,10 +158,10 @@ class Hyper(BaseModel):
             return [], np.inf
         t = queue.pop(0)
         T = [t]
-        cost_old = Hyper.cost(T, I, X_uncovered)
+        cost_old = Hyper.cost(T, I, X_rs)
         while len(queue) > 0:
             t = queue.pop(0)
-            cost_new = Hyper.cost(T + [t], I, X_uncovered)
+            cost_new = Hyper.cost(T + [t], I, X_rs)
             if cost_new <= cost_new:
                 T.append(t)
                 cost_old = cost_new
@@ -176,9 +171,9 @@ class Hyper(BaseModel):
 
 
     @staticmethod
-    def cost(T, I, X_uncovered):
+    def cost(T, I, X_rs):
         '''The cost function (gamma) in Hyper.
         '''
         cost = len(T) + len(I)
-        cost = cost / X_uncovered[T, :][:, I].sum()
+        cost = cost / X_rs[T, :][:, I].sum()
         return cost

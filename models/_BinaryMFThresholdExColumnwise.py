@@ -85,7 +85,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             print("    threshold difference         : {:.3f}".format(diff))
 
             # evaluate
-            self.predict_X()
+            self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
 
             # display

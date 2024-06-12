@@ -28,89 +28,73 @@ class BaseGenerator:
         Parameters
         ----------
         m : int
-            Number of rows in X
+            The number of rows in X.
         n : int, optional
-            Number of columns in X
+            The number of columns in X.
         k : int, optional
-            Rank
-        noise : float, list(float) -> np.array
-            Accept a value between [0, 1] or a 2-element list
-            When it's a list, it represents probabilities for false
-            negative (p_pos) and false positive (p_neg)
-            Typically, noise lies between [0.0, 0.25]
+            The rank.
+
         density : float, list(float) -> np.array
             Accept a value between [0, 1] or a 2-element list
             When it's a list, it represents densities for factor U
             (density of columns of X) and factor V (density of rows of X)
             Typically, density lies between [0.1, 0.3]
-        overlap : float, list(float) -> np.array
-            Accept a value between [0, 1], a 2-element list or a 4-element list
-            When it's a list, it represents overlap ratio for factor 
-            U (overlap among columns) and factor V (overlap among rows)
-            Randomness is introduced by defining span
-            A complete setting of overlap should hold the format (overlap_u, span_u, overlap_v, span_v)
-        overlap_flag : bool
-            Whether overlap is allowed or not
-        size_range : float, list(float) -> np.array
-            Accept a value, a 2-element list or a 4-element list
-            When it's a list, it represents the lower and upper bounds of factor rectangle size 
-            (height_low, height_high, width_low, width_high) or just upper bounds (height_high, width_high)
-            The real size limit is the bounds times size m, n divided by k, e.g., [0.2, 2.0] * 1000 / 5
-            Depending on the selection of k, a typical upper size limit is 2.0
-            A complete setting of overlap should hold the format (height_low, height_high, width_low, width_high)
+
+
         seed : int
             Decide the current state of self.rng
         '''
-        # check dimensions
-        if "m" in kwargs:
-            self.m = kwargs.get("m")
-            print("[I] m            :", self.m)
-        if "n" in kwargs:
-            self.n = kwargs.get("n")
-            print("[I] n            :", self.n)
-        if "k" in kwargs:
-            self.k = kwargs.get("k")
-            print("[I] k            :", self.k)
+        self.set_params(**kwargs)
+        self.set_config(**kwargs)
 
-        # check noise
-        if "noise" in kwargs:
-            noise = kwargs.get("noise")
-            if noise is None:
-                noise = [0.0, 0.0] # no noise
-            elif isnum(noise):
-                noise = [noise, noise] # p_pos and p_neg
-            self.noise = np.array(noise)
-            print("[I] noise        :", self.noise)
+        # # check dimensions
+        # if "m" in kwargs:
+        #     self.m = kwargs.get("m")
+        #     print("[I] m            :", self.m)
+        # if "n" in kwargs:
+        #     self.n = kwargs.get("n")
+        #     print("[I] n            :", self.n)
+        # if "k" in kwargs:
+        #     self.k = kwargs.get("k")
+        #     print("[I] k            :", self.k)
 
-        # check density
-        if "density" in kwargs:
-            density = kwargs.get("density")
-            if density is None:
-                density = [0.2, 0.2]
-            elif isnum(density):
-                density = [density, density] # density_u and density_v
-            self.density = np.array(density)
-            print("[I] density      :", self.density)
+        # # check noise
+        # if "noise" in kwargs:
+        #     noise = kwargs.get("noise")
+        #     if isnum(noise):
+        #         noise = [noise, noise] # p_pos and p_neg
+        #     self.noise = np.array(noise)
+        #     print("[I] noise        :", self.noise)
 
-        # check overlap
-        if "overlap" in kwargs:
-            overlap = kwargs.get("overlap")
-            if overlap is None:
-                overlap = [0.0, 0.0, 0.0, 0.0] # no overlap
-            elif isinstance(overlap, list) and len(overlap) == 4:
-                pass
-            else:
-                print("[W] overlap should hold the format (overlap_u, span_u, overlap_v, span_v)")
+        # # check density
+        # if "density" in kwargs:
+        #     density = kwargs.get("density")
+        #     if density is None:
+        #         density = [0.2, 0.2]
+        #     elif isnum(density):
+        #         density = [density, density] # density_u and density_v
+        #     self.density = np.array(density)
+        #     print("[I] density      :", self.density)
+
+        # # check overlap
+        # if "overlap" in kwargs:
+        #     overlap = kwargs.get("overlap")
+        #     if overlap is None:
+        #         overlap = [0.0, 0.0, 0.0, 0.0] # no overlap
+        #     elif isinstance(overlap, list) and len(overlap) == 4:
+        #         pass
+        #     else:
+        #         print("[W] overlap should hold the format (overlap_u, span_u, overlap_v, span_v)")
             
-            # check overlap and span
-            overlap_u_ok = abs(overlap[0]) + overlap[1] <= 1.0 and abs(overlap[0]) - overlap[1] >= 0.0
-            overlap_v_ok = abs(overlap[2]) + overlap[3] <= 1.0 and abs(overlap[2]) - overlap[3] >= 0.0
-            if overlap_u_ok and overlap_v_ok:
-                self.overlap = np.array(overlap)
-                print("[I] overlap      :", self.overlap)
-            else:
-                print("[W] overlap_u and overlap_v should be in [-1, 1]")
-                print("[W] span_u and span_v should not make the sum with abs(overlap_*) exceed [0, 1]")
+        #     # check overlap and span
+        #     overlap_u_ok = abs(overlap[0]) + overlap[1] <= 1.0 and abs(overlap[0]) - overlap[1] >= 0.0
+        #     overlap_v_ok = abs(overlap[2]) + overlap[3] <= 1.0 and abs(overlap[2]) - overlap[3] >= 0.0
+        #     if overlap_u_ok and overlap_v_ok:
+        #         self.overlap = np.array(overlap)
+        #         print("[I] overlap      :", self.overlap)
+        #     else:
+        #         print("[W] overlap_u and overlap_v should be in [-1, 1]")
+        #         print("[W] span_u and span_v should not make the sum with abs(overlap_*) exceed [0, 1]")
 
         # check overlap_flag
         if "overlap_flag" in kwargs:
@@ -139,19 +123,39 @@ class BaseGenerator:
             else:
                 print("[W] Upper bounds should be higher than lower bounds")
 
+    def set_params(self, **kwargs):
+        kwconfigs = ['seed']
+        for param in kwargs:
+            if param in kwconfigs:
+                continue
+
+            value = kwargs.get(param)
+            setattr(self, param, value)
+
+            # display
+            if isinstance(value, list):
+                value = len(value)
+
+            print("[I] {:<12} : {}".format(param, value))
+
+
+    def set_config(self, **kwargs):
         # check seed
         if "seed" in kwargs:
             seed = kwargs.get("seed")
-            if seed is None and not hasattr(self,'seed'): # use time as self.seed
+            if seed is None and not hasattr(self,'seed'):
+                # use time as self.seed
                 seed = int(time.time())
                 self.seed = seed
                 self.rng = np.random.RandomState(seed)
                 print("[I] seed         :", self.seed)
-            elif seed is not None: # overwrite self.seed
+            elif seed is not None:
+                # overwrite self.seed
                 self.seed = seed
                 self.rng = np.random.RandomState(seed)
                 print("[I] seed         :", self.seed)
-            else: # self.rng remains unchanged
+            else:
+                # self.rng remains unchanged
                 pass
 
 
@@ -168,11 +172,13 @@ class BaseGenerator:
 
 
     def measure(self):
-        '''Measure a matrix
+        '''Measure a matrix.
 
-        true_density
+        Returns
+        -------
+        measured_density
             percentage on the number of 1's
-        true_overlap
+        measured_overlap
             percentage on the number of overlapped 1's
         '''
         self.measured_density = self.measure_density()
@@ -191,7 +197,7 @@ class BaseGenerator:
 
         
     def shuffle(self, seed=None):
-        '''Shuffle a matrix together with its factors
+        '''Shuffle a matrix together with its factors.
         '''        
         self.check_params(seed=seed)
         self.U_order, self.U, self.rng = shuffle_by_dim(X=self.U, dim=0, rng=self.rng)
@@ -200,7 +206,7 @@ class BaseGenerator:
         
 
     def shuffle_factors(self, seed=None):
-        '''Shuffle the factors of a matrix to re-arrange the bi-clusters
+        '''Shuffle the factors of a matrix to re-arrange the bi-clusters.
         '''
         self.check_params(seed=seed)
         _, self.U, self.rng = shuffle_by_dim(X=self.U, dim=1, rng=self.rng)
@@ -209,27 +215,36 @@ class BaseGenerator:
 
 
     def sortout(self, method=None):
-        '''Sort out a matrix
+        '''Sort out a matrix.
         '''
         pass
 
 
     def sorted_index(self):
-        '''Make index sorted for a sorted matrix
+        '''Make index sorted for a sorted matrix.
         '''
         self.U_order = np.array([i for i in range(self.m)])
         self.V_order = np.array([i for i in range(self.n)])
 
 
     def set_factor_info(self):
-        '''Set factor_info
+        '''Set factor_info.
         '''
         U_info = [self.U_order, self.U_order, self.U_order.astype(str)]
         V_info = [self.V_order, self.V_order, self.V_order.astype(str)]
         self.factor_info = [U_info, V_info]
         
 
-    def add_noise(self, noise=None, seed=None):
+    def add_noise(self, noise=[0.0, 0.0], seed=None):
+        '''Add noise to a matrix.
+        
+        Parameters
+        ----------
+        noise : list of 2 float, [0, 1]
+            Probabilities for false negative (p_pos) and false positive (p_neg).
+        seed : optional
+        '''
+        X = self.X
         self.check_params(noise=noise, seed=seed)
         self.X, self.rng = add_noise(X=self.X, noise=self.noise, rng=self.rng)
         self.to_sparse() # debug
@@ -240,7 +255,7 @@ class BaseGenerator:
 
 
     def to_sparse(self, type='csr'):
-        '''Convert U, V, X to sparse matrices
+        '''Convert U, V, X to sparse matrices.
         '''
         self.U = to_sparse(self.U, type=type)
         self.V = to_sparse(self.V, type=type)
@@ -248,21 +263,35 @@ class BaseGenerator:
 
 
     def to_dense(self):
-        '''Convert U, V, X to dense matrices
+        '''Convert U, V, X to dense matrices.
         '''
         self.U = to_dense(self.U)
         self.V = to_dense(self.V)
         self.X = to_dense(self.X)
 
 
-    def show_matrix(self, scaling=1.0, pixels=5, 
-                    colorbar=True, discrete=True, center=True, clim=[0, 1], keep_nan=True, **kwargs):
-        U_inv = reverse_index(idx=self.U_order)
-        V_inv = reverse_index(idx=self.V_order)
-        U, V = self.U[U_inv], self.V[V_inv]
-        X = self.X[U_inv, :]
-        X = X[:, V_inv]
+    def show_matrix(
+            self, 
+            scaling=1.0, pixels=5, 
+            colorbar=True, 
+            discrete=True, 
+            center=True, 
+            clim=[0, 1], 
+            keep_nan=True, 
+            **kwargs):
+        '''The `show_matrix` wrapper for binary matrix generators.
+        '''
+        # U_inv = reverse_index(idx=self.U_order)
+        # V_inv = reverse_index(idx=self.V_order)
+
+        # U, V = self.U[U_inv], self.V[V_inv]
+
+        # X = self.X[U_inv, :]
+        # X = X[:, V_inv]
+
+        X, U, V = self.X, self.U, self.V
 
         settings = [(X, [0, 0], "X"), (U, [0, 1], "U"), (V.T, [1, 0], "V")]
+
         show_matrix(settings=settings, scaling=scaling, pixels=pixels, 
                     colorbar=colorbar, discrete=discrete, center=center, clim=clim, keep_nan=keep_nan, **kwargs)

@@ -6,7 +6,7 @@ from scipy.sparse import lil_matrix
 
 
 class WNMF(ContinuousModel):
-    '''Weighted NMF.
+    '''Weighted Nonnegative Matrix Factorization.
 
     Reference
     ---------

@@ -55,7 +55,7 @@ class AssoExAlternateMultipleWeights(Asso):
 
         self._fit()
 
-        self.predict_X()
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         self.finish()
 
 
@@ -201,11 +201,11 @@ class AssoExAlternateMultipleWeights(Asso):
                     best_idx = np.argmax(self.scores)
 
                     # evaluate
-                    self.update_factors(k, u=self.basis[0][best_idx, :].T, v=self.basis[1][best_idx, :].T)
-                    self.predict_X()
+                    self.set_factors(k, u=self.basis[0][best_idx, :].T, v=self.basis[1][best_idx, :].T)
+                    self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
                     self.show_matrix(colorbar=True, clim=[0, 1], title=f'k: {k}, w: {self.w}')
                     self.evaluate(df_name='updates', head_info={'k': k, 'iter': n_iter, 'factor': 1-basis_dim, 'index': best_idx}, train_info={'score': best_score})
-                    self.update_factors(k, u=0, v=0)
+                    self.set_factors(k, u=0, v=0)
 
                     # debug
                     if self.verbose:
@@ -218,7 +218,7 @@ class AssoExAlternateMultipleWeights(Asso):
             if best_idx is None:
                 print("[W] Score stops improving at k: {}".format(k))
             else:
-                self.update_factors(k, u=self.basis[0][best_idx, :].T, v=self.basis[1][best_idx, :].T)
+                self.set_factors(k, u=self.basis[0][best_idx, :].T, v=self.basis[1][best_idx, :].T)
             
             self.evaluate(df_name='results', head_info={'k': k, 'iter': n_iter, 'index': best_idx}, train_info={'score': best_score})
 
@@ -230,7 +230,7 @@ class AssoExAlternateMultipleWeights(Asso):
         ----------
         basis_dim : int
         '''
-        self.predict_X()
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         target_dim = 1 - basis_dim
         cover_before = cover(gt=self.X_train, pd=self.X_pd, w=self.w, axis=basis_dim)
 
@@ -245,7 +245,7 @@ class AssoExAlternateMultipleWeights(Asso):
             
 
     def update_trials(self, basis_dim):
-        self.predict_X()
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         target_dim = 1 - basis_dim
 
         for j, w in enumerate(self.w):

@@ -1,4 +1,4 @@
-from .metrics import cover
+from .metrics import coverage_score
 import numpy as np
 from .boolean_utils import matmul
 import pandas as pd
@@ -31,9 +31,12 @@ def collective_cover(gt, pd, w, axis, starts=None):
     scores = np.zeros((n_submat, gt.shape[1-axis]))
     for i in range(n_submat):
         a, b = starts[i], starts[i+1]
-        s = cover(gt=gt[:, a:b] if axis else gt[a:b, :], 
-                  pd=pd[:, a:b] if axis else pd[a:b, :], 
-                  w=w[i], axis=axis)
+        s = coverage_score(
+            gt=gt[:, a:b] if axis else gt[a:b, :], 
+            pd=pd[:, a:b] if axis else pd[a:b, :], 
+            w=w[i], 
+            axis=axis
+        )
         scores[i] = s
 
     return scores

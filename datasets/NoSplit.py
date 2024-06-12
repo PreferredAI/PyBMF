@@ -4,9 +4,10 @@ from scipy.sparse import spmatrix
 
 
 class NoSplit(BaseSplit):
-    '''No split, used in reconstruction tasks
+    '''No split, used in reconstruction tasks.
 
-    For a reconstruction task, training and testing will use the same full set of samples.
+    Designed for reconstruction tasks, where training, validation and testing use the same full set of samples.
+    `NoSplit` supports negative sampling.
     '''
     def __init__(self, X: spmatrix, seed=None):
         super().__init__(X)

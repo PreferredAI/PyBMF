@@ -9,33 +9,55 @@ class BlockMatrixGenerator(BaseGenerator):
     The factors form a arbitrarily placed block matrix with or without overlap
     The matrix is sorted by nature upon generation
     '''
-    def __init__(self, m=None, n=None, k=None, overlap_flag=None, size_range=None):
+    def __init__(self, m, n, k, overlap_flag=None, size_range=None):
+        '''
+        Parameters
+        ----------
+        overlap_flag : bool
+            Whether overlap is allowed or not.
+        size_range : list of 2 or 4 float
+            The lower and upper bounds of factor rectangle size (height_low, height_high, width_low, width_high), 
+            or just upper bounds (height_high, width_high).
+            The real size limit is the bounds times size m, n divided by k, e.g., [0.2, 2.0] * 1000 / 5.
+            Depending on the selection of k, a typical upper size limit is 2.0.
+            A complete setting of overlap should hold the format (height_low, height_high, width_low, width_high).
+        '''
         super().__init__()
         self.check_params(m=m, n=n, k=k, overlap_flag=overlap_flag, size_range=size_range)
+
 
     def generate(self, seed=None):
         self.check_params(seed=seed)
         self.generate_factors()
         self.boolean_matmul()
-        self.sorted_index()
-        self.set_factor_info()
-        self.to_sparse()
+        # self.sorted_index()
+        # self.set_factor_info()
+        self.to_sparse(type='csr')
+
 
     def generate_factors(self):
         # trials using two point sequences with proper overlapping
         while True:
             points_start_u, points_end_u = self.generate_factor_points(n=self.m, k=self.k, low=self.size_range[0], high=self.size_range[1])
             points_start_v, points_end_v = self.generate_factor_points(n=self.n, k=self.k, low=self.size_range[2], high=self.size_range[3])
+
+            trials = 0
             if self.check_overlap(self.k, points_start_u, points_end_u, points_start_v, points_end_v) == True:
+                trials += 1
+                print("[I]   check overlap trials: ", trials)
                 self.U = self.generate_factor(n=self.m, k=self.k, points_start=points_start_u, points_end=points_end_u)
                 self.V = self.generate_factor(n=self.n, k=self.k, points_start=points_start_v, points_end=points_end_v)
                 break # try until a qualified config is found
         
+
     def generate_factor_points(self, n, k, low, high):
         # trials for a point sequence with proper intervals and do not exceed that dimension
         avg = n / k # average size
         points_end = np.zeros(k)
+        trials = 0
         while True:
+            trials += 1
+            print("[I]   generate factor trials: ", trials)
             points_start = self.rng.randint(0, n, size=k)
             for i in range(k):
                 a = np.floor(points_start[i] + avg * low)
@@ -45,6 +67,7 @@ class BlockMatrixGenerator(BaseGenerator):
             if all([e <= n for e in points_end]):
                 return (points_start.astype(int), points_end.astype(int))
         
+
     def check_overlap(self, k, points_start_u, points_end_u, points_start_v, points_end_v):
         # build a list of rectangles
         rectangles = [[points_start_u[i], points_end_u[i], points_start_v[i], points_end_v[i]] for i in range(k)]
@@ -59,6 +82,7 @@ class BlockMatrixGenerator(BaseGenerator):
                     return False # partial overlap is not allowed if overlap_flag is False
         return True
     
+
     def is_overlapped(self, A, B):
         u_overlapped = min(A[1], B[1]) > max(A[0], B[0])
         v_overlapped = min(A[3], B[3]) > max(A[2], B[2])
@@ -70,6 +94,7 @@ class BlockMatrixGenerator(BaseGenerator):
             return 1
         else:
             return 0
+
 
     def generate_factor(self, n, k, points_start, points_end):
         # build the C1P factor matrix

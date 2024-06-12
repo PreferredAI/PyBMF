@@ -1,7 +1,7 @@
 from .Asso import Asso
 import numpy as np
 import time
-from utils import matmul, cover
+from utils import matmul, coverage_score, get_prediction
 from scipy.sparse import csr_matrix, lil_matrix
 from p_tqdm import p_map
 from typing import Union
@@ -12,21 +12,19 @@ from .BaseModel import BaseModel
 class AssoOpt(Asso):
     '''The Asso algorithm with exhaustive search over each row of U.
 
-    This implementation may be slow but is able to deal with large `k` or huge dimension of `X_train`.
+    This implementation may be slow, but is able to deal with larger number of factors `k` or dimension of `X_train`.
     
     Reference
     ---------
     The discrete basis problem. Zhang et al. 2007.
     '''
-    def __init__(self, model, w):
-        self.check_params(model=model, w=w)
+    def __init__(self, model, w_fp=1, w_fn=1):
+        self.check_params(model=model, w_fp=w_fp, w_fn=w_fn)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
         
-        # weight to use for refinement
-        # self.set_params(['w'], **kwargs)
         # model to import
         if 'model' in kwargs:
             model = kwargs.get('model')
@@ -58,10 +56,10 @@ class AssoOpt(Asso):
         print("[I] Exhaustive search finished in {}s.".format(toc-tic))
 
         for i in range(self.m):
-            self.U[i] = self.int2bin(results[i], self.k)
+            self.U[i] = int2bin(results[i], self.k)
 
-        self.predict_X()
-        score = cover(gt=self.X_train, pd=self.X_pd, w=self.w)
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
+        score = coverage_score(gt=self.X_train, pd=self.X_pd, w=self.w)
         self.evaluate(df_name='refinements', train_info={'score': score})
 
 
@@ -72,15 +70,14 @@ class AssoOpt(Asso):
         scores = np.zeros(trials)
         X_gt = self.X_train[i, :]
         for j in range(trials):
-            U = self.int2bin(j, self.k)
+            U = int2bin(j, self.k)
             X_pd = matmul(U, self.V.T, sparse=True, boolean=True)
-            scores[j] = cover(gt=X_gt, pd=X_pd, w=self.w)
+            scores[j] = coverage_score(gt=X_gt, pd=X_pd, w_fn=self.w_fn, w_fp=self.w_fp)
         idx = np.argmax(scores)
         return idx
 
 
-    @staticmethod
-    def int2bin(i, bits):
-        '''Turn `i` into (1, `bits`) binary sparse matrix.
-        '''
-        return csr_matrix(list(bin(i)[2:].zfill(bits)), dtype=int)
+def int2bin(i, bits):
+    '''Turn `i` into (1, `bits`) binary sparse matrix.
+    '''
+    return csr_matrix(list(bin(i)[2:].zfill(bits)), dtype=int)

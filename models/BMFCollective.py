@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from utils import cover, matmul, add, to_dense, invert, record
+from utils import coverage_score, matmul, add, to_dense, invert, record
 from utils import collective_cover, weighted_score, harmonic_score, concat_Xs_into_X
 from .Asso import Asso
 from .BaseCollectiveModel import BaseCollectiveModel
