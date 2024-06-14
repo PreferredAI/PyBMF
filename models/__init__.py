@@ -11,6 +11,7 @@ from .Hyper import Hyper
 from .HyperPlus import HyperPlus
 from .MEBF import MEBF
 from .GreConD import GreConD
+from .GreConDPlus import GreConDPlus
 
 from .BMFAlternate import BMFAlternate
 from .BMFInterleave import BMFInterleave

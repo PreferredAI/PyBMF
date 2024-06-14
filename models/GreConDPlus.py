@@ -1,15 +1,17 @@
 from .BaseModel import BaseModel
+from .GreConD import get_concept
 from scipy.sparse import lil_matrix
 from utils import multiply, bool_to_index, ERR, get_prediction, show_matrix, get_residual, matmul, add
 import numpy as np
 
 
-class GreConD(BaseModel):
-    '''The GreConD algorithm for exact Boolean decomposition.
+class GreConDPlus(BaseModel):
+    '''The GreConD+ algorithm for approximate Boolean decomposition.
     
     Reference
     ---------
     Discovery of optimal factors in binary data via a novel method of matrix decomposition.
+    A new algorithm for boolean matrix factorization which admits overcovering.
     '''
     def __init__(self, k=None, tol=0):
         self.check_params(k=k, tol=tol)
@@ -33,28 +35,28 @@ class GreConD(BaseModel):
                 is_factorizing = self.early_stop(msg="No pattern found", k=k)
                 break
 
-            # update factors
-            self.set_factors(k, u=u, v=v)
+            # # update factors
+            # self.set_factors(k, u=u, v=v)
 
-            # evaluate
-            self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
-            self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)
+            # # evaluate
+            # self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
+            # self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)
 
-            self.evaluate(
-                df_name='updates', 
-                head_info={
-                    'k': k, 
-                    'score': score, 
-                    'shape': [u.sum(), v.sum()], 
-                }, 
-            )
+            # self.evaluate(
+            #     df_name='updates', 
+            #     head_info={
+            #         'k': k, 
+            #         'score': score, 
+            #         'shape': [u.sum(), v.sum()], 
+            #     }, 
+            # )
 
-            # early stop detection
-            error = ERR(gt=self.X_train, pd=self.X_pd)
-            print("[I] k: {}, score: {}, error: {:.3f}, shape: [{}, {}]".format(k, score, error, u.sum(), v.sum()))
-            is_factorizing = self.early_stop(error=error, n_factor=k+1, k=k)
+            # # early stop detection
+            # error = ERR(gt=self.X_train, pd=self.X_pd)
+            # print("[I] k: {}, score: {}, error: {:.3f}, shape: [{}, {}]".format(k, score, error, u.sum(), v.sum()))
+            # is_factorizing = self.early_stop(error=error, n_factor=k+1, k=k)
 
-            k += 1
+            # k += 1
 
 
 

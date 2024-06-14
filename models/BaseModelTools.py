@@ -235,8 +235,8 @@ class BaseModelTools():
         '''
         is_improving = True
 
-        if error is not None and hasattr(self, 'tol') and error < self.tol:
-            self._early_stop(msg="Error lower than tolerance", k=k)
+        if error is not None and hasattr(self, 'tol') and error <= self.tol:
+            self._early_stop(msg="Error <= tolerance", k=k)
             is_improving = False
         if n_iter is not None and hasattr(self, 'max_iter') and n_iter > self.max_iter:
             self._early_stop(msg="Reach maximum iteration", k=k)
@@ -248,6 +248,7 @@ class BaseModelTools():
             self._early_stop(msg="Reach requested factor")
             is_improving = False
         if msg is not None:
+            # forced early stop without reason
             self._early_stop(msg=msg, k=k)
             is_improving = False
 
