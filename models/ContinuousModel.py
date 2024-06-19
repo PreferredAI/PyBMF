@@ -32,13 +32,17 @@ class ContinuousModel(BaseModel):
 
 
     def init_W(self):
-        '''Initialize masking weights.
+        '''Initialize masking weights. Turning codenames into matrix.
 
-        Turning codenames into matrix.
+        'mask' :
+            W will be assigned 1 for any entrance in X_train, no matter if the value is 1, or 0 added through negative sampling.
+        'full' :
+            W is full 1 matrix.
 
+        TODO: to avoid dense W as much as possible
         TODO: to support dense X_train
         '''
-        assert self.W in ['mask', 'full'] or ismat(self.W)
+        # assert self.W in ['mask', 'full'] or ismat(self.W)
 
         if isinstance(self.W, str):
             if self.W == 'mask':
@@ -94,9 +98,10 @@ class ContinuousModel(BaseModel):
                 self.U[:, i] = self.U[:, i] * diag_V[i] / diag_U[i]
                 self.V[:, i] = self.V[:, i] * diag_U[i] / diag_V[i]
         elif method == 'normalize':
-            for i in range(self.k):
-                self.U[:, i] = self.U[:, i] / self.U[:, i].max()
-                self.V[:, i] = self.V[:, i] / self.V[:, i].max()
+            # for i in range(self.k):
+            #     self.U[:, i] = self.U[:, i] / self.U[:, i].max()
+            #     self.V[:, i] = self.V[:, i] / self.V[:, i].max()
+            self.U, self.V = self.U / self.U.max(), self.V / self.V.max()
 
         b, d = [self.U.min(), self.U.max()], [self.V.min(), self.V.max()]
 

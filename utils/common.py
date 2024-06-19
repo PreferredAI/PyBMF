@@ -88,7 +88,7 @@ def d_sigmoid(X):
     return Z
 
 
-def get_prediction(U, V, boolean=True):
+def get_prediction(U, V, boolean=True, sparse=True):
     '''Get prediction.
 
     Parameters
@@ -97,19 +97,19 @@ def get_prediction(U, V, boolean=True):
     boolean : bool
         Whether to apply Boolean multiplication.
     '''
-    return matmul(U, V.T, boolean=boolean, sparse=True)
+    return matmul(U, V.T, boolean=boolean, sparse=sparse)
 
 
-def get_thresholded_prediction(U, V, u=None, v=None, us=None, vs=None):
-    '''Get prediction with thresholded factors.
+def get_prediction_with_threshold(U, V, u=None, v=None, us=None, vs=None):
+    '''Get prediction after thresholding factors U and V.
 
     Parameters
     ----------
     U, V : array, spmatrix
     u, v : float
-        The shared threshold for U and V.
+        The shared threshold across all factors for U and V.
     us, vs : list of length k, float
-        The thresholds for each factor in U and V.
+        The individual thresholds for each factor in U and V.
     '''
     if us is not None:
         assert len(us) == U.shape[1]
@@ -135,3 +135,17 @@ def get_residual(X, U, V):
     X = lil_matrix(X.copy())
     X[pattern.astype(bool)] = 0
     return X
+
+
+def to_interval(X, min, max):
+    '''Transform data into interval [min, max].
+
+    Parameters
+    ----------
+    X : array
+    
+    TODO: spmatrix
+    '''
+    min_val = X.min()
+    max_val = X.max()
+    return (X - min_val) / (max_val - min_val) * (max - min) + min

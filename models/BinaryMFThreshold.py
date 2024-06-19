@@ -1,16 +1,23 @@
 from .ContinuousModel import ContinuousModel
-from utils import multiply, power, sigmoid, to_dense, dot, add, subtract
+from utils import multiply, power, sigmoid, ignore_warnings, subtract, get_prediction, get_prediction_with_threshold, ismat
 import numpy as np
 from solvers import line_search
 
+
 class BinaryMFThreshold(ContinuousModel):
     '''Binary matrix factorization, thresholding algorithm.
+
+    - solver: (projected) line search
+    - for sigmoid link function, use `BinaryMFThresholdExSigmoid`
+    - for columnwise thresholds, use `BinaryMFThresholdExColumnwise`
+    - for both, use `BinaryMFThresholdExSigmoidColumnwise`
     
-    From the papers:
-        'Binary Matrix Factorization with Applications', 
-        'Algorithms for Non-negative Matrix Factorization'.
+    Reference
+    ---------
+    Binary Matrix Factorization with Applications.
+    Algorithms for Non-negative Matrix Factorization.
     '''
-    def __init__(self, k, U, V, W='mask', u=0.5, v=0.5, lamda=100, min_diff=1e-3, max_iter=100, init_method='custom', seed=None):
+    def __init__(self, k, U, V, W='mask', u=0.5, v=0.5, lamda=100, solver="line-search", min_diff=1e-3, max_iter=100, init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -19,13 +26,15 @@ class BinaryMFThreshold(ContinuousModel):
         lamda : float
             The 'lambda' in sigmoid function.
         '''
-        self.check_params(k=k, U=U, V=V, W=W, u=u, v=v, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, u=u, v=v, lamda=lamda, solver=solver, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        # self.set_params(['u', 'v', 'lamda'], **kwargs)
+        assert self.solver in ['line-search']
+        assert self.init_method in ['custom']
+        assert ismat(self.W) or self.W in ['mask', 'full']
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
@@ -52,16 +61,20 @@ class BinaryMFThreshold(ContinuousModel):
         n_iter = 0
         is_improving = True
 
+        # initial point
         x_last = np.array([self.u, self.v]) # initial point
         p_last = -self.dF(x_last) # descent direction
         new_fval = self.F(x_last) # initial value
 
         # initial evaluation
-        self.predict_X(u=self.u, v=self.v, boolean=True)
+        self.X_pd = get_prediction_with_threshold(U=self.U, V=self.V, u=self.u, v=self.v)
         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'u': self.u, 'v': self.v, 'F': new_fval})
         
         while is_improving:
+            # update n_iter
             n_iter += 1
+
+            # set xk, pk
             xk = x_last # starting point
             pk = p_last # searching direction
             # pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
@@ -71,25 +84,37 @@ class BinaryMFThreshold(ContinuousModel):
             alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50)
 
             if alpha is None:
-                self._early_stop("search direction is not a descent direction.")
+                print("[W] Search direction is not a descent direction.")
                 break
 
+            # get x_last, p_last
             x_last = xk + alpha * pk
             p_last = -new_slope # descent direction
+
+            # refine x_last, p_last and new_fval: projection to [0, 1]
+            eps = np.finfo(np.float64).eps
+            x_last[x_last <= 0 + eps] = 0 + eps
+            x_last[x_last >= 1 - eps] = 1 - eps
+            p_last = -self.dF(x_last)
+            new_fval = self.F(x_last)
+
+            # update u, v
             self.u, self.v = x_last
 
-            diff = np.sqrt(np.sum((alpha * pk) ** 2))
+            # measurements
+            diff = np.abs(new_fval - old_fval) # the difference of function value
+            # diff = np.sqrt(np.sum((alpha * pk) ** 2)) # the difference of threshold
             
-            self.print_msg("[I] Wolfe line search for iter   : {}".format(n_iter))
-            self.print_msg("    num of function evals made   : {}".format(fc))
-            self.print_msg("    num of gradient evals made   : {}".format(gc))
+            self.print_msg("    Wolfe line search iter       : {}".format(n_iter))
+            self.print_msg("    num of function evals        : {}".format(fc))
+            self.print_msg("    num of gradient evals        : {}".format(gc))
             self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
             self.print_msg("    threshold update             : [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]".format(*xk, *x_last))
             self.print_msg("    threshold update direction   : [{:.3f}, {:.3f}]".format(*(alpha * pk)))
             self.print_msg("    threshold difference         : {:.6f}".format(diff))
 
             # evaluate
-            self.predict_X(u=self.u, v=self.v, boolean=True)
+            self.X_pd = get_prediction_with_threshold(U=self.U, V=self.V, u=self.u, v=self.v)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'u': self.u, 'v': self.v, 'F': new_fval})
 
             # display
@@ -97,14 +122,12 @@ class BinaryMFThreshold(ContinuousModel):
                 self.show_matrix(u=self.u, v=self.v, title=f"iter {n_iter}")
 
             # early stop detection
-            is_improving = self.early_stop(diff=diff)
-
-
-
+            is_improving = self.early_stop(n_iter=n_iter, diff=diff)
     
 
+    @ignore_warnings
     def F(self, params):
-        '''
+        '''The objective function.
         Parameters
         ----------
         params : [u, v]
@@ -123,8 +146,10 @@ class BinaryMFThreshold(ContinuousModel):
         return F
     
 
+    @ignore_warnings
     def dF(self, params):
-        '''
+        '''The gradient of the objective function.
+
         Parameters
         ----------
         params : [u, v]
@@ -155,6 +180,7 @@ class BinaryMFThreshold(ContinuousModel):
         return dF
 
 
+    @ignore_warnings
     def dXdx(self, X, x):
         '''The fractional term in the gradient.
 
@@ -169,4 +195,5 @@ class BinaryMFThreshold(ContinuousModel):
         diff = subtract(X, x)
         num = np.exp(-self.lamda * subtract(X, x)) * self.lamda
         denom_inv = sigmoid(diff * self.lamda) ** 2
+
         return num * denom_inv

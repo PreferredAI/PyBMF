@@ -1,16 +1,18 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, ismat, ignore_warnings
+from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, binarize, matmul, isnum, ismat, ignore_warnings, get_prediction, get_prediction_with_threshold
 import numpy as np
 from scipy.sparse import spmatrix, lil_matrix
 from tqdm import tqdm
+from solvers import line_search
 
 
 class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
-    '''Binary matrix factorization, thresholding algorithm, columnwise thresholds (experimental).
+    '''Binary matrix factorization, thresholding algorithm (experimental).
 
-    Implemented solver includes projected line search and projected coordinate descent.
+    - solvers: projected line search and projected coordinate descent
+    - columnwise thresholds
     '''
-    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, lamda=100, min_diff=1e-3, max_iter=30, init_method='custom', solver='line-search', seed=None):
+    def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, lamda=100, min_diff=1e-3, max_iter=30, solver='line-search', init_method='custom', seed=None):
         '''
         Parameters
         ----------
@@ -24,8 +26,6 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
     def check_params(self, **kwargs):
         super(BinaryMFThreshold, self).check_params(**kwargs)
-
-        # self.set_params(['us', 'vs', 'lamda', 'solver'], **kwargs)
         
         assert self.solver in ['line-search', 'cd']
         assert self.init_method in ['custom']
@@ -50,7 +50,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
 
     def _fit_line_search(self):
-        '''The gradient descent method. A line search algorithm with Wolfe conditions.
+        '''The gradient descent with Wolfe line search.
         '''
         n_iter = 0
         is_improving = True
@@ -61,46 +61,47 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         new_fval = self.F(x_last) # initial value
 
         # initial evaluation
-        self.predict_X(us=self.us, vs=self.vs, boolean=True)
+        self.X_pd = get_prediction_with_threshold(U=self.U, V=self.V, us=self.us, vs=self.vs)
         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
+
         while is_improving:
+            # update n_iter
             n_iter += 1
+
+            # set xk, pk
             xk = x_last # starting point
             pk = p_last # searching direction
-
-            # debug: normalize
-            # pk = pk / np.sqrt(np.sum(pk ** 2))
+            # pk = pk / np.sqrt(np.sum(pk ** 2)) # debug: normalize
 
             print("[I] iter: {}".format(n_iter))
 
-            alpha, fc, gc, new_fval, old_fval, new_slope = self.line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50, c1=0.1, c2=0.4)
+            alpha, fc, gc, new_fval, old_fval, new_slope = line_search(f=self.F, myfprime=self.dF, xk=xk, pk=pk, maxiter=50, c1=0.1, c2=0.4)
 
             if alpha is None:
-                self._early_stop("search direction is not a descent direction.")
+                print("[W] Search direction is not a descent direction.")
                 break
 
+            # get x_last, p_last
             x_last = xk + alpha * pk
-
-            # debug: put on constraint so that x_last is in [0, 1]
-            # if np.any(x_last < 0) or np.any(x_last > 1):
-            #     alpha = np.where(x_last < 0, -xk / pk, (1 - xk) / pk)
-            #     x_last = xk + alpha * pk
-            #     alpha = np.min(alpha)
-            #     new_slope = self.dF(x_last)
-            x_last[x_last <= 0] = np.finfo(np.float64).eps
-            x_last[x_last >= 1] = 1 - np.finfo(np.float64).eps
-
-            new_slope = self.dF(x_last)
-            new_fval = self.F(x_last)
-
             p_last = -new_slope # descent direction
+
+            # refine x_last, p_last and new_fval: projection to [0, 1]
+            eps = 1e-5 # np.finfo(np.float64).eps
+            x_last[x_last <= 0 + eps] = 0 + eps
+            x_last[x_last >= 1 - eps] = 1 - eps
+            p_last = -self.dF(x_last)
+            new_fval = self.F(x_last)
             
+            # update us, vs
             self.us, self.vs = x_last[:self.k], x_last[self.k:]
-            diff = np.sqrt(np.sum((alpha * pk) ** 2))
+
+            # measurements
+            diff = np.abs(new_fval - old_fval) # the difference of function value
+            # diff = np.sqrt(np.sum((alpha * pk) ** 2)) # the difference of threshold
             
-            self.print_msg("[I] Wolfe line search for iter   : {}".format(n_iter))
-            self.print_msg("    num of function evals made   : {}".format(fc))
-            self.print_msg("    num of gradient evals made   : {}".format(gc))
+            self.print_msg("    Wolfe line search iter       : {}".format(n_iter))
+            self.print_msg("    num of function evals        : {}".format(fc))
+            self.print_msg("    num of gradient evals        : {}".format(gc))
             self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
             str_xk = ', '.join('{:.2f}'.format(x) for x in xk)
             str_x_last = ', '.join('{:.2f}'.format(x) for x in x_last)
@@ -113,7 +114,7 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             self.print_msg("    threshold difference         : {:.3f}".format(diff))
 
             # evaluate
-            self.predict_X(us=self.us, vs=self.vs, boolean=True)
+            self.X_pd = get_prediction_with_threshold(U=self.U, V=self.V, us=self.us, vs=self.vs)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': new_fval})
 
             # display
@@ -123,17 +124,6 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
             # early stop detection
             is_improving = self.early_stop(diff=diff, n_iter=n_iter)
 
-
-    @ignore_warnings
-    def approximate_X(self, us, vs):
-        '''`BaseModel.predict_X()` with sigmoid relations.
-        '''
-        U, V = self.U.copy(), self.V.copy()
-        for i in range(self.k):
-            U[:, i] = sigmoid(subtract(self.U[:, i], us[i]) * self.lamda)
-            V[:, i] = sigmoid(subtract(self.V[:, i], vs[i]) * self.lamda)
-        self.X_approx = U @ V.T
-    
 
     def F(self, params):
         '''
@@ -147,8 +137,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         '''
         us, vs = params[:self.k], params[self.k:]
 
-        self.approximate_X(us, vs)
-        X_gt, X_pd = self.X_train, self.X_approx
+        X_gt = self.X_train
+        X_pd = get_prediction_with_sigmoid(U=self.U, V=self.V, us=us, vs=vs, lamda=self.lamda)
 
         diff = X_gt - X_pd
         F = 0.5 * np.sum(power(multiply(self.W, diff), 2))
@@ -170,8 +160,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
         dF = np.zeros(self.k * 2)
 
-        self.approximate_X(us, vs)
-        X_gt, X_pd = self.X_train, self.X_approx
+        X_gt = self.X_train
+        X_pd = get_prediction_with_sigmoid(U=self.U, V=self.V, us=us, vs=vs, lamda=self.lamda)
 
         dFdX = X_gt - X_pd # considered '-' and '^2'
         dFdX = multiply(self.W, dFdX) # dF/dX_pd
@@ -244,7 +234,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
                 # evaluate
                 fval = self.F(params)
-                self.predict_X(us=self.us, vs=self.vs, boolean=True)
+                # self.predict_X(us=self.us, vs=self.vs, boolean=True)
+                self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
                 self.evaluate(df_name='updates', head_info={'iter': n_iter, 'us': self.us, 'vs': self.vs, 'F': fval})
 
                 # display
@@ -257,8 +248,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
 
         d2F = np.zeros(self.k * 2)
 
-        self.approximate_X(us, vs)
-        X_gt, X_pd = self.X_train, self.X_approx
+        X_gt = self.X_train
+        X_pd = get_prediction_with_sigmoid(U=self.U, V=self.V, us=us, vs=vs, lamda=self.lamda)
 
         dFdX = X_gt - X_pd # considered '-' and '^2'
         dFdX = multiply(self.W, dFdX) # dF/dX_pd
@@ -321,3 +312,12 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         d2Xdx2 += -num / denom
 
         return d2Xdx2
+
+
+
+def get_prediction_with_sigmoid(U, V, us, vs, lamda):
+    U, V = U.copy(), V.copy()
+    for i in range(U.shape[1]):
+        U[:, i] = sigmoid(subtract(U[:, i], us[i]) * lamda)
+        V[:, i] = sigmoid(subtract(V[:, i], vs[i]) * lamda)
+    return U @ V.T

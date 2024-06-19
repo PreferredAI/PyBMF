@@ -129,9 +129,9 @@ def power(X, n):
     '''Matrix power for both dense and sparse input.
     '''
     if issparse(X):
-        return X.power(n)
+        return X.power(n).astype(np.float64)
     else:
-        return np.power(X, n)
+        return np.power(X, n).astype(np.float64)
     
 
 def isnum(X):

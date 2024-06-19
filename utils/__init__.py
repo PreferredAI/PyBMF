@@ -1,6 +1,6 @@
 from .display import show_matrix, fill_nan
 from .common import get_rng, safe_indexing, sigmoid, d_sigmoid, binarize
-from .common import get_prediction, get_thresholded_prediction, get_residual
+from .common import get_prediction, get_prediction_with_threshold, get_residual, to_interval
 
 from .boolean_utils import multiply, dot, matmul, add, subtract, power, isnum, ismat
 from .generator_utils import shuffle_by_dim, shuffle_matrix, add_noise, reverse_index

@@ -22,6 +22,7 @@ from .NMFSklearn import NMFSklearn
 from .WNMF import WNMF
 
 from .BinaryMFPenalty import BinaryMFPenalty
+from .FastStep import FastStep
 from .PNLPF import PNLPF
 
 from .BinaryMFThreshold import BinaryMFThreshold

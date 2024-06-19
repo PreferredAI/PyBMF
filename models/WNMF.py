@@ -1,6 +1,6 @@
 from sklearn import decomposition
 from .ContinuousModel import ContinuousModel
-from utils import to_sparse, multiply, power, ignore_warnings, subtract, check_sparse, add
+from utils import to_sparse, multiply, power, ignore_warnings, subtract, check_sparse, add, get_prediction
 import numpy as np
 from scipy.sparse import lil_matrix
 
@@ -10,7 +10,11 @@ class WNMF(ContinuousModel):
 
     Reference
     ---------
-    Weighted Nonnegative Matrix Factorization and Face Feature Extraction
+    Weighted Nonnegative Matrix Factorization and Face Feature Extraction.
+
+    For scipy implementation:
+    Projected Gradient Methods for Non-negative Matrix Factorization
+    https://github.com/scikit-learn/scikit-learn/blob/a95203b249c1cf392f86d001ad999e29b2392739/sklearn/decomposition/nmf.py#L158
     '''
     def __init__(self, k, U=None, V=None, W='mask', beta_loss='frobenius', init_method='normal', solver='mu', tol=0.0, min_diff=0.0, max_iter=30, seed=None):
         '''
@@ -59,7 +63,8 @@ class WNMF(ContinuousModel):
         error_old = self.error()
 
         # evaluate
-        self.predict_X(boolean=False)
+        # self.predict_X(boolean=False)
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=False)
         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_old}, metrics=['RMSE', 'MAE'])
 
         while is_improving:
@@ -73,7 +78,8 @@ class WNMF(ContinuousModel):
             error_old = error_new
 
             # evaluate
-            self.predict_X(boolean=False)
+            # self.predict_X(boolean=False)
+            self.X_pd = get_prediction(U=self.U, V=self.V, boolean=False)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_new}, metrics=['RMSE', 'MAE'])
 
             # display

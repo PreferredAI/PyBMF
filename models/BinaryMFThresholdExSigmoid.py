@@ -1,29 +1,35 @@
 from .BinaryMFThreshold import BinaryMFThreshold
-from utils import multiply, power, sigmoid, to_dense, dot, add, subtract, d_sigmoid
+from utils import multiply, power, sigmoid, ismat, subtract, d_sigmoid
 import numpy as np
 
 
 class BinaryMFThresholdExSigmoid(BinaryMFThreshold):
-    '''Binary matrix factorization, thresholding algorithm, sigmoid link function (experimental).
+    '''Binary matrix factorization, thresholding algorithm (experimental).
+    
+    - solver: (projected) line search
+    - sigmoid link function
     '''
-    def __init__(self, k, U, V, W='mask', u=0.5, v=0.5, link_lamda=10, lamda=100, min_diff=1e-3, max_iter=30, init_method='custom', seed=None):
+    def __init__(self, k, U, V, W='mask', u=0.5, v=0.5, link_lamda=10, lamda=100, min_diff=1e-3, max_iter=30, solver="line-search", init_method='custom', seed=None):
         '''
         Parameters
         ----------
         link_lamda : float
             The 'lambda' in sigmoid link function.
         '''
-        self.check_params(k=k, U=U, V=V, W=W, u=u, v=v, link_lamda=link_lamda, lamda=lamda, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+        self.check_params(k=k, U=U, V=V, W=W, u=u, v=v, link_lamda=link_lamda, lamda=lamda, min_diff=min_diff, max_iter=max_iter, solver=solver, init_method=init_method, seed=seed)
 
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        # self.set_params(['link_lamda'], **kwargs)
+        assert self.solver in ['line-search']
+        assert self.init_method in ['custom']
+        assert ismat(self.W) or self.W in ['mask', 'full']
 
 
     def F(self, params):
-        '''
+        '''The objective function.
+
         Parameters
         ----------
         params : [u, v]
@@ -48,7 +54,8 @@ class BinaryMFThresholdExSigmoid(BinaryMFThreshold):
     
 
     def dF(self, params):
-        '''
+        '''The gradient of the objective function.
+        
         Parameters
         ----------
         params : [u, v]
