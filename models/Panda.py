@@ -37,7 +37,7 @@ class Panda(BaseModel):
         exact_decomp : bool
             Exact decomposition.
         '''
-        self.check_params(k=k, w_model=w_model, w_fp=w_fp, w_fn=w_fn, init_method=init_method, exact_decomp=exact_decomp)
+        self.check_params(k=k, tol=tol, w_model=w_model, w_fp=w_fp, w_fn=w_fn, init_method=init_method, exact_decomp=exact_decomp)
 
 
     def check_params(self, **kwargs):
@@ -55,7 +55,7 @@ class Panda(BaseModel):
         super().fit(X_train, X_val, X_test, **kwargs)
         
         self._fit()
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def _fit(self):
@@ -85,25 +85,30 @@ class Panda(BaseModel):
 
         k = 0
         is_improving = True
-        pbar = tqdm(total=self.k, position=0)
+        if self.verbose is False:
+            pbar = tqdm(total=self.k, position=0)
+
         while is_improving:
-        # for k in range(self.k): # tqdm(range(self.k), position=0):
-            print(f"[I] k            : {k}")
-            print(f"[I]  init cost   : {cost_old}")
-
+            desc = f"[I] k: {k} - [{cost_old}]" # init cost
             self.find_core()
-            print(f"[I]  find core   : {self.cost_now}") # or you can recompute using description_length()
-
-            # disable this step to find dense cores only
-            if self.exact_decomp:
-                print(f"[I]  skipping extend_core()")
-            else:
+            desc += f" -> [{self.cost_now}]" # core cost
+            if not self.exact_decomp:
+                # disable extend_core step to find dense cores only
                 self.extend_core()
-                print(f"[I]  extension   : {self.cost_now}") # or you can recompute using description_length()
+                desc += f" -> [{self.cost_now}]" # extension cost
 
-            if self.cost_now >= cost_old:
-                is_improving = self.early_stop(msg='Cost stops decreasing.', k=k)
-                continue
+            if self.verbose:
+                print(desc)
+            else:
+                pbar.set_description(desc)
+
+            # early stop detection
+            # the original Panda stops when cost starts increasing
+            # we disble this to keep the algorithm running
+            if self.cost_now > cost_old:
+                # is_improving = self.early_stop(msg='Cost starts increasing.', k=k)
+                # continue
+                print("[W] Cost increased.")
             cost_old = self.cost_now
 
             # update factors
@@ -118,16 +123,19 @@ class Panda(BaseModel):
                 df_name='updates', 
                 head_info={
                     'cost': self.cost_now, 
-                    'shape': [self.T.sum(), self.I.sum()], 
+                    'shape': [int(self.T.sum()), int(self.I.sum())], 
                 }
             )
             
             # early stop detection
-            is_improving = self.early_stop(error=ERR(gt=self.X_train, pd=self.X_pd), k=k)
-            is_improving = self.early_stop(n_factor=k+1)
+            is_improving = self.early_stop(
+                error=ERR(gt=self.X_train, pd=self.X_pd), 
+                n_factor=k+1, 
+                k=k)
             
             # update pbar and k
-            pbar.update(1)
+            if self.verbose is False:
+                pbar.update(1)
             k += 1
 
 
@@ -187,7 +195,7 @@ class Panda(BaseModel):
 
             if d_cost <= 0: # cost_new <= cost_old
                 cost_new = cost_old + d_cost
-                self.print_msg(f"  add column : {cost_old} -> {cost_new} (d_cost: {d_cost})")
+                self.print_msg(f"       [{cost_old}] -> [{cost_new}] (find_core: add col, d_cost: {d_cost})")
                 cost_old = cost_new
 
                 # update I, T and E
@@ -197,10 +205,6 @@ class Panda(BaseModel):
                     self.E.pop(0)
                 else:
                     self.E.pop(i)
-
-                # # display
-                # X_pd = get_prediction(U=self.T, V=self.I, boolean=True)
-                # self.show_matrix([(self.X_train, [0, 0], f'gt'), (X_pd, [0, 1], f'i = {i}, cost = {cost_new}')])
             else:
                 i += 1
        
@@ -225,7 +229,7 @@ class Panda(BaseModel):
             )
 
             if cost_new <= cost_old:
-                self.print_msg(f"  add column : {cost_old} -> {cost_new} (col id: {i})")
+                self.print_msg(f"       [{cost_old}] -> [{cost_new}] (extend_core: add col)")
                 self.I = I
                 cost_old = cost_new
             else:
@@ -247,7 +251,7 @@ class Panda(BaseModel):
             if idx.sum() > 0: # at least 1 transaction is added to T
                 d_cost = d_cost[idx].sum()
                 cost_new = cost_old + d_cost
-                self.print_msg(f"  add row    : {cost_old} -> {cost_new} (d_cost: {d_cost}, row(s) added: {idx.sum()})")
+                self.print_msg(f"       [{cost_old}] -> [{cost_new}] (extend_core: add row, d_cost: {d_cost}, row(s) added: {idx.sum()})")
                 cost_old = cost_new
 
         self.cost_now = cost_old # update current cost

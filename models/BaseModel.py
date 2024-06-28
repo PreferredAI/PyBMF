@@ -54,7 +54,7 @@ class BaseModel(BaseModelTools):
         # attach these in your models:
 
         # self._fit()
-        # self.finish()
+        # self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def init_model(self):
@@ -79,7 +79,7 @@ class BaseModel(BaseModelTools):
         raise NotImplementedError('This is a template method.')
 
 
-    def finish(self, show_logs=True, show_matrix=True, save_model=True):
+    def finish(self, show_logs=True, save_model=True, show_result=True):
         '''Called when the fitting is over.
 
         The default finishing procedure.
@@ -88,11 +88,10 @@ class BaseModel(BaseModelTools):
         '''
         if show_logs:
             self._show_logs()
-        if show_matrix:
-            self._show_matrix()
         if save_model:
             self._save_model()
-
+        if show_result:
+            self._show_result()
 
     def load_dataset(self, X_train, X_val=None, X_test=None):
         '''Load train and validation data.

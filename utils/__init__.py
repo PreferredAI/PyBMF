@@ -1,4 +1,4 @@
-from .display import show_matrix, fill_nan
+from .display import show_matrix, fill_nan, show_factor_distribution
 from .common import get_rng, safe_indexing, sigmoid, d_sigmoid, binarize
 from .common import get_prediction, get_prediction_with_threshold, get_residual, to_interval
 
@@ -19,6 +19,8 @@ from .collective_evaluate_utils import collective_cover, weighted_score, harmoni
 from .dataframe_utils import log2html, log2latex, _make_name
 
 from .decorator_utils import timeit, ignore_warnings
+
+from .experiment_utils import get_model_by_path, get_model_by_time
 
 # __all__ = ['show_matrix', 
 #            'get_rng', 'safe_indexing', 

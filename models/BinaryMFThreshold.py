@@ -41,7 +41,7 @@ class BinaryMFThreshold(ContinuousModel):
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def init_model(self):
@@ -180,7 +180,7 @@ class BinaryMFThreshold(ContinuousModel):
         return dF
 
 
-    @ignore_warnings
+    # @ignore_warnings
     def dXdx(self, X, x):
         '''The fractional term in the gradient.
 

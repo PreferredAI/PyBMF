@@ -41,12 +41,16 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         super(BinaryMFThreshold, self).fit(X_train, X_val, X_test, **kwargs)
 
+        from utils import show_factor_distribution
+
+        show_factor_distribution(U=self.U, V=self.V, resolution=100)
+
         if self.solver == 'line-search':
             self._fit_line_search()
         elif self.solver == 'cd':
             self._fit_coordinate_descent()
 
-        self.finish()
+        self.finish(show_logs=True)
 
 
     def _fit_line_search(self):
@@ -198,7 +202,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
         violation_init = 0
         violation_last = 1
 
-        with tqdm(total=1.0) as pbar:
+        # with tqdm(total=1.0) as pbar:
+        with tqdm(total=self.max_iter) as pbar:
 
             while is_improving:
                 n_iter += 1
@@ -225,7 +230,8 @@ class BinaryMFThresholdExColumnwise(BinaryMFThreshold):
                 violation_ratio = violation / violation_init
 
                 # update progress bar
-                pbar.update(violation_last - violation_ratio)
+                # pbar.update(violation_last - violation_ratio)
+                pbar.update(1)
 
                 # early stop detection
                 is_improving = self.early_stop(diff=violation_ratio, n_iter=n_iter)

@@ -5,7 +5,7 @@ from .BMFTools import BMFTools, w_scheduler
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
 import pandas as pd
-from utils import record, isnum, ignore_warnings
+from utils import record, isnum, ignore_warnings, get_prediction
 
 
 class BMFAlternate(BMFTools):
@@ -53,7 +53,7 @@ class BMFAlternate(BMFTools):
         self._fit()
 
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
-        self.finish(save_model=False, show_logs=False)
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def init_model(self):

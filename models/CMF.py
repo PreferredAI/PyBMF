@@ -13,7 +13,7 @@ class CMF(ContinuousCollectiveModel):
     ---------
     Relational learning via collective matrix factorization.
 
-    todo: W
+    TODO: W
     '''
     def __init__(self, k, alpha, Us=None, Ws='full', link=None, lr=0.1, reg=0.1, tol=0.0, max_iter=50, init_method='custom', seed=None):
         '''

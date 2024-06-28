@@ -7,6 +7,7 @@ from .AssoOpt import AssoOpt
 from .TransposedModel import TransposedModel
 
 from .Panda import Panda
+from .Panda_backup import Panda_backup
 from .Hyper import Hyper
 from .HyperPlus import HyperPlus
 from .MEBF import MEBF
@@ -24,6 +25,8 @@ from .WNMF import WNMF
 from .BinaryMFPenalty import BinaryMFPenalty
 from .FastStep import FastStep
 from .PNLPF import PNLPF
+
+from .ELBMF import ELBMF
 
 from .BinaryMFThreshold import BinaryMFThreshold
 from .BinaryMFThresholdExSigmoid import BinaryMFThresholdExSigmoid

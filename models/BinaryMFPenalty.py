@@ -1,5 +1,5 @@
 from .ContinuousModel import ContinuousModel
-from utils import binarize, to_dense, power, multiply, ignore_warnings, get_prediction, get_prediction_with_threshold
+from utils import binarize, to_dense, power, multiply, ignore_warnings, get_prediction, get_prediction_with_threshold, show_factor_distribution
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -48,7 +48,7 @@ class BinaryMFPenalty(ContinuousModel):
         self._fit()
 
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=False)
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
     
     def init_model(self):
@@ -105,6 +105,7 @@ class BinaryMFPenalty(ContinuousModel):
             self.print_msg("iter: {}, error: {:.2e}, rec_error: {:.2e}, reg: {:.2e}, reg_error: {:.2e}".format(n_iter, error_new, rec_error_new, self.reg, reg_error_new))
             if self.verbose and self.display and n_iter % 10 == 0:
                 self.show_matrix(boolean=False, colorbar=True, title=f"iter {n_iter}")
+                show_factor_distribution(U=self.U, V=self.V, resolution=100)
 
             # early stop detection
             is_improving = self.early_stop(error=reg_error_old, diff=diff, n_iter=n_iter)
@@ -126,7 +127,6 @@ def update_U(X, W, U, V, reg, solver='mu', beta_loss='frobenius'):
 
 def update_V(X, W, U, V, reg, solver='mu', beta_loss='frobenius'):
     num = multiply(W, X).T @ U
-    print(V.shape, reg, type(reg), type(V[0, 0]), type(power(V, 2)[0, 0]))
     num += 3 * reg * power(V, 2)
 
     denom = multiply(W, U @ V.T).T @ U

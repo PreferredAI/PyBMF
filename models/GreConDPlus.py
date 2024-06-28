@@ -1,7 +1,7 @@
 from .BaseModel import BaseModel
 from .GreConD import get_concept
 from scipy.sparse import lil_matrix, hstack
-from utils import multiply, bool_to_index, ERR, get_prediction, show_matrix, get_residual, matmul, add, coverage_score, invert
+from utils import multiply, bool_to_index, ERR, get_prediction, show_matrix, get_residual, matmul, add, coverage_score, invert, ignore_warnings
 import numpy as np
 
 
@@ -21,7 +21,7 @@ class GreConDPlus(BaseModel):
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def _fit(self):
@@ -81,6 +81,7 @@ class GreConDPlus(BaseModel):
             k = self.U.shape[1]
 
 
+    @ignore_warnings
     def set_extensions(self, k, u_exp, v_exp):
         '''Extension part of each factor (k = 0, 1, ...).
         '''
@@ -132,7 +133,7 @@ class GreConDPlus(BaseModel):
 
         n_removed = self.U.shape[1] - len(idx)
 
-        print("[I]   remove_covered() finished with {} patterns removed.".format(n_removed))
+        print("[I]     remove_covered() finished with {} patterns removed.".format(n_removed))
 
         if n_removed != 0:
 
@@ -148,7 +149,6 @@ class GreConDPlus(BaseModel):
         '''
         # count the number of patterns that cover a cell
         coverage = matmul(self.U, self.V.T, boolean=False, sparse=True)
-        show_matrix([(coverage, [0, 0], 'c')])
 
         for k in range(self.U.shape[1]):
 
@@ -164,7 +164,7 @@ class GreConDPlus(BaseModel):
                         self.U[i, k] = 0
                         self.U_exp[i, k] = 0
                         coverage[i, j_idx] -= 1
-                        print("[I]   remove_overlapped() removed {}-th row from {}-th pattern.".format(i, k))
+                        print("[I]     remove_overlapped() removed {}-th row from {}-th pattern.".format(i, k))
 
             for j in range(self.n):
                 if self.V_exp[j, k] == 1:
@@ -175,7 +175,7 @@ class GreConDPlus(BaseModel):
                         self.V[j, k] = 0
                         self.V_exp[j, k] = 0
                         coverage[i_idx, j] -= 1
-                        print("[I]   remove_overlapped() removed {}-th column from {}-th pattern.".format(j, k))
+                        print("[I]     remove_overlapped() removed {}-th column from {}-th pattern.".format(j, k))
 
 
 def expansion(X_gt, X_old, u, v, w_fp, w_fn):
@@ -226,7 +226,7 @@ def expansion(X_gt, X_old, u, v, w_fp, w_fn):
             is_improving = False
         n_iter += 1
 
-    print(f"[I]   expansion() finished after {n_iter} iterations.")
+    print(f"[I]     expansion() finished after {n_iter} iterations.")
 
     return u_exp, v_exp
 

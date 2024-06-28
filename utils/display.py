@@ -277,3 +277,18 @@ def fill_nan(X, mask: spmatrix):
     for i in range(len(rows)):
         Y[rows[i], cols[i]] = X[rows[i], cols[i]]
     return Y
+
+
+def show_factor_distribution(U, V, resolution=100):
+    '''Show the distribution of real-valued factor matrices U and V.
+    '''
+    k = U.shape[1]
+    fig, axs = plt.subplots(k, 2, sharex=True, sharey=True, tight_layout=True, figsize=(k, 10))
+    for i in range(k):
+        u = to_dense(U[:, i])
+        axs[i, 0].hist(u, bins=resolution)
+        axs[i, 0].title.set_text('{} [{:.3f}, {:.3f}]'.format(i, u.min(), u.max()))
+
+        v = to_dense(V[:, i])
+        axs[i, 1].hist(v, bins=resolution)
+        axs[i, 1].title.set_text('{} [{:.3f}, {:.3f}]'.format(i, v.min(), v.max()))

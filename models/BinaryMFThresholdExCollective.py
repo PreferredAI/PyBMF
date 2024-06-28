@@ -49,7 +49,7 @@ class BinaryMFThresholdExCollective(ContinuousCollectiveModel):
         super().fit(Xs_train, factors, Xs_val, Xs_test, **kwargs)
 
         self._fit()
-        # self.finish() # todo
+        # self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result) # todo
 
 
     def init_model(self):

@@ -9,7 +9,7 @@ from tqdm import tqdm
 class BinaryMFThresholdExSigmoidColumnwiseLamda(BinaryMFThresholdExColumnwise):
     '''Binary matrix factorization, thresholding algorithm, sigmoid link function, columnwise thresholds, varying `lamda` (experimental).
 
-    Implemented solver includes projected line search for now.
+    - solver: projected line search
     '''
     def __init__(self, k, U, V, W='mask', us=0.5, vs=0.5, u_lamda=1, v_lamda=1, link_lamda=10, min_diff=1e-3, max_iter=30, init_method='custom', solver='line-search', seed=None):
         '''
@@ -46,7 +46,7 @@ class BinaryMFThresholdExSigmoidColumnwiseLamda(BinaryMFThresholdExColumnwise):
         super(BinaryMFThreshold, self).fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def _fit(self):

@@ -1,11 +1,11 @@
 from .BinaryMFPenalty import BinaryMFPenalty
-from utils import sigmoid, d_sigmoid, power, multiply, ignore_warnings, subtract
+from utils import sigmoid, d_sigmoid, power, multiply, ignore_warnings, subtract, get_prediction
 import numpy as np
 from scipy.sparse import spmatrix
 
 
 class PNLPF(BinaryMFPenalty):
-    '''Binary matrix factorization, penalty function algorithm, sigmmoid link function (experimental).
+    '''PNLPF, binary matrix factorization's penalty function algorithm with sigmmoid link function.
 
     Solving the problem with multiplicative update:
 
@@ -31,7 +31,7 @@ class PNLPF(BinaryMFPenalty):
         self._fit()
 
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
         
 
     def check_params(self, **kwargs):

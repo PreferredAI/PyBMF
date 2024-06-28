@@ -26,7 +26,7 @@ class BaseCollectiveModel(BaseModel):
         # attach these in your models:
 
         # self._fit()
-        # self.finish()
+        # self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
         
         
     def load_dataset(self, Xs_train, factors, Xs_val=None, Xs_test=None):

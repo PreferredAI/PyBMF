@@ -1,5 +1,5 @@
 from .Hyper import Hyper
-from utils import FPR, matmul, FP, get_prediction, get_residual
+from utils import FPR, matmul, FP, get_prediction, get_residual, ignore_warnings
 import numpy as np
 from tqdm import tqdm
 from scipy.sparse import lil_matrix, hstack
@@ -50,9 +50,10 @@ class HyperPlus(Hyper):
         # do not re-init model since the model is imported
 
         self._fit()
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
-
+    
+    @ignore_warnings
     def _fit(self):
 
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
@@ -93,9 +94,6 @@ class HyperPlus(Hyper):
             best_savings = 0
             # for m, n in tqdm(pairs, position=1, leave=False, desc="[I] Merging"):
             for m, n in pairs:
-                # debug
-                if m >= len(self.T) or n >= len(self.T):
-                    print('T too small.', self.k, len(self.T), m, n)
 
                 T = list(set(self.T[m] + self.T[n]))
                 I = list(set(self.I[m] + self.I[n]))
@@ -124,42 +122,9 @@ class HyperPlus(Hyper):
                     best_U, best_V = U, V
                     best_savings = savings
 
-
             if best_m is None:
                 is_improving = False
                 break
-
-
-            # # debug
-            # print("merge: ", best_m, best_n, "k: ", self.U.shape[1])
-            # u_0, v_0 = lil_matrix((self.m, 1)), lil_matrix((self.n, 1))
-            # u_1, v_1 = lil_matrix((self.m, 1)), lil_matrix((self.n, 1))
-            
-            # u_0[self.T[best_m]] = 1
-            # v_0[self.I[best_m]] = 1
-            # p_0 = matmul(u_0, v_0.T, boolean=True, sparse=True)
-
-            # u_1[self.T[best_n]] = 1
-            # v_1[self.I[best_n]] = 1
-            # p_1 = matmul(u_1, v_1.T, boolean=True, sparse=True) * 2
-
-            # self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
-            # p_b = matmul(best_U, best_V.T, sparse=True, boolean=True) * 3
-            
-            # p_0 = add(self.X_train, p_0)
-            # p_1 = add(self.X_train, p_1)
-            # p_b = add(self.X_train, p_b)
-
-            # _U = self.U.copy()
-            # _U[:, best_m] += u_0
-            # _U[:, best_n] += u_1 * 2
-
-            # _V = self.V.copy()
-            # _V[:, best_m] += v_0
-            # _V[:, best_n] += v_1 * 2
-
-            # show_matrix([(_U, [1, 0], 'U'), (_V.T, [0, 1], 'V'), (self.X_pd, [1, 1], 'pd'), (p_0, [1, 2], '0'), (p_1, [1, 3], '1'), (p_b, [1, 4], 'best')], colorbar=False, discrete=True, center=True, clim=[0, 5])
-            
 
             # update T, I
             idx = [i for i in range(self.k) if i not in [best_m, best_n]]
@@ -174,12 +139,6 @@ class HyperPlus(Hyper):
 
             self.logs['U'].append(self.U.copy())
             self.logs['V'].append(self.V.copy())
-
-            # debug
-            if self.U.shape[1] == 100:
-                self.logs['U_100'] = self.U.copy()
-                self.logs['V_100'] = self.V.copy()
-                print(self.logs['U_100'])
           
             self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
             self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)

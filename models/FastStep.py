@@ -1,7 +1,7 @@
 from .ContinuousModel import ContinuousModel
 from .NMFSklearn import NMFSklearn
 import numpy as np
-from utils import binarize, matmul, to_dense, to_interval, ismat, get_prediction, multiply, sigmoid, ignore_warnings
+from utils import binarize, matmul, to_dense, to_interval, ismat, get_prediction, multiply, sigmoid, ignore_warnings, show_factor_distribution
 from solvers import line_search
 from scipy.sparse import csr_matrix
 
@@ -30,7 +30,7 @@ class FastStep(ContinuousModel):
 
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=False)
         self.X_pd = binarize(self.X_pd, self.tau)
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def init_model(self):
@@ -137,13 +137,15 @@ class FastStep(ContinuousModel):
                             self.print_msg("----------------------------------------------------------")
                         else:
                             self.print_msg("==========================================================")
-
-                        # display
-                        if self.verbose and self.display:
-                            self.X_pd = binarize(self.U @ self.V.T, self.tau)
-                            self.show_matrix(u=self.U[:, k], v=self.V[:, k], title=f"iter {n_iter}")
                     else:
                         self.print_msg("round: {}, k: {}, iter: {}, error: {:.3f}, diff: {:.3f}".format(n_round, k, n_iter, error, diff))
+
+            # display
+            if self.verbose and self.display:
+                self.X_pd = binarize(self.U @ self.V.T, self.tau)
+                self.show_matrix(settings=[(self.X_pd, [0, 0], 'pd')], title=f"iter {n_iter}")
+
+                show_factor_distribution(U=self.U, V=self.V)
 
             # early stop detection (on n_round and error)
             is_factorizing = self.early_stop(n_iter=n_round+1, error=error)

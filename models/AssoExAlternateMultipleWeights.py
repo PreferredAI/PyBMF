@@ -56,7 +56,7 @@ class AssoExAlternateMultipleWeights(Asso):
         self._fit()
 
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def init_model(self):

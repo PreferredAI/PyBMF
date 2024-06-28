@@ -147,6 +147,22 @@ class BaseModelTools():
         else:
             self.pixels = 2
 
+        if "show_logs" in kwargs:
+            self.show_logs = kwargs.get("show_logs")
+            print("[I]   show_logs  :", self.show_logs)
+        else:
+            self.show_logs = True
+        if "save_model" in kwargs:
+            self.save_model = kwargs.get("save_model")
+            print("[I]   save_model :", self.save_model)
+        else:
+            self.save_model = True
+        if "show_result" in kwargs:
+            self.show_result = kwargs.get("show_result")
+            print("[I]   show_result:", self.show_result)
+        else:
+            self.show_result = True
+
 
     def _show_logs(self):
         '''Show logs.
@@ -157,7 +173,7 @@ class BaseModelTools():
                     display(log)
 
 
-    def _show_matrix(self):
+    def _show_result(self):
         '''Show matrices.
         '''
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
@@ -171,6 +187,8 @@ class BaseModelTools():
         name = _make_name(self)
         data = self.__dict__
         path = os.path.join(path, name + '.pickle')
+
+        self.pickle_path = path
 
         with open(path, 'wb') as handle:
             pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)

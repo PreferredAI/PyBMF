@@ -31,7 +31,7 @@ class MEBF(BaseModel):
         
         self._fit()
 
-        self.finish()
+        self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
     def _fit(self):
