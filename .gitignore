@@ -7,3 +7,9 @@
 *.pdf
 .*/
 visualization/
+models/bmf-exact-kovacs/
+models/bmf-ip-kovacs/
+models/bmf-maxsat-avellaneda/
+models/bmf-mp-ravanba/
+models/bmf-ormachine-rakut/
+models/bmf-primping-hess/
