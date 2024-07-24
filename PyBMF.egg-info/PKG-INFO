@@ -1,0 +1,34 @@
+Metadata-Version: 2.1
+Name: PyBMF
+Version: 0.0.1
+Summary: A Python package for Boolean Matrix Factorization
+Home-page: https://github.com/felixnie/PyBMF
+Author: Hongtuo Nie
+Author-email: nie.ht@outlook.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: Cython
+Requires-Dist: ipython
+Requires-Dist: matplotlib
+Requires-Dist: mlxtend
+Requires-Dist: networkx
+Requires-Dist: numpy
+Requires-Dist: p_tqdm
+Requires-Dist: pandas
+Requires-Dist: scikit_learn
+Requires-Dist: scipy
+Requires-Dist: setuptools
+Requires-Dist: tqdm
+Requires-Dist: uszipcode
+
+# PyBMF
+
+A Python library for Boolean Matrix Factorization.
+
+Under development.
+
+Work under [Preferred.ai](https://preferred.ai/).

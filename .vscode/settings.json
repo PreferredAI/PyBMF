@@ -1,3 +1,7 @@
 {
-    "CodeGPT.apiKey": "CodeGPT Plus Beta"
+    "CodeGPT.apiKey": "CodeGPT Plus Beta",
+    "files.associations": {
+        "panpal": "cpp",
+        "pimp": "cpp"
+    }
 }
