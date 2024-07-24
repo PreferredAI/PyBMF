@@ -1,17 +1,12 @@
 *.pyc
 *.pkl
-# *.ipynb
 *.pickle
 *.bak
 *.html
 *.pdf
 .*/
-# !.github/
-
 *.egg-info/
-
 experiment/
-scripts/
 build/
 
 bmf_exact_kovacs/
@@ -21,15 +16,3 @@ bmf_mp_ravanba/
 bmf_ormachine_rakut/
 bmf_primping_hess/
 bmf_elbmf_fujiwara/
-ormachine/
-UndercoverBMF/
-
-PyBMF/models/bmf_exact_kovacs/
-PyBMF/models/bmf_ip_kovacs/
-PyBMF/models/bmf_maxsat_avellaneda/
-PyBMF/models/bmf_mp_ravanba/
-PyBMF/models/bmf_ormachine_rakut/
-PyBMF/models/bmf_primping_hess/
-PyBMF/models/bmf_elbmf_fujiwara/
-PyBMF/models/ormachine/
-PyBMF/models/UndercoverBMF/

@@ -64,6 +64,7 @@ class BaseModel(BaseModelTools):
         self._init_factors()
         self._init_logs()
         self._start_timer()
+        self._make_name()
 
         # attach more in your models if needed, for example:
 

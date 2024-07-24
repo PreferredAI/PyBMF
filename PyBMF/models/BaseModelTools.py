@@ -170,6 +170,13 @@ class BaseModelTools():
         self.time = time.time()
 
 
+    def _make_name(self):
+        '''Make name.
+        '''
+        if not hasattr(self, 'name'):
+            self.name = _make_name(model=self)
+
+
     def _stop_timer(self):
         '''Stop timer.
         '''
@@ -215,7 +222,7 @@ class BaseModelTools():
     def _save_model(self, path=r'D:/OneDrive - Singapore Management University/saved_models/', name=None):
         '''Save the model.
         '''
-        name = _make_name(self)
+        name = self.name
         data = self.__dict__
         path = os.path.join(path, name + '.pickle')
 

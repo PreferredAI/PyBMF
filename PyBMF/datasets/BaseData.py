@@ -2,7 +2,7 @@ import pickle
 import os
 from ..utils import sample, split_factor_list, concat_Xs_into_X, concat_factor_info, get_factor_starts, show_matrix, get_settings
 import numpy as np
-import configparser
+
 
 class BaseData:
     def __init__(self, path=None):
@@ -30,16 +30,23 @@ class BaseData:
         self.is_single, self.name = None, None
 
         has_config = os.path.isfile('settings.ini')
-        print("[E] No settings.ini found. Please create settings.ini.") if not has_config else print("[I] settings.ini found.")
 
-        config = configparser.ConfigParser()
-        config_path = os.path.abspath('settings.ini')
-        print(config_path)
-        config.read(config_path)
+        if has_config:
 
-        self.root = config["PATHS"]["data"]
-        self.cache_path = config["PATHS"]["cache"]
-        self.pickle_path = path
+            import configparser
+            config = configparser.ConfigParser()
+            config_path = os.path.abspath('settings.ini')
+            print("[I] Found settings.ini at", config_path)
+            config.read(config_path)
+
+            self.root = config["PATHS"]["data"]
+            self.cache_path = config["PATHS"]["cache"]
+            self.pickle_path = path
+
+        else:
+
+            print("[E] No settings.ini found. Please create settings.ini.")
+
 
 
     def load(self, overwrite_cache=False):

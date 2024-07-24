@@ -4,13 +4,38 @@ import webbrowser
 import re
 import base64
 
+def get_config():
 
-browser_path = 'C:/Program Files/Google/Chrome/Application/chrome.exe %s'
+    has_config = os.path.isfile('settings.ini')
+
+    if has_config:
+
+        import configparser
+        config = configparser.ConfigParser()
+        config_path = os.path.abspath('settings.ini')
+        print("[I] Found settings.ini at", config_path)
+        config.read(config_path)
+
+        log_path = config["PATHS"]["saved_logs"]
+        browser_path = config["PATHS"]["browser"] + r' %s'
+
+    else:
+
+        print("[W] No settings.ini found.")
+        print("    Please create settings.ini or set file_path and browser_path manually when calling log2html() and log2latex().")
+        file_path = None
+        browser_path = None
+
+    return log_path, browser_path
 
 
-def log2html(model, df_name, file_path=r'..\logs', file_name=None, browser_path=browser_path, open_browser=True):
-    '''Display a dataframe in HTML.
+def log2html(df, log_name, open_browser=True, log_path=None, browser_path=None):
+    '''Display and save a dataframe in HTML, and open it in browser if needed.
     '''
+    if log_path is None or browser_path is None:
+        log_path_config, browser_path_config = get_config()
+        log_path = log_path_config if log_path is None else log_path
+        browser_path = browser_path_config if browser_path is None else browser_path
 
     html_head = '''<!DOCTYPE html>
 <html>
@@ -41,25 +66,28 @@ def log2html(model, df_name, file_path=r'..\logs', file_name=None, browser_path=
 </body>
 '''
 
-    html = model.logs[df_name].to_html()
+    html = df.to_html()
     html = html_head + html + html_tail
 
-    file_name = _make_name(model, file_name)
-    full_path = _make_html(file_path, file_name, html)
+    full_path = _make_html(log_path, log_name, html)
     if open_browser:
         _open_html(full_path, browser_path)
 
 
-def log2latex(model, df_name, file_path=r'..\logs', file_name=None, browser_path=browser_path, open_browser=True):
+def log2latex(df, log_name, open_browser=True, log_path=None, browser_path=None):
     '''Display a dataframe in TeX on overleaf.com.
 
-    This tool automatically highlights the maximum values in each column. 
+    This tool automatically highlights the maximum values in each column.
     '''
-    width = int(model.logs[df_name].columns.size * 0.8)
-    height = int(len(model.logs[df_name]) * 0.2) + 1.0
+    if log_path is None or browser_path is None:
+        log_path_config, browser_path_config = get_config()
+        log_path = log_path_config if log_path is None else log_path
+        browser_path = browser_path_config if browser_path is None else browser_path
+
+    width = int(df.columns.size * 0.8)
+    height = int(len(df) * 0.2) + 1.0
 
     geometry = f"[left=20px,right=10px,top=10px,bottom=20px,paperwidth={width}in,paperheight={height}in]"
-    file_name = _make_name(model, file_name)
 
     latex_head = r'''\documentclass{article}
 \usepackage{graphicx}
@@ -67,16 +95,17 @@ def log2latex(model, df_name, file_path=r'..\logs', file_name=None, browser_path
 \usepackage{lscape}
 \usepackage[table]{xcolor}
 \usepackage''' + geometry + r'''{geometry}
-\title{''' + file_name + r'''}
+\title{''' + log_name + r'''}
 \begin{document}
 '''
 
     latex_tail = r'''
 \end{document}
 '''
-
-    latex = model.logs[df_name].style.highlight_max(props='cellcolor:[HTML]{FFFF00}; color:{red};')
-    latex = latex.to_latex(hrules=False, clines="skip-last;data", multicol_align='c')
+    # TODO: enable highlight_max
+    # latex = df.style.highlight_max(props='cellcolor:[HTML]{FFFF00}; color:{red};')
+    # latex = latex.to_latex(hrules=False, clines="skip-last;data", multicol_align='c')
+    latex = df.to_latex()
     latex = latex_head + latex + latex_tail
 
     html_head = '''
@@ -94,26 +123,40 @@ def log2latex(model, df_name, file_path=r'..\logs', file_name=None, browser_path
     latex_b64str = latex_b64code.decode("ascii")
     html = html_head + latex_b64str + html_tail
     
-    full_path = _make_html(file_path, file_name, html)
+    full_path = _make_html(log_path, log_name + " overleaf", html)
     if open_browser:
         _open_html(full_path, browser_path)
 
 
-def _make_name(model, file_name=None, format="%y-%m-%d_%H-%M-%S_"):
-    if file_name is None:
-        file_name = str(type(model))
-        file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', file_name)[-3]
-    file_name = pd.Timestamp.now().strftime(format) + file_name
-    return file_name
+def _make_name(model=None, model_name=None, format="%Y-%m-%d %H-%M-%S-%f "):
+    '''Make a file name for an instance of a model.
+
+    Milliseconds are added to the end of the name to make it unique.
+    '''
+    if model is None and model_name is None:
+        print("[E] In _make_name(), model and model_name cannot be both None.")
+
+    if model_name is None:
+        model_name = str(type(model))
+        model_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', model_name)[-3]
+
+    model_name = pd.Timestamp.now().strftime(format) + model_name
+
+    return model_name
 
 
 def _make_html(file_path, file_name, html):
+    '''Make a html file.
+    '''
     full_path = os.path.join(os.path.abspath(file_path), file_name + ".html")
+
     with open(full_path, "w") as f:
         f.write(html)
-    print("[I] HTML saved as: {}.html".format(file_name))
+
+    print("[I] HTML saved as: " + os.path.abspath(full_path))
     return full_path
 
 
 def _open_html(full_path, browser_path):
-    webbrowser.get(using=browser_path).open('file:///' + full_path, new=2)
+    print("[I] Opening HTML in browser: " + browser_path)
+    webbrowser.get(using=browser_path).open('file:///' + os.path.abspath(full_path), new=2)

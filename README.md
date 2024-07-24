@@ -1,6 +1,7 @@
 # PyBMF
 
 [![Documentation Status](https://readthedocs.org/projects/pybmf/badge/?version=latest)](https://pybmf.readthedocs.io/en/latest/?badge=latest)
+[![PyPi](https://img.shields.io/pypi/v/PyBMF)](https://pypi.org/project/PyBMF/)
 
 
 A Python library for Boolean Matrix Factorization.
@@ -55,11 +56,17 @@ PyBMF aims to provide a unified framework with:
 | Visualization       | OrderedBMF             | [SIAM2019](https://doi.org/10.1137/1.9781611975673.82)                                                                           | [C++](https://cs.uef.fi/~pauli/bmf/ordered_bmf/)                                            |                                       |
 | Visualization       | BiclusterVisualization | [PKDD2023](https://cs.uef.fi/~pauli/papers/marette23visualizing.pdf)                                                             | [Python](https://github.com/tmarette/biclusterVisualization)                                |                                       |
 
+# How to use PyBMF
+
+Check [Examples](examples/README.md) that help you get started with PyBMF.
+
+Check [Models](PyBMF/models/README.md) in which you can implement your own models.
+
 # Compatibility
 
 Currently built and tested on Python 3.9.18.
 
-# TODO
+# TO-DO
 
 - [ ] Add mask parameter W to PRIMP and ELBMF
 - [ ] Fix DataFrame display utils in dataframe_utils.py
