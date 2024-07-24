@@ -52,7 +52,9 @@ PyBMF aims to provide a unified framework with:
 | Visualization       | OrderedBMF             | [SIAM2019](https://doi.org/10.1137/1.9781611975673.82)                                                                           | [C++](https://cs.uef.fi/~pauli/bmf/ordered_bmf/)                                            |                                       |
 | Visualization       | BiclusterVisualization | [PKDD2023](https://cs.uef.fi/~pauli/papers/marette23visualizing.pdf)                                                             | [Python](https://github.com/tmarette/biclusterVisualization)                                |                                       |
 
+# Compatibility
 
+Currently built and tested on Python 3.9.18.
 
 # TODO
 
