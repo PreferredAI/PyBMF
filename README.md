@@ -1,5 +1,8 @@
 # PyBMF
 
+[![Documentation Status](https://readthedocs.org/projects/pybmf/badge/?version=latest)](https://pybmf.readthedocs.io/en/latest/?badge=latest)
+
+
 A Python library for Boolean Matrix Factorization.
 Work under [Preferred.ai](https://preferred.ai/).
 
