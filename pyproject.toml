@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PyBMF"
+version = "0.0.1"
+dependencies = [
+    "Cython", 
+    "ipython", 
+    "matplotlib", 
+    "mlxtend", 
+    "networkx", 
+    "numpy", 
+    "p_tqdm", 
+    "pandas", 
+    "scikit_learn", 
+    "scipy", 
+    "setuptools", 
+    "tqdm", 
+    "uszipcode", 
+]
+requires-python = ">=3.9"
+authors = [
+    {name = "Hongtuo Nie", email = "nie.ht@outlook.com"},
+]
+maintainers = [
+    {name = "Hongtuo Nie", email = "nie.ht@outlook.com"},
+]
+description = "A Python library for Boolean Matrix Factorization"
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["Boolean", "binary", "matrix", "factorization", "decomposition", "testbench"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/PreferredAI/PyBMF"
+Issues = "https://github.com/PreferredAI/PyBMF/issues"

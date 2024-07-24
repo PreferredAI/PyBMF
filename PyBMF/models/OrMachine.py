@@ -14,7 +14,8 @@ from ..utils import show_matrix, matmul
 try:
     import ormachine
 except ImportError:
-    print("[E] Please install ormachine first.")
+    print('[E] Missing package: ormachine. Please install it first.')
+    pass
 
 
 class OrMachine(ContinuousModel):

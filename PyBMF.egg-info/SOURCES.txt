@@ -63,10 +63,6 @@ setup.py
 ./PyBMF/models/TransposedModel.py
 ./PyBMF/models/WNMF.py
 ./PyBMF/models/__init__.py
-./PyBMF/models/bmf_mp_ravanba/__init__.py
-./PyBMF/models/bmf_mp_ravanba/demo.py
-./PyBMF/models/bmf_mp_ravanba/matrix_completion.py
-./PyBMF/models/bmf_mp_ravanba/utilities.py
 ./PyBMF/solvers/__init__.py
 ./PyBMF/solvers/line_search.py
 ./PyBMF/utils/__init__.py
@@ -152,10 +148,6 @@ PyBMF/models/RSNMF.py
 PyBMF/models/TransposedModel.py
 PyBMF/models/WNMF.py
 PyBMF/models/__init__.py
-PyBMF/models/bmf_mp_ravanba/__init__.py
-PyBMF/models/bmf_mp_ravanba/demo.py
-PyBMF/models/bmf_mp_ravanba/matrix_completion.py
-PyBMF/models/bmf_mp_ravanba/utilities.py
 PyBMF/solvers/__init__.py
 PyBMF/solvers/line_search.py
 PyBMF/utils/__init__.py

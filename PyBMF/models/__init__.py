@@ -17,7 +17,6 @@ from .BMFAlternate import BMFAlternate
 from .BMFInterleave import BMFInterleave
 from .BMFCollective import BMFCollective
 
-# from .NMF import NMF
 from .NMFSklearn import NMFSklearn
 from .WNMF import WNMF
 
@@ -25,28 +24,19 @@ from .BinaryMFPenalty import BinaryMFPenalty
 from .FastStep import FastStep
 from .PNLPF import PNLPF
 
-from .PRIMP import PRIMP
-from .ELBMF import ELBMF
+# from .PRIMP import PRIMP
+# from .ELBMF import ELBMF
 
-from .MessagePassing import MessagePassing
-from .OrMachine import OrMachine
-from .IP import IP
-from .MaxSAT import MaxSAT
+# from .MessagePassing import MessagePassing
+# from .OrMachine import OrMachine
+# from .IP import IP
+# from .MaxSAT import MaxSAT
 
 from .BinaryMFThreshold import BinaryMFThreshold
 from .BinaryMFThresholdExSigmoid import BinaryMFThresholdExSigmoid
 from .BinaryMFThresholdExColumnwise import BinaryMFThresholdExColumnwise
-# from .BinaryMFThresholdExSigmoidColumnwiseLamda import BinaryMFThresholdExColumnwiseLamda
 from .BinaryMFThresholdExCollective import BinaryMFThresholdExCollective
 from .BinaryMFThresholdExSigmoidColumnwise import BinaryMFThresholdExSigmoidColumnwise
+# from .BinaryMFThresholdExSigmoidColumnwiseLamda import BinaryMFThresholdExColumnwiseLamda
 
 from .CMF import  CMF
-# from .cmf_pycmf import PyCMF
-
-# __all__ = ['Asso',
-#            'TransposedModel',
-#            'AssoOpt',
-#            'AssoIter',
-#            'NMF',
-#            'ContinuousModel',
-#            'MEBF']

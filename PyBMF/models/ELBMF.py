@@ -1,9 +1,15 @@
-import torch
+# import torch
 from .ContinuousModel import ContinuousModel
 import numpy as np
 from ..utils import binarize, matmul, to_dense, to_sparse, ismat, get_prediction_with_threshold, show_matrix, multiply
 from scipy.sparse import lil_matrix, csr_matrix
 from tqdm import tqdm
+
+try:
+    import torch
+except ImportError:
+    print('[E] Missing package: torch. Please install it first.')
+    pass
 
 
 class ELBMF(ContinuousModel):

@@ -1,12 +1,18 @@
-import torch
+# import torch
 from .ContinuousModel import ContinuousModel
 import numpy as np
 from ..utils import binarize, matmul, to_dense, to_sparse, ismat
 from scipy.sparse import lil_matrix
 from tqdm import tqdm
 
+try:
+    import torch
+except ImportError:
+    print('[E] Missing package: torch. Please install it first.')
+    pass
 
-class PRIMP(ContinuousModel):
+
+class PRIMPPyTorch(ContinuousModel):
     def __init__(self, k, reg=0.01, reg_growth=1.02, max_iter=1000, min_diff=1e-8, beta=1e-4, seed=None):
         self.check_params(k=k, reg=reg, reg_growth=reg_growth, max_iter=max_iter, min_diff=min_diff, beta=beta, seed=seed)
 

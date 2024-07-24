@@ -7,6 +7,8 @@
 *.pdf
 .*/
 
+*.egg-info/
+
 experiment/
 scripts/
 build/
