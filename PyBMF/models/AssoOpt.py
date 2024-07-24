@@ -38,8 +38,8 @@ class AssoOpt(Asso):
         self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
 
 
-    def init_model(self):
-        self.import_model(k=self.model.k, U=self.model.U, V=self.model.V, logs=self.model.logs)
+    # def init_model(self):
+    #     self.import_model(k=self.model.k, U=self.model.U, V=self.model.V, logs=self.model.logs)
 
 
     def _fit(self):

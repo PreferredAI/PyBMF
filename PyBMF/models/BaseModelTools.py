@@ -175,6 +175,7 @@ class BaseModelTools():
         '''
         if not hasattr(self, 'name'):
             self.name = _make_name(model=self)
+            print("[I] name         :", self.name)
 
 
     def _stop_timer(self):
@@ -203,7 +204,7 @@ class BaseModelTools():
 
 
     def _show_logs(self):
-        '''Show logs.
+        '''Display all the dataframes in logs.
         '''
         for log in self.logs.values():
             if isinstance(log, pd.DataFrame):
@@ -212,7 +213,9 @@ class BaseModelTools():
 
 
     def _show_result(self):
-        '''Show matrices.
+        '''Display the prediction.
+
+        Make sure the X_pd is set properly.
         '''
         # self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         settings = [(self.X_train, [0, 0], 'gt'), (self.X_pd, [0, 1], 'pd')]
