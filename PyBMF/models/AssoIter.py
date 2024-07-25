@@ -36,8 +36,7 @@ class AssoIter(Asso):
 
 
     def init_model(self):
-        '''The init_model() without _init_factors().
-        '''
+        self._init_factors()
         self._init_logs()
         self._start_timer()
         self._make_name()

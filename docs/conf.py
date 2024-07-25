@@ -5,7 +5,7 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../PyBMF'))
+sys.path.insert(0, os.path.abspath('../'))
 
 def setup(app):
     app.add_css_file('my_theme.css')
