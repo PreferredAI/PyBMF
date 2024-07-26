@@ -4,6 +4,7 @@
 *.bak
 *.html
 *.pdf
+*.rst
 
 .*/
 *.egg-info/
