@@ -4,16 +4,136 @@
 *.bak
 *.html
 *.pdf
+
 .*/
 *.egg-info/
 experiment/
 _build/
 build/
 
-bmf_exact_kovacs/
-bmf_ip_kovacs/
-bmf_maxsat_avellaneda/
-bmf_mp_ravanba/
-bmf_ormachine_rakut/
-bmf_primping_hess/
-bmf_elbmf_fujiwara/
+# bmf_exact_kovacs/
+# bmf_ip_kovacs/
+# bmf_maxsat_avellaneda/
+# bmf_mp_ravanba/
+# bmf_ormachine_rakut/
+# bmf_primping_hess/
+# bmf_elbmf_fujiwara/
+
+/PyBMF/models/*
+
+!/PyBMF/models/Asso.py
+# !/PyBMF/models/AssoExAlternateMultipleWeights.py
+!/PyBMF/models/AssoIter.py
+!/PyBMF/models/AssoOpt.py
+# !/PyBMF/models/BMFAlternate.py
+# !/PyBMF/models/BMFCollective.py
+# !/PyBMF/models/BMFInterleave.py
+# !/PyBMF/models/BMFTools.py
+# !/PyBMF/models/BaseCollectiveModel.py
+!/PyBMF/models/BaseModel.py
+!/PyBMF/models/BaseModelTools.py
+!/PyBMF/models/BinaryMFPenalty.py
+# !/PyBMF/models/BinaryMFPenaltyExCollective.py
+!/PyBMF/models/BinaryMFThreshold.py
+# !/PyBMF/models/BinaryMFThresholdExCollective.py
+# !/PyBMF/models/BinaryMFThresholdExColumnwise.py
+# !/PyBMF/models/BinaryMFThresholdExSigmoid.py
+# !/PyBMF/models/BinaryMFThresholdExSigmoidColumnwise.py
+# !/PyBMF/models/BinaryMFThresholdExSigmoidColumnwiseLamda.py
+# !/PyBMF/models/CMF.py
+# !/PyBMF/models/ContinuousCollectiveModel.py
+!/PyBMF/models/ContinuousModel.py
+!/PyBMF/models/ELBMF.py
+!/PyBMF/models/ELBMFNumPy.py
+!/PyBMF/models/ELBMFPyTorch.py
+!/PyBMF/models/FastStep.py
+!/PyBMF/models/GreConD.py
+!/PyBMF/models/GreConDPlus.py
+!/PyBMF/models/Hyper.py
+!/PyBMF/models/HyperPlus.py
+!/PyBMF/models/IP.py
+!/PyBMF/models/MEBF.py
+!/PyBMF/models/MaxSAT.py
+!/PyBMF/models/MessagePassing.py
+!/PyBMF/models/NMFSklearn.py
+!/PyBMF/models/OrMachine.py
+!/PyBMF/models/PNLPF.py
+!/PyBMF/models/PRIMP.py
+!/PyBMF/models/PRIMPPyTorch.py
+!/PyBMF/models/Panda.py
+!/PyBMF/models/README.md
+# !/PyBMF/models/RSNMF.py
+!/PyBMF/models/TransposedModel.py
+!/PyBMF/models/WNMF.py
+!/PyBMF/models/__init__.py
+
+/examples/*
+
+!/examples/ex01_0_display.ipynb
+!/examples/ex01_1_generators.ipynb
+!/examples/ex01_2_datasets.ipynb
+!/examples/ex01_3_split_utils.ipynb
+!/examples/ex01_4_split_exmaple.ipynb
+!/examples/ex01_5_evaluation.ipynb
+!/examples/ex01_6_logs.ipynb
+!/examples/ex01_7_reconstruction_prediction.ipynb
+
+!/examples/ex02_1_Asso.ipynb
+!/examples/ex02_2_AssoIter.ipynb
+!/examples/ex02_3_AssoOpt.ipynb
+!/examples/ex02_4_TransposedModel.ipynb
+
+# !/examples/ex02_5_BMFAlternate.ipynb
+# !/examples/ex02_6_BMFInterleave.ipynb
+# !/examples/ex02_7_BMFCollective.ipynb
+# !/examples/ex08_3_Asso_AssoOri_performance.ipynb
+# !/examples/ex08_4_AssoExCollective_diagnosis.ipynb
+# !/examples/ex08_4_AssoExIterate_diagnosis.ipynb
+# !/examples/ex08_6_AssoExIterate_compete.ipynb
+
+!/examples/ex03_1_Panda.ipynb
+!/examples/ex03_2_Hyper.ipynb
+!/examples/ex03_3_MEBF.ipynb
+!/examples/ex03_4_GreConD.ipynb
+
+!/examples/ex04_1_NMF.ipynb
+!/examples/ex04_2_WNMF.ipynb
+
+!/examples/ex05_1_BinaryMFPenalty.ipynb
+!/examples/ex05_2_PNLPF.ipynb
+!/examples/ex05_3_FastStep.ipynb
+!/examples/ex05_4_PRIMP.ipynb
+!/examples/ex05_5_ELBMF.ipynb
+!/examples/ex05_6_ELBMFPyTorch.ipynb
+!/examples/ex05_7_ELBMFNumPy.ipynb
+
+!/examples/ex06_1_BinaryMFThreshold.ipynb
+# !/examples/ex06_2_BinaryMFThresholdExColumnwise.ipynb
+# !/examples/ex06_3_BinaryMFThresholdExSigmoid.ipynb
+# !/examples/ex06_4_BinaryMFThreshold_AllinOne.ipynb
+# !/examples/ex06_5_BinaryMFThresholdExCollective.ipynb
+
+!/examples/ex07_1_MessagePassing.ipynb
+!/examples/ex07_2_OrMachine.ipynb
+!/examples/ex07_3_IP.ipynb
+!/examples/ex07_4_MaxSAT.ipynb
+
+# !/examples/ex08_3_Asso_AssoOri_performance.ipynb
+# !/examples/ex08_4_AssoExCollective_diagnosis.ipynb
+# !/examples/ex08_4_AssoExIterate_diagnosis.ipynb
+# !/examples/ex08_5_AssoExIterate_compete.ipynb
+# !/examples/ex08_6_AssoExIterate_compete.ipynb
+
+# !/examples/ex10_1_CMF.ipynb
+# !/examples/ex10_2_CMF.ipynb
+# !/examples/ex10_3_CMF_cmfrec_diagnosis.ipynb
+# !/examples/ex10_4_CMF_cmfrec_neg_sampling.ipynb
+# !/examples/ex10_5_CMF_cmfrec.ipynb
+# !/examples/ex10_6_CMF_cmfrec_threshold.ipynb
+# !/examples/ex10_7_CMF_cmfrec_threshold.ipynb
+
+!/examples/README.md
+!/examples/settings_template.ini
+!/examples/settings.ini
+
+
