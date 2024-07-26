@@ -8,11 +8,11 @@ import time
 
 
 class BaseModel(BaseModelTools):
-    '''The base class for all MF models.    
+    '''The base class for all the models.
+    
+    Initialize the model with parameters.
     '''
     def __init__(self, **kwargs):
-        '''Initialize the model with parameters.
-        '''
         raise NotImplementedError('This is a template class.')
     
 
@@ -22,6 +22,7 @@ class BaseModel(BaseModelTools):
         Called upon model initialization and fitting.
         
         .. code-block:: python
+
             # include this in your model class:
 
             def __init__(self, k, tol, alpha):
@@ -41,10 +42,22 @@ class BaseModel(BaseModelTools):
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
-        '''Fit the model to observations, with validation and prediction (experimental).
+        '''Fit the model to observations, with validation and test if necessary.
 
-        The default preparations for a fitting procedure, followed by `_fit()` and `finish()`.
-        Simply overwrite this method if you want to drop any parts or include more procedures.
+        For a fitting procedure, implement and append your ``_fit()`` and ``finish()``.
+
+        Simply overwrite this method if you want to drop or add any parts of the procedures.
+
+        Parameters
+        ----------
+        X_train : ndarray
+            Training data.
+        X_val : ndarray
+            Validation data.
+        X_test : ndarray
+            Test data.
+        **kwargs : dict
+            Other parameters.
         '''
         # these are the common routines when the fitting starts:
         
@@ -59,7 +72,11 @@ class BaseModel(BaseModelTools):
 
 
     def init_model(self):
-        '''Initialize the model. Called after params are set and datasets are loaded.
+        '''Initialize the model.
+        
+        Called after params are set and datasets are loaded.
+
+        Simply overwrite this method if you want to drop or add any parts of the procedures.
         '''
         self._init_factors()
         self._init_logs()
@@ -70,8 +87,10 @@ class BaseModel(BaseModelTools):
 
         # if you have more initialization methods:
         # self.init_U() or self.init_Us()
+
         # if you accept masking matrices:
         # self.init_W() or self.init_Ws()
+
         # if you want to force the model to work with dense `ndarray`:
         # self._to_dense()
 
@@ -86,8 +105,10 @@ class BaseModel(BaseModelTools):
         '''Called when the fitting is over.
 
         The default finishing procedure.
-        Simply overwrite this method if you want to drop any parts or include more procedures.
-        You can attach this to the end of `fit()` or simply call from outside.
+
+        Simply overwrite this method if you want to drop or add any parts of the procedures.
+
+        You can attach this to the end of ``fit()`` or simply call from outside.
         '''
         self._stop_timer()
         if save_model:
@@ -102,14 +123,15 @@ class BaseModel(BaseModelTools):
     def load_dataset(self, X_train, X_val=None, X_test=None):
         '''Load train and validation data.
 
-        For matrices that are modified frequently, lil (LIst of List) or coo is preferred.
-        For matrices that are not getting modified, csr or csc is preferred.
+        For matrices that are modified frequently, ``lil`` (LIst of List) or ``coo`` is preferred.
+
+        For matrices that are not getting modified, ``csr`` or ``csc`` is preferred.
 
         Parameters
         ----------
-        X_train : array, spmatrix
+        X_train : ndarray, spmatrix
             Data for matrix factorization.
-        X_val : array, spmatrix
+        X_val : ndarray, spmatrix
             Data for model selection.
         X_test : ndarray, spmatrix
             Data for prediction.
@@ -129,15 +151,22 @@ class BaseModel(BaseModelTools):
 
 
     def predict_X(self, U=None, V=None, u=None, v=None, us=None, vs=None, boolean=True):
-        '''Update prediction `X_pd`.
+        '''Update the prediction ``X_pd``.
 
         Parameters
         ----------
-        U, V : array, spmatrix
-        u, v : float
-            The shared threshold for U and V.
-        us, vs : list of length k, float
-            The thresholds for each factor in U and V.
+        U : ndarray, spmatrix
+            Factor matrix.
+        V : ndarray, spmatrix
+            Factor matrix.
+        u : float
+            The shared threshold for factors in ``U``. 
+        v : float
+            The shared threshold for factors in ``V``.
+        us : list of k floats
+            The thresholds for each factor in ``U``.
+        vs : list of k floats
+            The thresholds for each factor in ``V``.
         boolean : bool
             Whether to apply Boolean multiplication.
         '''
@@ -164,9 +193,9 @@ class BaseModel(BaseModelTools):
 
 
     def show_matrix(self, settings=None, scaling=None, pixels=None, **kwargs):
-        '''The show_matrix() wrapper for BMF models.
+        '''The ``show_matrix()`` wrapper for BMF models.
 
-        If the `settings` is missing, show the factors and their boolean product by default.
+        If ``settings`` is missing, show the factors ``U``, ``V`` and ``X_pd`` by default.
         '''
         scaling = self.scaling if scaling is None else scaling
         pixels = self.pixels if pixels is None else pixels
@@ -181,12 +210,12 @@ class BaseModel(BaseModelTools):
             head_info={}, train_info={}, val_info={}, test_info={}, 
             metrics=['Recall', 'Precision', 'Accuracy', 'F1'], 
             train_metrics=None, val_metrics=None, test_metrics=None, verbose=False):
-        '''Evaluate a BMF model on the given train, val and test daatset.
+        '''Evaluate a BMF model on the given train, val and test dataset.
 
         Parameters
         ----------
         df_name : str
-            The name of `dataframe` to record with.
+            The name of ``dataframe`` to record with.
         head_info : dict
             The names and values of shared information at the head of each record.
         train_info : dict
@@ -196,13 +225,13 @@ class BaseModel(BaseModelTools):
         test_info : dict
             The names and values of external information measured on testing data.
         metrics : list of str, default: ['Recall', 'Precision', 'Accuracy', 'F1']
-            The metrics to be measured. For metric names check `utils.get_metrics`.
+            The metrics to be measured. For metric names check ``utils.get_metrics``.
         train_metrics : list of str, optional
-            The metrics to be measured on training data. Will use `metrics` instead if it's `None`.
+            The metrics to be measured on training data. Will use `metrics` instead if it's ``None``.
         val_metrics : list of str, optional
-            The metrics to be measured on validation data. Will use `metrics` instead if it's `None`.
+            The metrics to be measured on validation data. Will use `metrics` instead if it's ``None``.
         test_metrics : list of str, optional
-            The metrics to be measured on testing data. Will use `metrics` instead if it's `None`.
+            The metrics to be measured on testing data. Will use `metrics` instead if it's ``None``.
         '''
         train_metrics = metrics if train_metrics is None else train_metrics
         val_metrics = metrics if val_metrics is None else val_metrics
@@ -234,8 +263,11 @@ class BaseModel(BaseModelTools):
         Parameters
         ----------
         name : str in ['train', 'val', 'test']
+            Which matrix to evaluate.
         info : dict of list
+            The extra information to be recorded.
         metrics : list of str
+            The metrics to be evaluated and recorded.
         '''
         X_gt = getattr(self, 'X_' + name)
         results = eval(X_gt=X_gt, X_pd=self.X_pd, metrics=metrics, task=self.task)

@@ -6,11 +6,14 @@ from .BaseData import BaseData
 
 
 class MovieLensData(BaseData):
-    '''Load MovieLens dataset
+    '''Load MovieLens dataset.
 
-    size:
-        100k
-        1m
+    Parameters
+    ----------
+    path : str
+        Path to the cached dataset.
+    size : str in {'100k', '1m'}
+        MovieLens dataset size.
     '''
     def __init__(self, path=None, size="1m"):
         super().__init__(path=path)
@@ -21,6 +24,8 @@ class MovieLensData(BaseData):
 
 
     def read_data(self):
+        '''Read data.
+        '''
         # ratings
         if self.size == '100k':
             path = os.path.join(self.root, "ml-100k", "u.data")
@@ -46,6 +51,8 @@ class MovieLensData(BaseData):
 
 
     def load_data(self):
+        '''Load data.
+        '''
         # generate row_idx and col_idx
         self.df_ratings['row_idx'], _ = pd.factorize(self.df_ratings['uid'], sort=True)
         self.df_ratings['col_idx'], _ = pd.factorize(self.df_ratings['iid'], sort=True)
@@ -86,11 +93,24 @@ class MovieLensData(BaseData):
 
 
     def sort_factor(self, X, dim, factor_info):
-        '''Sort the matrix and factor_info by factor order
+        '''Sort the matrix and factor_info by factor order.
 
-        dim:
-            0, sort rows
-            1, sort columns
+        Parameters
+        ----------
+        X : csr_matrix
+            The matrix to be sorted.
+        dim : int
+            If ``dim`` is 0, sort rows.
+            If ``dim`` is 1, sort columns.
+        factor_info : list of 2 tuples
+            The list of factor info. For example, [``u_order``, ``u_idmap``, ``u_alias``].
+
+        Returns
+        -------
+        X : csr_matrix
+            The sorted matrix.
+        factor_info : list of 2 tuples
+            The list of factor info. For example, [``u_order``, ``u_idmap``, ``u_alias``].
         '''
         f_order, f_idmap, f_alias = factor_info
         idx = reverse_index(f_order)

@@ -10,7 +10,7 @@ class NMFSklearn(ContinuousModel):
         '''
         Parameters
         ----------
-        U, V : numpy.ndarray, spmatrix
+        U, V : ndarray, spmatrix
             Need to be prepared if `init_method` is 'custom'.
         '''
         self.check_params(k=k, U=U, V=V, beta_loss=beta_loss, init_method=init_method, solver=solver, tol=tol, max_iter=max_iter, seed=seed)

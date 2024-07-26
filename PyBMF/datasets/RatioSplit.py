@@ -4,11 +4,20 @@ import numpy as np
 
 
 class RatioSplit(BaseSplit):
-    '''Ratio split, used in prediction tasks
+    '''Ratio split, usually used in prediction tasks.
 
-    test_size, val_size:
-        int, integer size of dataset.
-        float, fraction size of dataset.
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+        The data matrix.
+    test_size : int or float
+        If it is int, ``test_size`` is the integer size of dataset. 
+        If it is float, ``test_size`` is the fraction size of dataset.
+    val_size : int or float
+        If it is int, ``val_size`` is the integer size of dataset.
+        If it is float, ``val_size`` is the fraction size of dataset.
+    seed : int
+        Random seed.
     '''
     def __init__(self, X, test_size=None, val_size=None, seed=None):
         super().__init__(X)
@@ -34,10 +43,21 @@ class RatioSplit(BaseSplit):
     def negative_sample(self, train_size=None, test_size=None, val_size=None, seed=None, type='uniform'):
         '''Select and append negative samples onto train, val and test set.
 
-        Used with RatioSplit.
-
+        Parameters
+        ----------
+        train_size : int or float
+            If it is int, ``train_size`` is the integer size of dataset.
+            If it is float, ``train_size`` is the fraction size of dataset.
+        test_size : int or float
+            If it is int, ``test_size`` is the integer size of dataset.
+            If it is float, ``test_size`` is the fraction size of dataset.
+        val_size : int or float
+            If it is int, ``val_size`` is the integer size of dataset.
+            If it is float, ``val_size`` is the fraction size of dataset.
+        seed : int
+            Random seed.
         type : str in {'uniform', 'popularity'}
-            How negative records are sampled.
+            Type of negative sampling.
         '''
         print("[I] RatioSplit, sampling negatives")        
         self.check_params(seed=seed)
@@ -68,12 +88,23 @@ class RatioSplit(BaseSplit):
 
     @staticmethod
     def get_size(val_size, test_size, n_ratings, train_size=None):
-        '''
-        Used in both RatioSplit and RatioSplit.negative_sample.
+        '''Get size of train, val and test set.
 
-        train_size:
-            None, use the rest of data.
-            0.0, empty training set. used in negative sampling if there's no need to append negative samples to the training set.
+        Used in both ``RatioSplit`` and ``RatioSplit.negative_sample``.
+
+        Parameters
+        ----------
+        val_size : int or float
+            If it is int, ``val_size`` is the integer size of dataset.
+            If it is float, ``val_size`` is the fraction size of dataset.
+        test_size : int or float
+            If it is int, ``test_size`` is the integer size of dataset.
+            If it is float, ``test_size`` is the fraction size of dataset.
+        n_ratings : int
+            Number of ratings.
+        train_size : int, float or None
+            If ``None``, use the rest of data.
+            If ``0.0``, empty training set. Used in negative sampling if there's no need to append negative samples to the training set.
         '''
         # validate val_size
         if val_size is None:
@@ -110,8 +141,18 @@ class RatioSplit(BaseSplit):
 
     @staticmethod
     def get_indices(data_idx, train_size, test_size):
-        '''
-        Used in RatioSplit and RatioSplit.negative_sampling.
+        '''Get indices for train, val and test set.
+
+        Used in ``RatioSplit`` and ``RatioSplit.negative_sampling``.
+
+        Parameters
+        ----------
+        data_idx : ndarray
+            The indices of dataset.
+        train_size : int
+            The size of training set.
+        test_size : int
+            The size of test set.
         '''
         train_idx = data_idx[:train_size]
         val_idx = data_idx[train_size:-test_size]

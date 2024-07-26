@@ -5,14 +5,9 @@
 
 .. mdinclude:: ../README.md
 
-.. .. toctree::
-..    :maxdepth: 2
-..    :caption: Contents:
-
-..    modules
 
 Subpackages
------------
+===========
 
 .. toctree::
    :maxdepth: 4
@@ -22,14 +17,6 @@ Subpackages
    PyBMF.models
    PyBMF.solvers
    PyBMF.utils
-
-Module contents
----------------
-
-.. automodule:: PyBMF
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Indices and tables
 ==================

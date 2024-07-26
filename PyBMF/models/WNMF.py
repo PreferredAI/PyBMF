@@ -20,7 +20,7 @@ class WNMF(ContinuousModel):
         '''
         Parameters
         ----------
-        U, V : numpy.ndarray, spmatrix
+        U, V : ndarray, spmatrix
             Need to be prepared if `init_method` is 'custom'.
         '''
         self.check_params(k=k, U=U, V=V, W=W, beta_loss=beta_loss, init_method=init_method, solver=solver, tol=tol, min_diff=min_diff, max_iter=max_iter, seed=seed)

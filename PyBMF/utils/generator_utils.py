@@ -28,9 +28,17 @@ def shuffle_matrix(X, seed=None, rng=None):
 
 
 def add_noise(X, noise, seed=None, rng=None):
-    '''Add noise
+    '''Add noise to a matrix.
 
-    noise: [p_pos, p_neg]
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+    noise : list of 2 float in [0, 1]
+        Probabilities for false negative (p_pos) and false positive (p_neg).
+    seed : optional
+        Random seed.
+    rng : optional
+        Random number generator.
     '''
     rng = get_rng(seed, rng)
     p_pos, p_neg = noise

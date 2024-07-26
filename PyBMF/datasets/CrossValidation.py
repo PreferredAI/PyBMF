@@ -6,11 +6,17 @@ import numpy as np
 class CrossValidation(BaseSplit):
     '''K-fold cross-validation, used in prediction tasks
 
-    test_size:
-        int, integer size of dataset.
-        float, fraction size of dataset.
-    n_folds, current_fold:
-        int, number of folds or index of the current fold.
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+        The data matrix.
+    test_size : int or float
+        If it is int, ``test_size`` is the integer size of dataset. 
+        If it is float, ``test_size`` is the fraction size of dataset.
+    n_folds : int
+        Number of folds.
+    current_fold : int
+        Index of the current fold.
     '''
     def __init__(self, X, test_size=None, n_folds=None, seed=None):
         super().__init__(X)
@@ -35,6 +41,13 @@ class CrossValidation(BaseSplit):
 
 
     def get_fold(self, current_fold):
+        '''Get current fold.
+
+        Parameters
+        ----------
+        current_fold : int
+            Index of the current fold.
+        '''
         print("[I] CrossValidation, current fold :", current_fold)
         train_idx, val_idx, test_idx = self.get_indices(
             data_idx=self.cv_pos_data_idx, 
@@ -57,6 +70,19 @@ class CrossValidation(BaseSplit):
 
 
     def negative_sample(self, test_size, train_val_size, seed=None, type='uniform'):
+        '''Negative sampling for cross-validation.
+
+        Parameters
+        ----------
+        test_size : int
+            Number of test samples.
+        train_val_size : int
+            Number of train and validation samples.
+        seed : int
+            Random seed.
+        type : str
+            Type of negative sampling.
+        '''
         print("[I] CrossValidation, sampling negatives")
 
         self.check_params(seed=seed)
@@ -64,6 +90,7 @@ class CrossValidation(BaseSplit):
         m, n = self.X.shape
         all_negatives = m * n - self.X.nnz
 
+        # TODO: deal with fractional test_size and train_val_size
         n_negatives = train_val_size + test_size
         assert n_negatives <= all_negatives, "No enough negatives."
 
@@ -88,17 +115,29 @@ class CrossValidation(BaseSplit):
 
     @staticmethod
     def get_partition(n_folds, test_size, n_ratings, train_val_size=None):
-        '''
-        Used in CrossValidation and CrossValidation.cv_negative_sample.
+        '''Get partition for cross-validation.
 
-        train_val_size:
-            None, use the rest of data.
-            0.0, not valid.
+        Used in ``CrossValidation`` and ``CrossValidation.cv_negative_sample``.
+
+        Parameters
+        ----------
+        n_folds : int
+            Number of folds.
+        test_size : int or float
+            If it is int, ``test_size`` is the integer size of dataset. 
+            If it is float, ``test_size`` is the fraction size of dataset.
+        train_val_size : int, float or None
+            If it is ``None``, use the remaining data outside ``test_size``.
+            If it is int, ``train_val_size`` is the integer size of dataset. 
+            If it is float, ``train_val_size`` is the fraction size of dataset.
+            Note that ``0.0`` is not valid.
 
         Return
         ------
-        partition:
+        partition : ndarray
             An array of starting indices of each fold and the test set.
+        test_size : int
+            The size of test set.
         '''
         # validate test_size
         if test_size is None:
@@ -130,6 +169,26 @@ class CrossValidation(BaseSplit):
 
     @staticmethod
     def get_indices(data_idx, partition, current_fold):
+        '''Get indices for current fold.
+
+        Parameters
+        ----------
+        data_idx : ndarray
+            The indices of dataset.
+        partition : ndarray
+            An array of starting indices of each fold and the test set.
+        current_fold : int
+            The index of current fold.
+
+        Return
+        ------
+        train_idx : ndarray
+            The indices of training data.
+        val_idx : ndarray
+            The indices of validation data.
+        test_idx : ndarray
+            The indices of test data.
+        '''
         print("[I] CrossValidation, get indices for current fold")
         a = partition[current_fold] # start of val
         b = partition[current_fold+1] # end of val

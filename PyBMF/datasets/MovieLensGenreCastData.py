@@ -8,11 +8,14 @@ from itertools import chain
 
 
 class MovieLensGenreCastData(MovieLensData):
-    '''Load MovieLens dataset with IMDB genre and cast information
+    '''Load MovieLens dataset with IMDB genre and cast information.
 
-    size:
-        100k
-        1m
+    Parameters
+    ----------
+    path : str
+        Path to the cached dataset.
+    size : str in {'100k', '1m'}
+        MovieLens dataset size.
     '''
     def __init__(self, path=None, size='1m'):
         super().__init__(path=path, size=size)
@@ -21,6 +24,8 @@ class MovieLensGenreCastData(MovieLensData):
 
 
     def read_data(self):
+        '''Read data.
+        '''
         # ratings and titles
         super().read_data()
 
@@ -41,6 +46,8 @@ class MovieLensGenreCastData(MovieLensData):
 
 
     def load_data(self):
+        '''Load data.
+        '''
         super().load_data()
         X = self.X
         user_info, movie_info = self.factor_info
@@ -69,13 +76,12 @@ class MovieLensGenreCastData(MovieLensData):
 
 
     def get_attribute_info(self, attribute):
-        '''
-        attribute:
-            the name of column in df_info
-        sttr_mat:
-            spmatrix, with axis 0 being genres or cast
-        sttr_list:
-            list of attribute alias
+        '''Get attribute information.
+
+        Parameters
+        ----------
+        attribute : str
+            The name of columns in ``df_info``.
         '''
         df = self.df_info.dropna(subset=[attribute])
 

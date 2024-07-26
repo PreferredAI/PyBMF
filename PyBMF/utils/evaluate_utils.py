@@ -12,6 +12,8 @@ from IPython.display import display
 def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
     '''Evaluate with given metrics.
 
+    Parameters
+    ----------
     X_gt : array or spmatrix
     X_pd : array or spmatrix, optional
     U : spmatrix, optional

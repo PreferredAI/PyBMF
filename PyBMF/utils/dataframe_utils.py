@@ -4,38 +4,54 @@ import webbrowser
 import re
 import base64
 
-def get_config():
+def get_config(key):
+    '''Get config value from settings.ini.
 
+    Parameters
+    ----------
+    key : str
+        Key in settings.ini.
+
+    Returns
+    -------
+    value : str
+        Value in settings.ini.
+    '''
     has_config = os.path.isfile('settings.ini')
 
     if has_config:
-
         import configparser
         config = configparser.ConfigParser()
         config_path = os.path.abspath('settings.ini')
         print("[I] Found settings.ini at", config_path)
         config.read(config_path)
-
-        log_path = config["PATHS"]["saved_logs"]
-        browser_path = config["PATHS"]["browser"] + r' %s'
-
+        path= config["PATHS"][key]
     else:
-
         print("[W] No settings.ini found.")
-        print("    Please create settings.ini or set file_path and browser_path manually when calling log2html() and log2latex().")
-        file_path = None
-        browser_path = None
-
-    return log_path, browser_path
+        path = None
+    return path
 
 
 def log2html(df, log_name, open_browser=True, log_path=None, browser_path=None):
     '''Display and save a dataframe in HTML, and open it in browser if needed.
+
+    Please create settings.ini or set ``file_path`` and ``browser_path`` manually before calling.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe to be displayed in HTML.
+    log_name : str
+        Name of the log file.
+    open_browser : bool
+        Whether to open in browser.
+    log_path : str
+        Path to save the log file.
+    browser_path : str
+        Path of the browser.
     '''
-    if log_path is None or browser_path is None:
-        log_path_config, browser_path_config = get_config()
-        log_path = log_path_config if log_path is None else log_path
-        browser_path = browser_path_config if browser_path is None else browser_path
+    log_path = get_config(key="saved_logs") if log_path is None else log_path
+    browser_path = get_config(key="browser") + r' %s' if browser_path is None else browser_path
 
     html_head = '''<!DOCTYPE html>
 <html>
@@ -78,11 +94,22 @@ def log2latex(df, log_name, open_browser=True, log_path=None, browser_path=None)
     '''Display a dataframe in TeX on overleaf.com.
 
     This tool automatically highlights the maximum values in each column.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe to be displayed in TeX.
+    log_name : str
+        Name of the log file.
+    open_browser : bool
+        Whether to open in browser.
+    log_path : str
+        Path to save the log file.
+    browser_path : str
+        Path of the browser.
     '''
-    if log_path is None or browser_path is None:
-        log_path_config, browser_path_config = get_config()
-        log_path = log_path_config if log_path is None else log_path
-        browser_path = browser_path_config if browser_path is None else browser_path
+    log_path = get_config(key="saved_logs") if log_path is None else log_path
+    browser_path = get_config(key="browser") + r' %s' if browser_path is None else browser_path
 
     width = int(df.columns.size * 0.8)
     height = int(len(df) * 0.2) + 1.0
@@ -132,6 +159,20 @@ def _make_name(model=None, model_name=None, format="%Y-%m-%d %H-%M-%S-%f "):
     '''Make a file name for an instance of a model.
 
     Milliseconds are added to the end of the name to make it unique.
+
+    Parameters
+    ----------
+    model : object
+        Model object.
+    model_name : str
+        Name of the model.
+    format : str
+        Format of the timestamp.
+
+    Returns
+    -------
+    model_name : str
+        Name of the model.
     '''
     if model is None and model_name is None:
         print("[E] In _make_name(), model and model_name cannot be both None.")
@@ -147,6 +188,20 @@ def _make_name(model=None, model_name=None, format="%Y-%m-%d %H-%M-%S-%f "):
 
 def _make_html(file_path, file_name, html):
     '''Make a html file.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to save the html file.
+    file_name : str
+        Name of the html file.
+    html : str
+        HTML code.
+
+    Returns
+    -------
+    full_path : str
+        Full path of the html file.
     '''
     full_path = os.path.join(os.path.abspath(file_path), file_name + ".html")
 
@@ -158,5 +213,14 @@ def _make_html(file_path, file_name, html):
 
 
 def _open_html(full_path, browser_path):
+    '''Open a html file in browser.
+
+    Parameters
+    ----------
+    full_path : str
+        Full path of the html file.
+    browser_path : str
+        Path of the browser.
+    '''
     print("[I] Opening HTML in browser: " + browser_path)
     webbrowser.get(using=browser_path).open('file:///' + os.path.abspath(full_path), new=2)

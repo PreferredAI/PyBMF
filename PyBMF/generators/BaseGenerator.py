@@ -4,18 +4,22 @@ from ..utils import matmul, shuffle_by_dim, add_noise, to_sparse, reverse_index,
 
 
 class BaseGenerator:
+    '''Base class of Boolean matrix generator.
+
+    .. note::
+
+        Attributes of ``BaseGenerator``.
+
+        X : ndarray, spmatrix
+            A ``m``-by-``n`` data matrix. :math:`X = U * V`
+        U : ndarray, spmatrix
+            A ``m``-by-``k`` factor matrix.
+        V : ndarray, spmatrix
+            A ``n``-by-``k`` factor matrix.
+        factor_info: list
+            [``U_info``, ``V_info``]
+    '''
     def __init__(self):
-        '''Base Boolean matrix class
-
-        X = U * V
-
-        X, U, V: ndarray, spmatrix
-            X is an m-by-n data matrix.
-            U is an m-by-k factor matrix.
-            V is a n-by-k factor matrix.
-
-        factor_info: list, [U_info, V_info]
-        '''
         self.X = None
         self.U = None
         self.V = None
@@ -23,78 +27,23 @@ class BaseGenerator:
 
 
     def check_params(self, **kwargs):
-        '''All tunable parameters
+        '''Check parameters.
         
         Parameters
         ----------
-        m : int
-            The number of rows in X.
-        n : int, optional
-            The number of columns in X.
-        k : int, optional
-            The rank.
+        overlap_flag : bool
+            Whether overlap is allowed or not.
+        size_range : list of 2 or 4 floats
+            The lower and upper bounds of factor rectangle size (height_low, height_high, width_low, width_high), or just upper bounds (height_high, width_high).
 
-        density : float, list(float) -> np.array
-            Accept a value between [0, 1] or a 2-element list
-            When it's a list, it represents densities for factor U
-            (density of columns of X) and factor V (density of rows of X)
-            Typically, density lies between [0.1, 0.3]
+            The real size limit is the bounds times size m, n divided by k.
 
-
+            E.g., if `k` = 5 and the image height `m` = 1000, the lower and upper bounds are [0.2, 2.0] * 1000 / 5.
         seed : int
-            Decide the current state of self.rng
+            Random seed.
         '''
         self.set_params(**kwargs)
         self.set_config(**kwargs)
-
-        # # check dimensions
-        # if "m" in kwargs:
-        #     self.m = kwargs.get("m")
-        #     print("[I] m            :", self.m)
-        # if "n" in kwargs:
-        #     self.n = kwargs.get("n")
-        #     print("[I] n            :", self.n)
-        # if "k" in kwargs:
-        #     self.k = kwargs.get("k")
-        #     print("[I] k            :", self.k)
-
-        # # check noise
-        # if "noise" in kwargs:
-        #     noise = kwargs.get("noise")
-        #     if isnum(noise):
-        #         noise = [noise, noise] # p_pos and p_neg
-        #     self.noise = np.array(noise)
-        #     print("[I] noise        :", self.noise)
-
-        # # check density
-        # if "density" in kwargs:
-        #     density = kwargs.get("density")
-        #     if density is None:
-        #         density = [0.2, 0.2]
-        #     elif isnum(density):
-        #         density = [density, density] # density_u and density_v
-        #     self.density = np.array(density)
-        #     print("[I] density      :", self.density)
-
-        # # check overlap
-        # if "overlap" in kwargs:
-        #     overlap = kwargs.get("overlap")
-        #     if overlap is None:
-        #         overlap = [0.0, 0.0, 0.0, 0.0] # no overlap
-        #     elif isinstance(overlap, list) and len(overlap) == 4:
-        #         pass
-        #     else:
-        #         print("[W] overlap should hold the format (overlap_u, span_u, overlap_v, span_v)")
-            
-        #     # check overlap and span
-        #     overlap_u_ok = abs(overlap[0]) + overlap[1] <= 1.0 and abs(overlap[0]) - overlap[1] >= 0.0
-        #     overlap_v_ok = abs(overlap[2]) + overlap[3] <= 1.0 and abs(overlap[2]) - overlap[3] >= 0.0
-        #     if overlap_u_ok and overlap_v_ok:
-        #         self.overlap = np.array(overlap)
-        #         print("[I] overlap      :", self.overlap)
-        #     else:
-        #         print("[W] overlap_u and overlap_v should be in [-1, 1]")
-        #         print("[W] span_u and span_v should not make the sum with abs(overlap_*) exceed [0, 1]")
 
         # check overlap_flag
         if "overlap_flag" in kwargs:
@@ -160,14 +109,20 @@ class BaseGenerator:
 
 
     def generate(self):
+        '''Generate a matrix.
+        '''
         raise NotImplementedError("Missing generate method.")
     
 
     def generate_factors(self):
+        '''Generate factors.
+        '''
         raise NotImplementedError("Missing generate_factors method.")
     
 
     def generate_factor(self):
+        '''Generate a factor.
+        '''
         raise NotImplementedError("Missing generate_factor method.")
 
 
@@ -177,28 +132,37 @@ class BaseGenerator:
         Returns
         -------
         measured_density
-            percentage on the number of 1's
+            Percentage on the number of 1's.
         measured_overlap
-            percentage on the number of overlapped 1's
+            Percentage on the number of overlapped 1's.
         '''
         self.measured_density = self.measure_density()
         self.measured_overlap = self.measure_overlap()
         print("[I] Density of X :", self.measured_density)
         print("[I] Overlap of X :", self.measured_overlap)
-        return (self.measured_density, self.measured_overlap)
+        return self.measured_density, self.measured_overlap
     
     
     def measure_density(self):
+        '''Measure the density of a matrix.
+        '''
         return np.sum(self.X) / (self.m * self.n)
     
     
     def measure_overlap(self):
+        '''Measure the overlap of a matrix.
+        '''
         return np.sum(matmul(self.U, self.V.T, boolean=True) > 1) / (self.m * self.n)
 
         
     def shuffle(self, seed=None):
         '''Shuffle a matrix together with its factors.
-        '''        
+
+        Parameters
+        ----------
+        seed : int
+            Random seed.
+        '''
         self.check_params(seed=seed)
         self.U_order, self.U, self.rng = shuffle_by_dim(X=self.U, dim=0, rng=self.rng)
         self.V_order, self.V, self.rng = shuffle_by_dim(X=self.V, dim=0, rng=self.rng)
@@ -240,9 +204,10 @@ class BaseGenerator:
         
         Parameters
         ----------
-        noise : list of 2 float, [0, 1]
+        noise : list of 2 float in [0, 1]
             Probabilities for false negative (p_pos) and false positive (p_neg).
         seed : optional
+            Random seed.
         '''
         X = self.X
         self.check_params(noise=noise, seed=seed)
@@ -251,6 +216,8 @@ class BaseGenerator:
 
     
     def boolean_matmul(self):
+        '''Boolean matrix multiplication.
+        '''
         self.X = matmul(self.U, self.V.T, boolean=True)
 
 

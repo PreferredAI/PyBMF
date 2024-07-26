@@ -7,6 +7,7 @@
 .*/
 *.egg-info/
 experiment/
+_build/
 build/
 
 bmf_exact_kovacs/

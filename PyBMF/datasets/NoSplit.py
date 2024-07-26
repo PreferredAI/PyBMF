@@ -4,7 +4,7 @@ from scipy.sparse import spmatrix
 
 
 class NoSplit(BaseSplit):
-    '''No split, used in reconstruction tasks.
+    '''No split, usually used in reconstruction tasks.
 
     Designed for reconstruction tasks, where training, validation and testing use the same full set of samples.
     `NoSplit` supports negative sampling.
@@ -23,7 +23,17 @@ class NoSplit(BaseSplit):
 
 
     def negative_sample(self, size, type='uniform', seed=None):
-        
+        '''Select and append negative samples onto train, val and test set.
+
+        Parameters
+        ----------
+        size : int
+            Number of negative samples.
+        type : str
+            Type of negative sampling.
+        seed : int
+            Random seed.
+        '''
         self.rs.negative_sample(train_size=size, type=type, seed=seed)
         self.neg_size = self.rs.neg_train_size
 

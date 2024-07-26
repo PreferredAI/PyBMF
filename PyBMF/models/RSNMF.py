@@ -17,7 +17,7 @@ class RSNMF(ContinuousModel):
         '''
         Parameters
         ----------
-        U, V : numpy.ndarray, spmatrix
+        U, V : ndarray, spmatrix
             Need to be prepared if `init_method` is 'custom'.
         '''
         self.check_params(k=k, U=U, V=V, init_method=init_method, tol=tol, max_iter=max_iter, seed=seed)

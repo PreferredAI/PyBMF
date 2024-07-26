@@ -9,15 +9,19 @@ import numpy as np
 
 
 class NetflixGenreCastData(NetflixData):
-    '''Load Netflix dataset with genre and cast information
+    '''Load Netflix dataset with genre and cast information.
      
     Genre and cast information comes from Netflix-Prize-IMDB-TMDB-Joint-Dataset on GitHub: 
     https://github.com/felixnie/Netflix-Prize-IMDB-TMDB-Joint-Dataset
 
-    full:
-        False, size 15MB, users ~10k, items 4945, ratings ~608k
-        True, size 2.43GB, users ~480k, items 17770, ratings ~100M
-    source:
+    Parameters
+    ----------
+    path : str
+        Path to the cached dataset.
+    size : str in {'small', 'full'}
+        Netflix data 'small' version, size 15MB, users ~10k, items 4945, ratings ~608k.
+        Netflix data 'full' version, size 2.43GB, users ~480k, items 17770, ratings ~100M.
+    source : str in {'imdb', 'tmdb'}
         Source should be 'imdb' or 'tmdb'.
     '''
     def __init__(self, path=None, size='small', source='imdb'):
@@ -29,6 +33,8 @@ class NetflixGenreCastData(NetflixData):
 
 
     def read_data(self):
+        '''Read data.
+        '''
         # ratings and titles
         super().read_data()
 
@@ -38,6 +44,8 @@ class NetflixGenreCastData(NetflixData):
 
 
     def load_data(self):
+        '''Load data.
+        '''
         # X and factor_info from ratings
         super().load_data()
         X = self.X
@@ -67,13 +75,12 @@ class NetflixGenreCastData(NetflixData):
 
 
     def get_attribute_info(self, attribute):
-        '''
-        attribute:
-            the name of column in df_info
-        sttr_mat:
-            spmatrix, with axis 0 being genres or cast
-        sttr_list:
-            list of attribute alias
+        '''Get attribute information.
+
+        Parameters
+        ----------
+        attribute : str
+            The name of columns in ``df_info``.
         '''
         df = self.df_info.dropna(subset=[attribute])
 

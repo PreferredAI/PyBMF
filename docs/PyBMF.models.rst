@@ -1,14 +1,6 @@
 PyBMF.models package
 ====================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   PyBMF.models.bmf_mp_ravanba
-
 Submodules
 ----------
 

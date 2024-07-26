@@ -9,13 +9,14 @@ from .MovieLensGenreCastData import MovieLensGenreCastData
 from .MovieLensGenreCastUserData import MovieLensGenreCastUserData
 
 
-# __all__ = ['NoSplit', 
-#            'RatioSplit', 
-#            'CrossValidation', 
-#            'NetflixData', 
-#            'NetflixGenreCastData', 
-#            'MovieLensData', 
-#            'MovieLensUserData', 
-#            'MovieLensGenreCastData', 
-#            'MovieLensGenreCastUserData'
-#            ]
+__all__ = [
+    'NoSplit', 
+    'RatioSplit', 
+    'CrossValidation', 
+    'NetflixData', 
+    'NetflixGenreCastData', 
+    'MovieLensData', 
+    'MovieLensUserData', 
+    'MovieLensGenreCastData', 
+    'MovieLensGenreCastUserData'
+]

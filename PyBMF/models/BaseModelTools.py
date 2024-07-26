@@ -5,10 +5,10 @@ from scipy.sparse import lil_matrix, hstack
 import pickle
 import time
 from IPython.display import display
-from ..utils import _make_name, ismat, get_prediction
+from ..utils import _make_name, ismat, get_config
 
 class BaseModelTools():
-    '''The helper class for BaseModel.
+    '''The helper class for ``BaseModel``.
     '''
     def __init__(self):
         raise NotImplementedError('This is a helper class.')
@@ -21,29 +21,38 @@ class BaseModelTools():
         Model parameters
         ----------------
         k : int
-            Rank.
-        U, V, Us : ndarray, spmatrix
-            Initial factors when `init_method` is 'custom'.
+            The rank.
+        U : ndarray, spmatrix
+            Initial factor matrix when ``init_method`` is ``'custom'``.
+        V : ndarray, spmatrix
+            Initial factor matrix when ``init_method`` is ``'custom'``.
+        Us : ndarray, spmatrix
+            For collective matrix factorization. 
+            Initial factor matrices when ``init_method`` is ``'custom'``.
         W : ndarray, spmatrix or str in {'mask', 'full'}
             Masking weight matrix. 
-            For 'mask', it'll use all samples in `X_train` (both 1's and 0's) as a mask. 
+            For 'mask', it'll use all samples in ``X_train`` (both 1's and 0's) as a mask. 
             For 'full', it refers to a full 1's matrix.
         Ws : list of spmatrix, str in {'mask', 'full'}
+            For collective matrix factorization. 
             Masking weight matrices.
-        alpha : list of float
+        alpha : list of floats
+            For collective matrix factorization. 
             Importance weights for matrices.
         lr : float
-            Learning rate.
+            The learning rate.
         reg : float
-            Regularization weight.
+            The regularization parameter.
         tol : float
-            Error tolerance.
+            The error tolerance.
+            Fitting will stop when the specified error is below ``tol``.
         min_diff : float
-            Minimal difference.
+            The minimal difference.
+            Fitting will stop when the specified change is below ``min_diff``.
         max_iter : int
-            Maximal number of iterations.
+            The maximal number of iterations.
         init_method : str
-            Initialization method.
+            The initialization method.
         '''
         kwconfigs = ['task', 'seed', 'display', 'verbose', 'scaling', 'pixels']
         for param in kwargs:
@@ -65,8 +74,10 @@ class BaseModelTools():
     def set_config(self, **kwargs):
         '''Set system configurations.
 
-        System configurations are those involved when calling the `fit()` method.
+        System configurations are those involved when calling the ``fit()`` method.
+
         They controls the global random seed generator, the verbosity and display settings.
+
         They also identify the type of task the model is dealing with, which affects the evaluation procedure.
 
         System configurations
@@ -204,7 +215,7 @@ class BaseModelTools():
 
 
     def _show_logs(self):
-        '''Display all the dataframes in logs.
+        '''Display all the dataframes in ``self.logs``.
         '''
         for log in self.logs.values():
             if isinstance(log, pd.DataFrame):
@@ -215,18 +226,27 @@ class BaseModelTools():
     def _show_result(self):
         '''Display the prediction.
 
-        Make sure the X_pd is set properly.
+        Make sure ``self.X_pd`` is set properly before calling.
         '''
         # self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         settings = [(self.X_train, [0, 0], 'gt'), (self.X_pd, [0, 1], 'pd')]
         self.show_matrix(settings, colorbar=True, discrete=True, clim=[0, 1])
 
 
-    def _save_model(self, path=r'D:/OneDrive - Singapore Management University/saved_models/', name=None):
+    def _save_model(self, path=None, name=None):
         '''Save the model.
+
+        Parameters
+        ----------
+        path : str
+            Path to save the model.
+        name : str
+            Name of the model.
         '''
         name = self.name
         data = self.__dict__
+
+        path = get_config(key="saved_models") if path is None else path
         path = os.path.join(path, name + '.pickle')
 
         self.pickle_path = path
@@ -238,6 +258,11 @@ class BaseModelTools():
 
     def import_model(self, **kwargs):
         '''Import or inherit variables and parameters from another model.
+
+        Parameters
+        ----------
+        **kwargs
+            The variables and parameters to be imported.
         '''
         for attr in kwargs:
             setattr(self, attr, kwargs.get(attr))
@@ -262,8 +287,8 @@ class BaseModelTools():
     def _init_logs(self):
         '''Initialize the logs.
 
-        The `logs` is a `dict` that holds the records in one place.
-        The types of records include but are not limited to `dataframe`, `array` and `list`.
+        The ``logs`` is a ``dict`` that holds the records in one place.
+        The types of records include but are not limited to ``dataframe``, ``ndarray`` and ``list``.
         '''
         if not hasattr(self, 'logs'):
             self.logs = {}
@@ -275,22 +300,24 @@ class BaseModelTools():
         Parameters
         ----------
         k : int
-            The number of factors to obtain. This will keep the first `k` columns in `self.U` and `self.V`.
+            The number of factors to obtain. This will keep the first ``k`` columns in ``self.U`` and ``self.V``.
         error : float
-            Current error. To be compared with error tolerance `self.tol`.
+            Current error. To be compared with error tolerance ``self.tol``.
         diff : float
-            Current update difference. To be compared with difference threshold `self.min_diff`.
+            Current update difference. To be compared with difference threshold ``self.min_diff``.
         n_iter : int
-            Current number of iterations. To be compared with maximum number of iterations `self.max_iter`.
+            Current number of iterations. To be compared with maximum number of iterations ``self.max_iter``.
         n_factor : int
-            Current number of factors. To be compared with maximum number of factors `self.k`.
-        k ; int
+            Current number of factors. To be compared with maximum number of factors ``self.k``.
+        k : int
             The number of factors to obtain.
+        verbose : bool
+            Whether to print the message.
 
         Returns
         -------
         is_improving : bool
-            Whether the model is improving or not.
+            Whether the fitting should continue or not.
         '''
         is_improving = True
 
@@ -321,6 +348,8 @@ class BaseModelTools():
         ----------
         msg : str
             The message to be displayed.
+        verbose : bool
+            Whether to print the message.
         k : int, optional
             The number of factors obtained.
         '''
@@ -334,6 +363,15 @@ class BaseModelTools():
 
     def set_factors(self, k, u, v):
         '''Add new factor (k = 0, 1, ...).
+
+        Parameters
+        ----------
+        k : int
+            The number of factor to be added.
+        u : numpy.ndarray
+            The user factor to be added.
+        v : numpy.ndarray
+            The item factor to be added.
         '''
         if self.U.shape[1] < k + 1:
             self.extend_factors(k + 1)
@@ -343,6 +381,11 @@ class BaseModelTools():
 
     def truncate_factors(self, k):
         '''Get the first k factors (k = 1, 2, ...).
+
+        Parameters
+        ----------
+        k : int
+            The number of factors to obtain.
         '''
         self.U = self.U[:, :k]
         self.V = self.V[:, :k]
@@ -350,11 +393,25 @@ class BaseModelTools():
 
     def extend_factors(self, k):
         '''Increase the number of factors to k (k = 1, 2, ...).
+
+        Parameters
+        ----------
+        k : int
+            The number of factors to obtain.
         '''
         self.U = hstack([self.U, lil_matrix((self.m, k - self.U.shape[1]))]).tolil()
         self.V = hstack([self.V, lil_matrix((self.n, k - self.V.shape[1]))]).tolil()
     
     
     def print_msg(self, msg, type='I'):
+        '''Print message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to be printed.
+        type : str
+            The type of message, e.g. 'I' for info, 'W' for warning, 'E' for error.
+        '''
         if self.verbose:
             print("[{}] {}".format(type, msg))

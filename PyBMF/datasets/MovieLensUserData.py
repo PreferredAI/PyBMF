@@ -9,9 +9,12 @@ from .MovieLensData import MovieLensData
 class MovieLensUserData(MovieLensData):
     '''Load MovieLens dataset with user profiles
 
-    size:
-        100k
-        1m
+    Parameters
+    ----------
+    path : str
+        Path to the cached dataset.
+    size : str in {'100k', '1m'}
+        MovieLens dataset size.
     '''
     def __init__(self, path=None, size='1m'):
         super().__init__(path=path, size=size)
@@ -20,6 +23,8 @@ class MovieLensUserData(MovieLensData):
 
 
     def read_data(self):
+        '''Read data.
+        '''
         # ratings and titles
         super().read_data()
 
@@ -48,6 +53,8 @@ class MovieLensUserData(MovieLensData):
 
 
     def load_data(self):
+        '''Load data.
+        '''
         super().load_data()
         X = self.X
         user_info, movie_info = self.factor_info
@@ -64,6 +71,8 @@ class MovieLensUserData(MovieLensData):
 
 
     def get_user_profile(self):
+        '''Get user profile.
+        '''
         attributes = ['age', 'occupation', 'zip']
 
         # genger

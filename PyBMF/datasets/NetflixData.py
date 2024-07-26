@@ -6,11 +6,15 @@ from .BaseData import BaseData
 
 
 class NetflixData(BaseData):
-    '''Load Netflix dataset
+    '''Load Netflix dataset.
 
-    size:
-        small, size 15MB, users ~10k, items 4945, ratings ~608k
-        full, size 2.43GB, users ~480k, items 17770, ratings ~100M
+    Parameters
+    ----------
+    path : str
+        Path to the cached dataset.
+    size : str in {'small', 'full'}
+        Netflix data 'small' version, size 15MB, users ~10k, items 4945, ratings ~608k.
+        Netflix data 'full' version, size 2.43GB, users ~480k, items 17770, ratings ~100M.
     '''
     def __init__(self, path=None, size='small'):
         super().__init__(path=path)
@@ -21,6 +25,8 @@ class NetflixData(BaseData):
 
 
     def read_data(self):
+        '''Read data.
+        '''
         # ratings dataset
         path = os.path.join(self.root, "netflix-cornac", "data.csv" if self.size == 'full' else "data_small.csv")
         self.df_ratings = pd.read_csv(path, header=None, names=['uid','iid','rating','date'])
@@ -33,6 +39,8 @@ class NetflixData(BaseData):
 
 
     def load_data(self):
+        '''Load data.
+        '''
         # generate row_idx and col_idx
         self.df_ratings['row_idx'], _ = pd.factorize(self.df_ratings['uid'])
         self.df_ratings['col_idx'], _ = pd.factorize(self.df_ratings['iid'])

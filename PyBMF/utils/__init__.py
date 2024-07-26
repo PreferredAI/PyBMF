@@ -16,7 +16,7 @@ from .collective_transform_utils import concat_Xs_into_X, concat_Us_into_U, conc
 from .collective_display_utils import sort_matrices, get_settings
 from .collective_evaluate_utils import collective_cover, weighted_score, harmonic_score
 
-from .dataframe_utils import log2html, log2latex, _make_name
+from .dataframe_utils import log2html, log2latex, _make_name, get_config
 
 from .decorator_utils import timeit, ignore_warnings
 

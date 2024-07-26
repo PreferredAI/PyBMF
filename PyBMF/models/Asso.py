@@ -9,31 +9,34 @@ from tqdm import tqdm
 
 class Asso(BaseModel):
     '''The Asso algorithm.
+
+    .. topic:: Reference
+
+        The discrete basis problem. Zhang et al. 2007.
     
-    Reference
-    ---------
-    The discrete basis problem. Zhang et al. 2007.
+    Parameters
+    ----------
+    k : int, optional
+        The target rank.
+        If ``None``, it will factorize until the error is smaller than ``tol``, or when other stopping criteria is met.
+    tol : float, default: 0
+        The target error.
+    tau : float
+        The binarization threshold when building basis.
+        Can be determined via model selection techniques.
+    w_fp : float
+        The penalty weights for FP. 
+    w_fn : float, optional, default: None
+        The penalty weights for FN. 
+        If ``w_fn`` is ``None``, it will be treated as ``1 - w_fp``.
     '''
     def __init__(self, tau, k=None, tol=0, w_fp=0.5, w_fn=None):
-        '''
-        Parameters
-        ----------
-        k : int, optional
-            The target rank.
-            If `None`, it will factorize until the error is smaller than `tol`, or when other stopping criteria is met.
-        tol : float, default: 0
-            The target error.
-        tau : float
-            The binarization threshold when building basis.
-            Can be determined via model selection techniques.
-        w_fp, w_fn : float
-            The penalty weights for FP and FN, respectively. 
-            If `w_fn` is `None`, it will be treated as `1 - w_fp`.
-        '''
         self.check_params(tau=tau, k=k, tol=tol, w_fp=w_fp, w_fn=w_fn)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        '''Fit the model.
+        '''
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
@@ -43,6 +46,8 @@ class Asso(BaseModel):
 
 
     def init_model(self):
+        '''Initialize the model.
+        '''
         super().init_model()
         
         # real-valued association matrix
@@ -55,7 +60,8 @@ class Asso(BaseModel):
 
 
     def _fit(self):
-
+        '''The main procedure of fitting.
+        '''
         k = 0
         is_improving = True
         pbar = tqdm(total=self.k, position=0)
@@ -188,9 +194,15 @@ def build_assoc(X, dim):
     Parameters
     ----------
     X : ndarray, spmatrix
+        The data matrix.
     dim : int
-        The dimension which `basis` belongs to.
-        If `dim` == 0, `basis` is treated as a column vector and `vector` as a row vector.
+        The dimension which ``basis`` belongs to.
+        If ``dim`` == 0, ``basis`` is treated as a column vector and ``vector`` as a row vector.
+
+    Returns
+    -------
+    assoc : spmatrix
+        The association matrix.
     '''
     assoc = X @ X.T if dim == 0 else X.T @ X
     assoc = to_sparse(assoc, 'lil').astype(float)
@@ -206,8 +218,15 @@ def build_basis(assoc, tau):
 
     Parameters
     ----------
+    assoc : spmatrix
+        The association matrix.
+    tau : float
+        The threshold for the association matrix.
+
+    Returns
+    -------
     basis : spmatrix
-        Each row of `basis` is a candidate basis.
+        The binary-valued basis candidates.
     '''
     basis = binarize(assoc, tau)
     basis = to_sparse(basis, 'lil').astype(int)

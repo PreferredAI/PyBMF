@@ -4,11 +4,14 @@ from .MovieLensGenreCastData import MovieLensGenreCastData
 
 
 class MovieLensGenreCastUserData(MovieLensData):
-    '''Load MovieLens dataset with user profiles
+    '''Load MovieLens dataset with user profiles.
 
-    size:
-        100k
-        1m
+    Parameters
+    ----------
+    path : str
+        Path to the cached dataset.
+    size : str in {'100k', '1m'}
+        MovieLens dataset size.
     '''
     def __init__(self, path=None, size='1m'):
         super().__init__(path=path, size=size)
@@ -18,10 +21,14 @@ class MovieLensGenreCastUserData(MovieLensData):
 
 
     def read_data(self):
+        '''Read data.
+        '''
         pass
 
 
     def load_data(self):
+        '''Load data.
+        '''
         ml_user = MovieLensUserData(path=self.path, size=self.size)
         ml_user.load()
 

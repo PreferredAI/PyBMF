@@ -35,9 +35,9 @@ class ELBMF(ContinuousModel):
         ----------
         k : int
             Number of latent factors.
-        U, V : numpy.ndarray, spmatrix
+        U, V : ndarray, spmatrix
             Need to be prepared if `init_method` is 'custom'.
-        W : numpy.ndarray, spmatrix or str in ['full', 'mask']
+        W : ndarray, spmatrix or str in ['full', 'mask']
             Weight matrix.
         init_method : str in ['custom', 'normal', 'uniform']
         reg_l1, reg_l2, reg_growth : float

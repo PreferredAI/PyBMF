@@ -39,4 +39,4 @@ from .BinaryMFThresholdExCollective import BinaryMFThresholdExCollective
 from .BinaryMFThresholdExSigmoidColumnwise import BinaryMFThresholdExSigmoidColumnwise
 # from .BinaryMFThresholdExSigmoidColumnwiseLamda import BinaryMFThresholdExColumnwiseLamda
 
-from .CMF import  CMF
+from .CMF import CMF

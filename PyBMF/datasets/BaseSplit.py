@@ -5,9 +5,26 @@ import numpy as np
 from typing import Union
 
 class BaseSplit:
-    '''Initialization for `NoSplit`, `RatioSplit` and `CrossValidation`.
+    '''Base class for data splitting and negative sampling methods ``NoSplit``, ``RatioSplit`` and ``CrossValidation``.
+
+    .. note::
+
+        Attributes of ``BaseSplit``.
+
+        X_train : spmatrix
+            The training data matrix.
+        X_val : spmatrix
+            The validation data matrix.
+        X_test : spmatrix
+            The test data matrix.
+
+    Parameters
+    ----------
+    X : ndarray, spmatrix
+        The data matrix.
     '''
     def __init__(self, X: Union[np.ndarray, spmatrix]):
+
         # input
         self.X = to_sparse(X, 'csr')
         
@@ -20,20 +37,23 @@ class BaseSplit:
     def negative_sample(self):
         '''Negative sampling.
 
-        Note: 
+        .. note::
         
-        We can only add 0's using csr/csc_matrix, and validate negative samples using coo_matrix or triplet.
+            We can only add 0's using csr/csc_matrix, and validate negative samples using ``coo_matrix`` or triplet.
 
-        `coo_matrix` does not support value assignment;
-        `lil_matrix` has no effect when adding 0's onto it.
+            ``coo_matrix`` does not support value assignment;
+            ``lil_matrix`` has no effect when adding 0's onto it.
 
-        Any arithmetic operation or `csr_matrix.eliminate_zeros()` will lose the negative samples.
+            Any arithmetic operation or ``csr_matrix.eliminate_zeros()`` will cause a sparse matrix to lose the negative samples.
         '''
         raise NotImplementedError("Missing negative_sample method.")
 
 
     def check_params(self, **kwargs):
-        # check seed
+        '''Check patameters.
+        
+        Checking the random seed.
+        '''
         if "seed" in kwargs:
             seed = kwargs.get("seed")
             if seed is None and not hasattr(self,'seed'): # use time as self.seed
@@ -50,10 +70,20 @@ class BaseSplit:
 
 
     def load_pos_data(self, train_idx, val_idx, test_idx):
-        '''
-        Used in RatioSplit and CrossValidation.
+        '''Load positive data.
 
-        Leave X_val, X_test empty if val_idx/test_idx length is 0 for negative sampling.
+        Used in ``RatioSplit`` and ``CrossValidation``.
+
+        Leave ``X_val``, ``X_test`` empty if ``val_idx``/``test_idx`` length is 0 for negative sampling.
+
+        Parameters
+        ----------
+        train_idx : ndarray
+            The indices of training data.
+        val_idx : ndarray
+            The indices of validation data.
+        test_idx : ndarray
+            The indices of test data.
         '''
         self.X_train = safe_indexing(self.X, train_idx)
         self.X_val = safe_indexing(self.X, val_idx) if len(val_idx) > 0 else csr_matrix(self.X.shape)
@@ -65,13 +95,23 @@ class BaseSplit:
 
 
     def get_neg_indices(self, n_negatives, type):
-        '''
-        Used in RatioSplit.negative_sample and CrossValidation.negative_sample.
+        '''Generate negative indices.
+
+        Used in ``RatioSplit.negative_sample`` and ``CrossValidation.negative_sample``.
 
         This is fast but intractable for large dataset. Use trial-and-error for large dataset.
+
+        Parameters
+        ----------
+        n_negatives : int
+            Number of negative samples.
+        type : str
+            Negative sampling type.
         '''
         if n_negatives == 0:
             return np.array([]), np.array([])
+        
+        assert type in ['uniform', 'popularity'], "Unsupported negative sampling option: {}".format(type)
         
         m, n = self.X.shape
         if type == "uniform":
@@ -99,8 +139,9 @@ class BaseSplit:
 
     @ignore_warnings
     def load_neg_data(self, train_idx, val_idx, test_idx, U_neg, V_neg):
-        '''
-        Used in RatioSplit.negative_sample and CrossValidation.negative_sample.
+        '''Load negative data.
+
+        Used in ``RatioSplit.negative_sample`` and ``CrossValidation.negative_sample``.
         '''
         self.X_train = to_sparse(self.X_train, type='csr')
         self.X_val = to_sparse(self.X_val, type='csr')
