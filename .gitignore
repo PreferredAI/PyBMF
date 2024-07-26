@@ -7,21 +7,19 @@
 
 /docs/*.rst
 !/docs/index.rst
+!/docs/modules.rst
+!/docs/PyBMF.datasets.rst
+!/docs/PyBMF.generators.rst
+!/docs/PyBMF.models.rst
+!/docs/PyBMF.solvers.rst
+!/docs/PyBMF.utils.rst
 
 .*/
 /PyBMF.egg-info/
 /PyBMF/PyBMF.egg-info/
-experiment/
-_build/
-build/
-
-# bmf_exact_kovacs/
-# bmf_ip_kovacs/
-# bmf_maxsat_avellaneda/
-# bmf_mp_ravanba/
-# bmf_ormachine_rakut/
-# bmf_primping_hess/
-# bmf_elbmf_fujiwara/
+/experiment/
+/docs/_build/
+/build/
 
 /PyBMF/models/*
 
@@ -70,6 +68,14 @@ build/
 !/PyBMF/models/TransposedModel.py
 !/PyBMF/models/WNMF.py
 !/PyBMF/models/__init__.py
+
+# bmf_exact_kovacs/
+# bmf_ip_kovacs/
+# bmf_maxsat_avellaneda/
+# bmf_mp_ravanba/
+# bmf_ormachine_rakut/
+# bmf_primping_hess/
+# bmf_elbmf_fujiwara/
 
 /examples/*
 
