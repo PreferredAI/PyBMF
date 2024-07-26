@@ -1,6 +1,4 @@
 sphinx
-sphinx_rtd_theme
 sphinx-autodoc-typehints
-sphinxcontrib-napoleon
 sphinx_mdinclude
 furo
