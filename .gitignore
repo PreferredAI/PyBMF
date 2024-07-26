@@ -7,7 +7,8 @@
 /docs/*.rst
 
 .*/
-*.egg-info/
+/PyBMF.egg-info/
+/PyBMF/PyBMF.egg-info/
 experiment/
 _build/
 build/
