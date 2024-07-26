@@ -25,9 +25,9 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon', 
     'sphinx_autodoc_typehints',
     'sphinx_mdinclude', 
-    'sphinxcontrib.napoleon', 
 ]
 
 # Napoleon settings
