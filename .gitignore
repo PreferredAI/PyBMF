@@ -4,7 +4,9 @@
 *.bak
 *.html
 *.pdf
+
 /docs/*.rst
+!/docs/index.rst
 
 .*/
 /PyBMF.egg-info/
