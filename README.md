@@ -24,7 +24,7 @@ PyBMF aims to provide a unified framework with:
 6. tools to `evaluate()` using binary and continuous metrics
 7. visualization tools to `show_matrix()` in single or multi-matrix mode
 8. tools to `save_model` and `show_logs` in HTML or OverLeaf with `logs2html` and `logs2latex`
-9. ability to incorporate Boolean matrix simplification and visualization `models` in planned puture
+9. ability to incorporate Boolean matrix simplification and visualization `models` in planned future
 
 
 # Models
@@ -68,9 +68,9 @@ Currently built and tested on Python 3.9.18.
 
 # TO-DO
 
+- [x] Diagnosis of thresholding models
+- [x] Fix DataFrame display utils in dataframe_utils.py
 - [ ] Add mask parameter W to PRIMP and ELBMF
-- [*] Fix DataFrame display utils in dataframe_utils.py
+- [ ] Make a page dedicated to contributors and references
 - [ ] Include BMF visualization models
 - [ ] Include BMF simplification models
-- [ ] Diagnosis of thresholding models
-- [ ] Make a page dedicated to contributors and references
