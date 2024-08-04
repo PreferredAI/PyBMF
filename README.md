@@ -16,15 +16,15 @@ Boolean matrix factorization (BMF) is a well-known problem in pattern mining. Th
 
 PyBMF aims to provide a unified framework with:
 
-1. generators for various types of synthetic data
-2. unified ways of importing real-world data
-3. data splitting and cross-validation utilities
-4. negative sampling utilities for continuous methods
-5. the ability to utilize sparse matrices for heuristics
-6. evaluation tools for binary and continuous metrics
-7. visualization tools for single or multi-matrix data
-8. tools for saving and loading models and logs
-9. ability to incorporate Boolean matrix simplification and visualization models
+1. `generators` for various types of synthetic data
+2. easy ways of importing and sampling real-world `datasets` like `MovieLensData` and `NetflixData`
+3. data `RatioSplit` and `CrossValidation` utilities
+4. tools for generating `negative_sample()` when needed
+5. compatibility of `scipy.sparse` matrices when it can
+6. tools to `evaluate()` using binary and continuous metrics
+7. visualization tools to `show_matrix()` in single or multi-matrix mode
+8. tools to `save_model` and `show_logs` in HTML or OverLeaf with `logs2html` and `logs2latex`
+9. ability to incorporate Boolean matrix simplification and visualization `models` in planned puture
 
 
 # Models
@@ -69,6 +69,8 @@ Currently built and tested on Python 3.9.18.
 # TO-DO
 
 - [ ] Add mask parameter W to PRIMP and ELBMF
-- [ ] Fix DataFrame display utils in dataframe_utils.py
+- [*] Fix DataFrame display utils in dataframe_utils.py
 - [ ] Include BMF visualization models
+- [ ] Include BMF simplification models
 - [ ] Diagnosis of thresholding models
+- [ ] Make a page dedicated to contributors and references
