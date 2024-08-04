@@ -65,3 +65,41 @@ def line_search(f, myfprime, xk, pk, args=(), kwargs={}, maxiter=1000, c1=0.1, c
         fc, gc = fc + 1, gc + 1
 
         return alpha, fc, gc, new_fval, old_fval, new_slope
+
+
+def limit_step_size(x_min, x_max, x_last, xk, alpha, pk):
+    '''Limit the step size by limiting ``x_last`` by ``x_min`` and ``x_max``.
+    
+    This is similar to setting ``amax`` or ``extra_condition`` in ``scipy.optimize.line_search``.
+
+    Parameters
+    ----------
+    x_min : array_like
+    x_max : array_like
+    x_last : array_like
+    xk : array_like
+    alpha : float
+    pk : array_like
+
+    Returns
+    -------
+    x_last : array_like
+    alpha_new : float
+    '''
+    if (x_last <= x_max).all() and (x_last >= x_min).all():
+        return x_last, alpha
+
+    alpha_new = alpha
+
+    for i in range(len(x_last)):
+        alpha_tmp = alpha_new
+        if x_last[i] > x_max[i]:
+            alpha_tmp = (x_max[i] - xk[i]) / pk[i]
+        if x_last[i] < x_min[i]:
+            alpha_tmp = (x_min[i] - xk[i]) / pk[i]
+        if alpha_tmp < alpha_new:
+            alpha_new = alpha_tmp
+
+    x_last = xk + alpha_new * pk
+
+    return x_last, alpha_new
