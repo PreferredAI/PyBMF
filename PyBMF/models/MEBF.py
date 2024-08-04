@@ -7,24 +7,29 @@ from scipy.sparse import issparse, lil_matrix, csr_matrix, hstack
 class MEBF(BaseModel):
     '''Median Expansion for Boolean Factorization
     
-    From the paper 'Fast And Efficient Boolean Matrix Factorization By Geometric Segmentation'.
+    .. topic:: Reference
+
+        Fast And Efficient Boolean Matrix Factorization By Geometric Segmentation.
+
+    Parameters
+    ----------
+    k : int, optional
+        The target rank.
+        If ``None``, it will factorize until the error is smaller than ``tol``, or when other stopping criteria is met.
+    tol : float, default: 0
+        The error tolerance.
+    w_fp : float
+        The penalty weights for false positives (FP).
+    w_fn : float
+        The penalty weights for false negatives (FN).
     '''
     def __init__(self, k=None, tol=0, t=None, w_fp=1, w_fn=1):
-        '''
-        k : int, optional
-            The target rank.
-            If `None`, it will factorize until the error is smaller than `tol`, or when other stopping criteria is met.
-        tol : float, default: 0
-            The target error.
-        t :
-            Threshold.
-        w_fp, w_fn : float
-            The penalty weights for FP and FN, respectively. 
-        '''
         self.check_params(k=k, tol=tol, t=t, w_fp=w_fp, w_fn=w_fn)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        '''Fit the model.
+        '''
         self.check_params(**kwargs)
         self.load_dataset(X_train=X_train, X_val=X_val, X_test=X_test)
         self.init_model()
@@ -35,6 +40,8 @@ class MEBF(BaseModel):
 
 
     def _fit(self):
+        '''The main process if fitting.
+        '''
         # update residual and coverage
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         self.X_rs = get_residual(X=self.X_train, U=self.U, V=self.V)
@@ -159,10 +166,18 @@ class MEBF(BaseModel):
     def get_factor(self, axis):
         '''Get factor for bi-directional growth.
 
-        axis :
-            0, sort cols, find middle u and grow on v
-            1, sort rows, find middle v and grow on u
-        a, b : np.matrix
+        Parameters
+        ----------
+        axis : int
+            0, sort cols, find middle u and grow on v.
+            1, sort rows, find middle v and grow on u.
+        
+        Returns
+        -------
+        a : csr_matrix
+            A factor vector.
+        b : csr_matrix
+            A factor vector.
         '''
         scores = sum(X=self.X_rs, axis=axis)
         idx = np.flip(np.argsort(scores)).astype(int)
@@ -186,10 +201,18 @@ class MEBF(BaseModel):
     def get_weak_signal(self, axis):
         '''Get factor for weak signal detection.
 
-        axis :
+        Parameters
+        ----------
+        axis : int
             0, find u and grow on v
             1, find v and grow on u
-        a, b : np.matrix
+        
+        Returns
+        -------
+        a : csr_matrix
+            A factor vector.
+        b : csr_matrix
+            A factor vector.
         '''
         scores = sum(X=self.X_rs, axis=axis)
         idx = np.flip(np.argsort(scores)).astype(int)

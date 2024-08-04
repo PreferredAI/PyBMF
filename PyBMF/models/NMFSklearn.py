@@ -5,21 +5,21 @@ from ..utils import to_sparse, get_prediction_with_threshold
 
 class NMFSklearn(ContinuousModel):
     '''NMF by scikit-learn.
+
+    Parameters
+    ----------
+    U : ndarray, spmatrix
+        Need to be prepared if ``init_method`` is 'custom'.
+    V : ndarray, spmatrix
+        Need to be prepared if ``init_method`` is 'custom'.
     '''
     def __init__(self, k, U=None, V=None, beta_loss='frobenius', init_method='nndsvd', solver='cd', tol=1e-4, max_iter=1000, seed=None):
-        '''
-        Parameters
-        ----------
-        U, V : ndarray, spmatrix
-            Need to be prepared if `init_method` is 'custom'.
-        '''
         self.check_params(k=k, U=U, V=V, beta_loss=beta_loss, init_method=init_method, solver=solver, tol=tol, max_iter=max_iter, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        # self.set_params(['beta_loss', 'solver'], **kwargs)
         assert self.solver in ['cd', 'mu']
         assert self.beta_loss in ['frobenius', 'kullback-leibler', 'itakura-saito']
         assert self.init_method in [None, 'random', 'nndsvd', 'nndsvda', 'nndsvdar', 'custom']

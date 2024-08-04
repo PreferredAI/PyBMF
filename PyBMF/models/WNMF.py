@@ -1,4 +1,4 @@
-from sklearn import decomposition
+from tqdm import tqdm
 from .ContinuousModel import ContinuousModel
 from ..utils import to_sparse, multiply, power, ignore_warnings, subtract, check_sparse, add, get_prediction
 import numpy as np
@@ -8,49 +8,44 @@ from scipy.sparse import lil_matrix
 class WNMF(ContinuousModel):
     '''Weighted Nonnegative Matrix Factorization.
 
-    Reference
-    ---------
-    Weighted Nonnegative Matrix Factorization and Face Feature Extraction.
+    .. topic:: Reference
 
-    For scipy implementation:
-    Projected Gradient Methods for Non-negative Matrix Factorization
-    https://github.com/scikit-learn/scikit-learn/blob/a95203b249c1cf392f86d001ad999e29b2392739/sklearn/decomposition/nmf.py#L158
+        Weighted Nonnegative Matrix Factorization and Face Feature Extraction.
+
+        For scipy implementation:
+
+        Projected Gradient Methods for Non-negative Matrix Factorization.
+
+        https://github.com/scikit-learn/scikit-learn/blob/a95203b249c1cf392f86d001ad999e29b2392739/sklearn/decomposition/nmf.py#L158
+
+    Parameters
+    ----------
+    U : ndarray, spmatrix
+        Need to be prepared if ``init_method`` is 'custom'. 
+    V : ndarray, spmatrix
+        Need to be prepared if ``init_method`` is 'custom'.
     '''
     def __init__(self, k, U=None, V=None, W='mask', beta_loss='frobenius', init_method='normal', solver='mu', tol=0.0, min_diff=0.0, max_iter=30, seed=None):
-        '''
-        Parameters
-        ----------
-        U, V : ndarray, spmatrix
-            Need to be prepared if `init_method` is 'custom'.
-        '''
         self.check_params(k=k, U=U, V=V, W=W, beta_loss=beta_loss, init_method=init_method, solver=solver, tol=tol, min_diff=min_diff, max_iter=max_iter, seed=seed)
         
 
     def check_params(self, **kwargs):
         super().check_params(**kwargs)
 
-        # self.set_params(['beta_loss', 'solver', 'reg_growth'], **kwargs)
         assert self.beta_loss in ['frobenius', 'kullback-leibler']
         assert self.solver in ['mu']
         assert self.init_method in ['uniform', 'normal', 'custom']
         
     
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        '''Fit the model.
+        '''
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
+
+        self.X_pd = get_prediction(U=self.U, V=self.V, boolean=False)
         self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
-
-
-    def init_model(self):
-        '''Initialize factors and logging variables.
-        '''
-        super().init_model()
-
-        self.init_UV()
-        
-        self._to_float()
-        self._to_dense()
 
 
     def _fit(self):
@@ -67,6 +62,7 @@ class WNMF(ContinuousModel):
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=False)
         self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_old}, metrics=['RMSE', 'MAE'])
 
+        pbar = tqdm(total=self.max_iter, desc="[I] error: -")
         while is_improving:
             # update n_iter, U, V
             n_iter += 1
@@ -78,14 +74,16 @@ class WNMF(ContinuousModel):
             error_old = error_new
 
             # evaluate
-            # self.predict_X(boolean=False)
             self.X_pd = get_prediction(U=self.U, V=self.V, boolean=False)
             self.evaluate(df_name='updates', head_info={'iter': n_iter, 'error': error_new}, metrics=['RMSE', 'MAE'])
 
             # display
-            self.print_msg("iter: {}, error: {:.2e}".format(n_iter, error_new))
             if self.verbose and self.display and n_iter % 10 == 0:
                 self.show_matrix(boolean=False, title=f"iter {n_iter}")
+
+            # update pbar
+            pbar.update(1)
+            pbar.set_description(f"[I] error: {error_new:.6e}")
 
             # early stop detection
             is_improving = self.early_stop(error=error_old, diff=diff, n_iter=n_iter)

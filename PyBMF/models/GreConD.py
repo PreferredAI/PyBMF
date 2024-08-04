@@ -7,15 +7,25 @@ import numpy as np
 class GreConD(BaseModel):
     '''The GreConD algorithm for exact Boolean decomposition.
     
-    Reference
-    ---------
-    Discovery of optimal factors in binary data via a novel method of matrix decomposition.
+    .. topic:: Reference
+
+        Discovery of optimal factors in binary data via a novel method of matrix decomposition.
+
+    Parameters
+    ----------
+    k : int, optional
+        The target rank.
+        If ``None``, it will factorize until the error is smaller than `tol`, or when other stopping criteria is met.
+    tol : float, default: 0
+        The error tolerance.
     '''
     def __init__(self, k=None, tol=0):
         self.check_params(k=k, tol=tol)
         
         
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        '''Fit the model.
+        '''
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
@@ -23,7 +33,8 @@ class GreConD(BaseModel):
 
 
     def _fit(self):
-
+        '''The main process if fitting.
+        '''
         k = 0
         is_factorizing = True
         self.X_rs = lil_matrix(self.X_train.copy())
@@ -72,7 +83,10 @@ def get_concept(X_gt, X_rs):
     -------
     score : float
         The TP coverage of the pattern over X_gt.
-    u, v : (m, 1), (n, 1) spmatrix
+    u : (m, 1) spmatrix
+        The factors.
+        If the pattern is not found, they'll be zero vectors.
+    v : (n, 1) spmatrix
         The factors.
         If the pattern is not found, they'll be zero vectors.
     '''

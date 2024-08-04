@@ -14,8 +14,8 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
 
     Parameters
     ----------
-    X_gt : array or spmatrix
-    X_pd : array or spmatrix, optional
+    X_gt : ndarray or spmatrix
+    X_pd : ndarray or spmatrix, optional
     U : spmatrix, optional
     V : spmatrix, optional
     metrics : list of str

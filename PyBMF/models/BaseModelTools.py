@@ -54,7 +54,7 @@ class BaseModelTools():
         init_method : str
             The initialization method.
         '''
-        kwconfigs = ['task', 'seed', 'display', 'verbose', 'scaling', 'pixels']
+        kwconfigs = ['task', 'seed', 'display', 'verbose', 'scaling', 'pixels', 'show_logs', 'save_model', 'show_result']
         for param in kwargs:
             if param in kwconfigs:
                 continue
@@ -160,17 +160,17 @@ class BaseModelTools():
 
         if "show_logs" in kwargs:
             self.show_logs = kwargs.get("show_logs")
-            print("[I]   show_logs  :", self.show_logs)
+            print("[I] show_logs    :", self.show_logs)
         else:
             self.show_logs = True
         if "save_model" in kwargs:
             self.save_model = kwargs.get("save_model")
-            print("[I]   save_model :", self.save_model)
+            print("[I] save_model   :", self.save_model)
         else:
             self.save_model = True
         if "show_result" in kwargs:
             self.show_result = kwargs.get("show_result")
-            print("[I]   show_result:", self.show_result)
+            print("[I] show_result  :", self.show_result)
         else:
             self.show_result = True
 
@@ -227,8 +227,11 @@ class BaseModelTools():
         '''Display the prediction.
 
         Make sure ``self.X_pd`` is set properly before calling.
+
+        For example:
+
+        >>> self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         '''
-        # self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         settings = [(self.X_train, [0, 0], 'gt'), (self.X_pd, [0, 1], 'pd')]
         self.show_matrix(settings, colorbar=True, discrete=True, clim=[0, 1])
 

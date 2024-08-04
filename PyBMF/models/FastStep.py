@@ -8,12 +8,14 @@ from tqdm import tqdm
 
 
 class FastStep(ContinuousModel):
-    '''The FastStep algorithm.
+    '''The FastStep algorithm. The projected line search is applied.
 
-    - solver: projected line search
+    .. topic:: Reference
+
+        FastStep: Scalable Boolean matrix decomposition.
     '''
-    def __init__(self, k, U=None, V=None, W='full', tau=20, solver='line-search', tol=0, min_diff=1e-2, max_round=30, max_iter=50, init_method='uniform', seed=None):
-        self.check_params(k=k, U=U, V=V, W=W, tau=tau, solver=solver, tol=tol, min_diff=min_diff, max_round=max_round, max_iter=max_iter, init_method=init_method, seed=seed)
+    def __init__(self, k, U=None, V=None, W='full', tau=20, solver='line-search', tol=0, min_diff=1e-2, max_round=30, max_iter=50, init_method='uniform', normalize_method=None, seed=None):
+        self.check_params(k=k, U=U, V=V, W=W, tau=tau, solver=solver, tol=tol, min_diff=min_diff, max_round=max_round, max_iter=max_iter, init_method=init_method, normalize_method=normalize_method, seed=seed)
 
     
     def check_params(self, **kwargs):
@@ -26,30 +28,15 @@ class FastStep(ContinuousModel):
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
         super().fit(X_train, X_val, X_test, **kwargs)
+
+        # debug: normalize to [1e-5, 0.01] as in the paper
+        self.U = to_interval(self.U, 1e-5, 0.01)
+        self.V = to_interval(self.V, 1e-5, 0.01)
     
         self._fit()
 
         self.X_pd = binarize(self.U @ self.V.T, self.tau)
         self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
-
-
-    def init_model(self):
-        '''Initialize factors and logging variables.
-        '''
-        super().init_model()
-
-        self.init_UV()
-        
-        # self.normalize_UV(method="balance")
-        self.normalize_UV(method="normalize")
-
-        # transform into dense float matrices
-        self._to_float()
-        self._to_dense()
-
-        # debug: normalize to [1e-5, 0.01] as in the paper
-        self.U = to_interval(self.U, 1e-5, 0.01)
-        self.V = to_interval(self.V, 1e-5, 0.01)
 
 
     def _fit(self):
@@ -145,6 +132,8 @@ class FastStep(ContinuousModel):
 
 
     def early_stop(self, error=None, diff=None, n_round=None, n_iter=None, n_factor=None, msg=None, k=None, verbose=True):
+        '''Early stop detection wrapper.
+        '''
         is_improving = super().early_stop(error=error, diff=diff, n_iter=n_iter, n_factor=n_factor, msg=msg, k=k, verbose=verbose)
         if n_round is not None and hasattr(self, 'max_round') and n_round > self.max_round:
             self._early_stop(msg="Reach maximum round", k=k, verbose=verbose)

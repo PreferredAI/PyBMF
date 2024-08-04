@@ -9,7 +9,14 @@ from .boolean_utils import multiply, matmul
 from .decorator_utils import ignore_warnings
 
 def get_rng(seed, rng):
-    '''Get random number generator
+    '''Get random number generator.
+
+    Parameters
+    ----------
+    seed : optional
+        Random seed.
+    rng : optional
+        Random number generator.
     '''
     if isinstance(rng, np.random.RandomState):
         print("[I] Using RandomState.")
@@ -105,12 +112,26 @@ def get_prediction_with_threshold(U, V, u=None, v=None, us=None, vs=None, sparse
 
     Parameters
     ----------
-    U, V : array, spmatrix
-    u, v : float
-        The shared threshold across all factors for U and V.
-    us, vs : list of length k, float
-        The individual thresholds for each factor in U and V.
+    U : ndarray, spmatrix
+        The factor matrix.
+    V : ndarray, spmatrix
+        The factor matrix.
+    u : float
+        The shared threshold across all factors for ``U``.
+    v : float
+        The shared threshold across all factors for ``V``.
+    us : list of k floats
+        The individual thresholds for each factor in ``U``.
+    vs : list of k floats
+        The individual thresholds for each factor in ``V``.
+
+    Returns
+    -------
+    X_pd : ndarray, spmatrix
+        The prediction matrix.
     '''
+    U, V = U.copy(), V.copy()
+    
     if us is not None:
         assert len(us) == U.shape[1]
         for i in range(U.shape[1]):
@@ -125,7 +146,9 @@ def get_prediction_with_threshold(U, V, u=None, v=None, us=None, vs=None, sparse
     elif v is not None:
         V = binarize(V, v)
 
-    return matmul(U, V.T, boolean=True, sparse=sparse)
+    X_pd = matmul(U, V.T, boolean=True, sparse=sparse)
+
+    return X_pd
 
 
 def get_residual(X, U, V):
@@ -142,9 +165,11 @@ def to_interval(X, min, max):
 
     Parameters
     ----------
-    X : array
+    X : ndarray
+    min : float
+    max : float
     
-    TODO: spmatrix
+    TODO: to support spmatrix
     '''
     min_val = X.min()
     max_val = X.max()

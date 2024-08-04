@@ -10,37 +10,43 @@ from scipy.sparse import lil_matrix, hstack
 class Panda(BaseModel):
     '''PaNDa and PaNDa+ algorithm.
 
-    PaNDa and PaNDa+ both fix `w_fp`, `w_fn` to [1, 1].
-    PaNDa fixes `w_model` to 1 while PaNDa+ does not.
+    PaNDa and PaNDa+ both fix ``w_fp``, ``w_fn`` to ``1.0``. They're allowed to be tuned in our implementation.
 
-    Reference
-    ---------
-    Mining Top-K Patterns from Binary Datasets in presence of Noise.
-    A unifying framework for mining approximate top-k binary patterns.
+    PaNDa fixes ``w_model`` to ``1.0`` while PaNDa+ does not.
+
+    .. topic:: Reference
+
+        Mining Top-K Patterns from Binary Datasets in presence of Noise.
+        A unifying framework for mining approximate top-k binary patterns.
+
+    Parameters
+    ----------
+    k : int, optional
+        The target rank.
+        If `None`, it will factorize until the error is smaller than `tol`, or when other stopping criteria is met.
+    tol : float, default: 0
+        The error tolerance.
+    w_model : float
+        The model code weight `rho` in the Panda+ paper.
+    w_fp : float
+        The penalty weights for false positives (FP).
+        Added on top of the original works of Panda and Panda+ for flexibility.
+    w_fn : float
+        The penalty weights for false negatives (FN).
+        Added on top of the original works of Panda and Panda+ for flexibility.
+    init_method : str
+        How items are sorted.
+    exact_decomp : bool
+        Exact decomposition option.
+        Added on top of the original works of Panda and Panda+ to enable exact decomposition.
     '''
     def __init__(self, k=None, tol=0, w_model=1, w_fp=1, w_fn=1, init_method='correlation', exact_decomp=False):
-        '''
-        Parameters
-        ----------
-        k : int, optional
-            The target rank.
-            If `None`, it will factorize until the error is smaller than `tol`, or when other stopping criteria is met.
-        tol : float, default: 0
-            The target error.
-        w_model : float
-            The model code weight `rho` in the Panda+ paper.
-        w_fp, w_fn : float
-            The penalty weights for FP and FN, respectively.
-            They are added on top of the original works of Panda and Panda+.
-        init_method : str
-            How items are sorted.
-        exact_decomp : bool
-            Exact decomposition.
-        '''
         self.check_params(k=k, tol=tol, w_model=w_model, w_fp=w_fp, w_fn=w_fn, init_method=init_method, exact_decomp=exact_decomp)
 
 
     def check_params(self, **kwargs):
+        '''Check the validity of the parameters.
+        '''
         super().check_params(**kwargs)
 
         assert self.init_method in ['frequency', 'couples-frequency', 'correlation']
@@ -52,6 +58,8 @@ class Panda(BaseModel):
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        '''Fit the model.
+        '''
         super().fit(X_train, X_val, X_test, **kwargs)
         
         self._fit()
@@ -59,13 +67,13 @@ class Panda(BaseModel):
 
 
     def _fit(self):
-        '''
-        E : list
-            The item extension list.
-        I : list
-            The item list.
-        T : list
-            The user or transaction list.
+        '''The main process of fitting.
+
+        In Panda, 3 lists are maintained.
+
+        ``E`` (list) is the item extension list.
+        ``I`` (spmatrix) is the item list.
+        ``T`` (spmatrix) is the user or transaction list.
         '''
         # update residual and coverage
         self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
@@ -153,13 +161,6 @@ class Panda(BaseModel):
     @ignore_warnings
     def find_core(self):
         '''Find a dense core (T, I) and its extension list E.
-        
-        E : list
-            The item extension list.
-        I : spmatrix
-            The item list.
-        T : spmatrix
-            The user or transaction list.
         '''
         self.E = list(range(self.n)) # start with all items
         self.I = lil_matrix((self.n, 1))
@@ -234,6 +235,8 @@ class Panda(BaseModel):
 
     @ignore_warnings
     def extend_core(self):
+        '''Extend core (T, I) with one item from E.
+        '''
         cost_old = self.cost_now
         if self.verbose is False:
             desc = f"[I] k: {self.n_factors}, extd cost: [{cost_old}]"
@@ -302,12 +305,17 @@ class Panda(BaseModel):
     def sort_items(self, method):
         '''Sort the extension list by descending scores.
 
-        frequency :
-            Sort items in extension list by frequency.
-        couples-frequency :
-            Sort items in extension list by frequency of item-pairs that include an item.
-        correlation :
-            Sort items in extension list by correlation with current transactions T.
+        Parameters
+        ----------
+        method : str
+            Sort method.
+
+            ``frequency``:
+                Sort items in extension list by frequency.
+            ``couples-frequency``:
+                Sort items in extension list by frequency of item-pairs that include an item.
+            ``correlation``:
+                Sort items in extension list by correlation with current transactions ``T``.
         '''
         if method == 'frequency':
             scores = sum(self.X_rs[:, self.E], axis=0)

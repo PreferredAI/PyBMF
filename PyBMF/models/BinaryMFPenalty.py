@@ -7,74 +7,55 @@ from tqdm import tqdm
 
 class BinaryMFPenalty(ContinuousModel):
     '''Binary matrix factorization, penalty function algorithm.
-
-    Solving the problem with multiplicative update:
-
-    min 1/2 * ||X - U @ V.T||_F^2 + 1/2 * reg * ||U^2 - U||_F^2 + 1/2 * reg * ||V^2 - V||_F^2
     
-    Reference
-    ---------
-    Binary Matrix Factorization with Applications.
+    .. topic:: Reference
 
-    Algorithms for Non-negative Matrix Factorization.
+        Binary Matrix Factorization with Applications.
+
+        Algorithms for Non-negative Matrix Factorization.
+
+        Solving the problem with multiplicative update:
+
+        min 1/2 * ||X - U @ V.T||_F^2 + 1/2 * reg * ||U^2 - U||_F^2 + 1/2 * reg * ||V^2 - V||_F^2
+
+    Parameters
+    ----------
+    reg : float
+        The regularization weight 'lambda' in the paper.
+    reg_growth : float
+        The growing rate of regularization weight.
+    max_reg : float
+        The upper bound of regularization weight.
+    tol : float
+        The error tolerance 'epsilon' in the paper.
     '''
-    def __init__(self, k, U=None, V=None, W='full', beta_loss="frobenius", solver="mu", reg=2.0, reg_growth=3, max_reg=1e10, tol=0.01, min_diff=0.0, max_iter=100, init_method='custom', seed=None):
-        '''
-        Parameters
-        ----------
-        reg : float
-            The regularization weight 'lambda' in the paper.
-        reg_growth : float
-            The growing rate of regularization weight.
-        max_reg : float
-            The upper bound of regularization weight.
-        tol : float
-            The error tolerance 'epsilon' in the paper.
-        '''
-        self.check_params(k=k, U=U, V=V, W=W, reg=reg, beta_loss=beta_loss, solver=solver, reg_growth=reg_growth, max_reg=max_reg, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, seed=seed)
+    def __init__(self, k, U=None, V=None, W='full', beta_loss="frobenius", solver="mu", reg=2.0, reg_growth=3, max_reg=1e10, tol=0.01, min_diff=0.0, max_iter=100, init_method='custom', normalize_method='balance', seed=None):
+        self.check_params(k=k, U=U, V=V, W=W, reg=reg, beta_loss=beta_loss, solver=solver, reg_growth=reg_growth, max_reg=max_reg, tol=tol, min_diff=min_diff, max_iter=max_iter, init_method=init_method, normalize_method=normalize_method, seed=seed)
         
 
     def check_params(self, **kwargs):
+        '''Check the validity of parameters.
+        '''
         super().check_params(**kwargs)
         
         assert self.beta_loss in ['frobenius']
         assert self.solver in ['mu']
         assert self.init_method in ['normal', 'uniform', 'custom']
+        assert self.normalize_method in ['balance', None]
+        
         self.reg, self.reg_growth, self.max_reg = np.float64(self.reg), np.float64(self.reg_growth), np.float64(self.max_reg)
 
 
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        '''Fit the model.
+        '''
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
 
-        # show distribution
-        if self.display:
-            show_factor_distribution(U=self.U, V=self.V, resolution=100)
-
-        # boolean pattern for show_matrix
+        # boolean product with fixed threshold
         self.X_pd = get_prediction_with_threshold(U=self.U, V=self.V, u=0.5, v=0.5)
         self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
-
-    
-    def init_model(self):
-        '''Initialize factors and logging variables.
-        '''
-        super().init_model()
-
-        # initialize U, V
-        self.init_UV()
-
-        # normalize U, V
-        self.normalize_UV(method="balance")
-
-        # replace zeros in U, V
-        self.U[self.U == 0] = np.finfo(float).eps
-        self.V[self.V == 0] = np.finfo(float).eps
-
-        # transform into dense float matrices
-        self._to_float()
-        self._to_dense()
 
 
     def _fit(self):
@@ -135,18 +116,26 @@ class BinaryMFPenalty(ContinuousModel):
 
 
     def get_prediction(self):
+        '''Get prediction matrix.
+        '''
         return get_prediction(U=self.U, V=self.V, boolean=False)
     
     
     def update_U(self):
+        '''The update process of U.
+        '''
         self.U = update_U(X=self.X_train, W=self.W, U=self.U, V=self.V, reg=self.reg)
         
 
     def update_V(self):
+        '''The update process of V.
+        '''
         self.V = update_V(X=self.X_train, W=self.W, U=self.U, V=self.V, reg=self.reg)
 
 
 def update_U(X, W, U, V, reg, solver='mu', beta_loss='frobenius'):
+    '''Multiplicative update of factor U.
+    '''
     num = multiply(W, X) @ V
     num += 3 * reg * power(U, 2)
 
@@ -160,6 +149,8 @@ def update_U(X, W, U, V, reg, solver='mu', beta_loss='frobenius'):
 
 
 def update_V(X, W, U, V, reg, solver='mu', beta_loss='frobenius'):
+    '''Multiplicative update of factor V.
+    '''
     num = multiply(W, X).T @ U
     num += 3 * reg * power(V, 2)
 
@@ -189,7 +180,7 @@ def rec_error(X_gt, X_pd, W):
 
 
 def reg_error(X):
-    '''The 'Mexican hat' regularization function.
+    '''The regularization function.
     '''
     reg_error = 0.5 * np.sum(power(power(X, 2) - X, 2))
     return reg_error

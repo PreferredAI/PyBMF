@@ -8,16 +8,30 @@ import numpy as np
 class GreConDPlus(BaseModel):
     '''The GreConD+ algorithm for approximate Boolean decomposition.
     
-    Reference
-    ---------
-    Discovery of optimal factors in binary data via a novel method of matrix decomposition.
-    A new algorithm for boolean matrix factorization which admits overcovering.
+    .. topic:: Reference
+
+        Discovery of optimal factors in binary data via a novel method of matrix decomposition.
+        A new algorithm for boolean matrix factorization which admits overcovering.
+
+    Parameters
+    ----------
+    k : int, optional
+        The target rank.
+        If ``None``, it will factorize until the error is smaller than `tol`, or when other stopping criteria is met.
+    tol : float, default: 0
+        The error tolerance.
+    w_fp : float
+        The penalty weights for false positives (FP).
+    w_fn : float
+        The penalty weights for false negatives (FN).
     '''
     def __init__(self, k=None, tol=0, w_fp=0.5, w_fn=None):
         self.check_params(k=k, tol=tol, w_fp=w_fp, w_fn=w_fn)
         
         
     def fit(self, X_train, X_val=None, X_test=None, **kwargs):
+        '''Fit the model.
+        '''
         super().fit(X_train, X_val, X_test, **kwargs)
 
         self._fit()
@@ -26,7 +40,8 @@ class GreConDPlus(BaseModel):
 
     @ignore_warnings
     def _fit(self):
-
+        '''The main process if fitting.
+        '''
         k = 0
         is_factorizing = True
         self.X_rs = lil_matrix(self.X_train.copy())
@@ -83,7 +98,16 @@ class GreConDPlus(BaseModel):
 
 
     def set_extensions(self, k, u_exp, v_exp):
-        '''Extension part of each factor (k = 0, 1, ...).
+        '''Add the extension part of each factor (k = 0, 1, ...).
+
+        Parameters
+        ----------
+        k : int
+            The number of factor to be added.
+        u_exp : spmatrix
+            The extension ``u_exp`` to be added to ``U_exp``.
+        v_exp : spmatrix
+            The extension ``v_exp`` to be added to ``V_exp``.
         '''
         if not hasattr(self, 'U_exp'):
             self.U_exp = lil_matrix((self.m, 1))
@@ -94,11 +118,11 @@ class GreConDPlus(BaseModel):
             self.U_exp = hstack([
                 self.U_exp, 
                 lil_matrix((self.m, (k + 1) - self.U_exp.shape[1]))
-                ]).tolil()
+            ]).tolil()
             self.V_exp = hstack([
                 self.V_exp, 
                 lil_matrix((self.n, (k + 1) - self.V_exp.shape[1]))
-                ]).tolil()
+            ]).tolil()
             
         self.U_exp[:, k] = u_exp
         self.V_exp[:, k] = v_exp
@@ -107,13 +131,15 @@ class GreConDPlus(BaseModel):
     def remove_covered(self, k):
         '''Remove fully covered patterns by k-th pattern (k = 0, 1, ...).
         
-        idx : list
-            Indices of patterns to be reserved.
+        Parameters
+        ----------
+        k : int
+            The index of pattern to check with.
         '''
         u = self.U[:, k]
         v = self.V[:, k]
 
-        idx = []
+        idx = [] # indices of patterns to be reserved
         for i in range(self.U.shape[1]):
             # keep the k-th pattern itself
             if i == k:
@@ -181,24 +207,31 @@ class GreConDPlus(BaseModel):
 def expansion(X_gt, X_old, u, v, w_fp, w_fn):
     '''Row-wise or column-wise expansion of a pattern given u and v.
 
+    In GreConD+, factors are initially the dense cores.
+    Factor ``u`` and ``v`` will grow in each iteration.
+    The expansion part is recorded in ``u_exp`` and ``v_exp``.
+
     Parameters
     ----------
     X_gt : spmatrix
         The ground-truth matrix.
     X_old : spmatrix
         The residual matrix before the join of u and v.
-    u, v : (m, 1), (n, 1) spmatrix
+    u : (m, 1) spmatrix
         The factors.
-        In GreConD+, they are initially the dense cores.
-        Factor u and v will grow in each iteration.
-        The expansion part is recorded in u_exp and v_exp.
-    w_fp, w_fn : float
-        The weights of false positives and false negatives.
+    v : (n, 1) spmatrix
+        The factors.
+    w_fp : float
+        The penalty weights for false positives (FP).
+    w_fn : float
+        The penalty weights for false negatives (FN).
 
     Returns
     -------
-    u, v : (m, 1), (n, 1) spmatrix
-        The expansion part in u and v.
+    u, : (m, 1) spmatrix
+        The expansion part in ``u``.
+    v, : (n, 1) spmatrix
+        The expansion part in ``v``.
     '''
     m, n = X_gt.shape
     u, v = u.copy(), v.copy()

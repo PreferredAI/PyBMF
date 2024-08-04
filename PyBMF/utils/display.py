@@ -287,18 +287,40 @@ def fill_nan(X, mask: spmatrix):
     return Y
 
 
-def show_factor_distribution(U, V, resolution=100):
+def show_factor_distribution(U, V, resolution=100, show_hist=False, show_minmax=True, remove_below=None, us=None, vs=None):
     '''Show the distribution of real-valued factor matrices U and V.
+
+    
     '''
     k = U.shape[1]
     
     my_dpi = 96
-    fig, axs = plt.subplots(k, 2, sharex=True, sharey=True, tight_layout=True, figsize=(500/my_dpi, 300/my_dpi), dpi=my_dpi)
-    for i in range(k):
-        u = to_dense(U[:, i])
-        axs[i, 0].hist(u, bins=resolution)
-        axs[i, 0].title.set_text('{} [{:.3f}, {:.3f}]'.format(i, u.min(), u.max()))
 
-        v = to_dense(V[:, i])
-        axs[i, 1].hist(v, bins=resolution)
-        axs[i, 1].title.set_text('{} [{:.3f}, {:.3f}]'.format(i, v.min(), v.max()))
+    if show_hist:
+        fig, axs = plt.subplots(k, 2, sharex=True, sharey=False, tight_layout=True, figsize=(800/my_dpi, 40*k/my_dpi), dpi=my_dpi)
+        
+    for i in range(k):
+        if show_hist:
+            u = to_dense(U[:, i])
+            if remove_below is not None:
+                u = u[u > remove_below]
+            axs[i, 0].hist(u, bins=resolution)
+            axs[i, 0].set_xticks([])
+            axs[i, 0].set_yticks([])
+            if us is not None:
+                axs[i, 0].axvline(x=us[i], color='r', linestyle='-')
+
+            v = to_dense(V[:, i])
+            if remove_below is not None:
+                v = v[v > remove_below]
+            axs[i, 1].hist(v, bins=resolution)
+            axs[i, 1].set_xticks([])
+            axs[i, 1].set_yticks([])
+            if vs is not None:
+                axs[i, 1].axvline(x=vs[i], color='r', linestyle='-')
+
+        if show_minmax:
+            print('{} - [{:.3f}, {:.3f}], [{:.3f}, {:.3f}]'.format(i, U[:, i].min(), U[:, i].max(), V[:, i].min(), V[:, i].max()))
+
+    if show_hist:
+        plt.show()

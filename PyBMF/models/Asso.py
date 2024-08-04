@@ -20,7 +20,7 @@ class Asso(BaseModel):
         The target rank.
         If ``None``, it will factorize until the error is smaller than ``tol``, or when other stopping criteria is met.
     tol : float, default: 0
-        The target error.
+        The error tolerance.
     tau : float
         The binarization threshold when building basis.
         Can be determined via model selection techniques.

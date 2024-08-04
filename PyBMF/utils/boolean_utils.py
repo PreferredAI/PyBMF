@@ -11,7 +11,8 @@ def multiply(U, V, sparse=None, boolean=False):
 
     Parameters
     ----------
-    U, V : ndarray, spmatrix, int, float
+    X : ndarray, spmatrix, int, float
+    Y : ndarray, spmatrix, int, float
     sparse : bool, default: None
         Whether to enforce a sparse output. If `None`, keep the same dtype as input.
     boolean : bool, default: False
@@ -37,7 +38,8 @@ def dot(u, v, boolean=False):
     
     Parameters
     ----------
-    U, V : ndarray, spmatrix
+    U : ndarray, spmatrix
+    V : ndarray, spmatrix
     boolean : bool, default: False
     '''
     if issparse(u) or issparse(v):
@@ -61,7 +63,8 @@ def matmul(U, V, sparse=None, boolean=False):
 
     Parameters
     ----------
-    U, V : ndarray, spmatrix
+    U : ndarray, spmatrix
+    V : ndarray, spmatrix
     sparse : bool, default: None
     boolean : bool, default: False
     '''
@@ -84,11 +87,12 @@ def matmul(U, V, sparse=None, boolean=False):
 def add(X, Y, sparse=None, boolean=False):
     '''Matrix-matrix addition for both dense and sparse input with Boolean logic support.
 
-    Also support regular const-matrix addition.
+    Also support regular matrix-const addition.
 
     Parameters
     ----------
-    X, Y : ndarray, spmatrix
+    X : ndarray, spmatrix, int, float
+    Y : ndarray, spmatrix, int, float
     sparse : bool, default: False
     boolean : bool, default: False
     '''
@@ -106,22 +110,26 @@ def add(X, Y, sparse=None, boolean=False):
 def subtract(X, Y, sparse=False, boolean=False):
     '''Matrix-matrix subtraction for both dense and sparse input with Boolean logic support.
 
-    Also support regular const-matrix subtraction.
+    Also support regular matrix-const subtraction.
 
     Parameters
     ----------
-    X, Y : ndarray, spmatrix
+    X : ndarray, spmatrix, int, float
+    Y : ndarray, spmatrix, int, float
     sparse : bool, default: False
     boolean : bool, default: False
-    '''
+    '''  
     if isnum(X) or isnum(Y): # const-matrix subtraction
-        X = to_dense(X) if issparse(X) else X
-        Y = to_dense(Y) if issparse(Y) else Y
+        _X = to_dense(X) if issparse(X) else X
+        _Y = to_dense(Y) if issparse(Y) else Y
+
     if boolean: # boolean matrix-matrix subtraction
-        Z = np.subtract(X, Y).astype(bool).astype(float)
+        Z = np.subtract(_X, _Y).astype(bool).astype(float)
     else:
-        Z = X - Y
-    sparse = sparse or (issparse(X) or issparse(Y))
+        Z = _X - _Y
+
+    sparse = sparse or (issparse(_X) or issparse(_Y))
+
     return check_sparse(Z, sparse=sparse)
 
 
@@ -135,8 +143,17 @@ def power(X, n):
     
 
 def isnum(X):
+    '''Whether X is a number or not.
+    '''
     return isinstance(X, (int, float))
 
 
 def ismat(X):
+    '''Whether X is a matrix or not.
+
+    ```{attention}
+    Note that ``np.matrix`` is NOT a supported matrix type in PyBMF.
+    ```
+    
+    '''
     return isinstance(X, (np.ndarray, spmatrix))

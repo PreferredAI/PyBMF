@@ -8,13 +8,21 @@ from ..utils import matmul, get_prediction, get_residual
 
 
 class Hyper(BaseModel):
+    '''The Hyper algorithm.
+    
+    Hyper is an exact decomposition algorithm. Hyper+ is used after fitting a Hyper model. It's a relaxation of the exact decomposition.
+
+    .. topic:: Reference
+
+        Summarizing Transactional Databases with Overlapped Hyperrectangles. Xiang et al. SIGKDD 2011.
+
+    Parameters
+    ----------
+    min_support : float
+        The 'alpha' in the paper. 
+        The min support of frequent itemsets.
+    '''
     def __init__(self, min_support):
-        '''
-        Parameters
-        ----------
-        min_support : float
-            The 'alpha' in the paper. The min support of frequent itemsets.
-        '''
         self.check_params(min_support=min_support)
     
 

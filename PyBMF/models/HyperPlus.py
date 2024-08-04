@@ -8,26 +8,29 @@ from scipy.sparse import lil_matrix, hstack
 class HyperPlus(Hyper):
     '''The Hyper+ algorithm.
     
-    Hyper+ is used after fitting a Hyper model. It's a relaxation of the exact decomposition algorithm.
-    
-    ..
-    ---------
-    Summarizing Transactional Databases with Overlapped Hyperrectangles. Xiang et al. SIGKDD 2011.
+    Hyper is an exact decomposition algorithm. Hyper+ is used after fitting a Hyper model. It's a relaxation of the exact decomposition.
+
+    .. topic:: Reference
+
+        Summarizing Transactional Databases with Overlapped Hyperrectangles. Xiang et al. SIGKDD 2011.
+
+    Parameters
+    ----------
+    model : Hyper class
+        The fitted ``Hyper`` model.
+    target_k : int
+        The target number of factors. 
+        By default, it's 1.
+        This will ask the model to factorize all the way down to ``k`` = 1.
+        The last pattern will always be full 1 matrix.
+    samples : int, default: all possible samples
+        Number of pairs to be merged during trials. 
+        Smaller ``samples`` will be faster but more likely to surpass the false positive rate ``beta``.
+    beta : float
+        The upper limit of false positive / ground truth. 
+        1.0 means no limit.
     '''
-    def __init__(self, model, samples=500, beta=np.inf, target_k=1):
-        '''
-        model : Hyper class
-            The fitted Hyper model.
-        beta : float
-            The upper limit of the false positive / gt. 1.0 means no limit. 
-        samples : int, default: all possible samples
-            Number of pairs to be merged during trials. 
-        target_k : int, default: 1
-            The target number of factors. 
-            By default, it's 1.
-            This will ask the model to factorize all the way down to k = 1.
-            The last pattern will always be full 1 matrix.
-        '''
+    def __init__(self, model, target_k, samples=500, beta=np.inf):
         self.check_params(model=model, beta=beta, target_k=target_k, samples=samples)
 
 

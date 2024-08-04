@@ -66,6 +66,7 @@ class BaseData:
             If True, overwrite the cache.
         '''
         self.pickle_path = os.path.join(self.cache_path, self.name + '.pickle') if self.pickle_path is None else self.pickle_path
+
         if self.has_pickle and not overwrite_cache:
             self.read_pickle()
         else:
