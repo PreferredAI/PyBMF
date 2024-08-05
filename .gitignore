@@ -15,8 +15,7 @@
 !/docs/PyBMF.utils.rst
 
 .*/
-/PyBMF.egg-info/
-/PyBMF/PyBMF.egg-info/
+*.egg-info/
 /experiment/
 /docs/_build/
 /build/

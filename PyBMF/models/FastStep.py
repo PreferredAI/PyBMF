@@ -23,6 +23,7 @@ class FastStep(ContinuousModel):
 
         assert self.solver in ['line-search']
         assert self.init_method in ['uniform']
+        assert self.normalize_method in ['balance', 'matrixwise-normalize', 'columnwise-normalize', 'matrixwise-mapping', 'columnwise-mapping', None]
         assert ismat(self.W) or self.W in ['mask', 'full']
 
 
