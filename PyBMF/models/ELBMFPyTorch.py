@@ -1,4 +1,4 @@
-# import torch
+import sys
 from .ContinuousModel import ContinuousModel
 import numpy as np
 from ..utils import binarize, matmul, to_dense, to_sparse, ismat
@@ -9,7 +9,8 @@ try:
     import torch
 except ImportError:
     print('[E] Missing package: torch. Please install it first.')
-    pass
+
+
 
 
 class ELBMF(ContinuousModel):
@@ -22,23 +23,6 @@ class ELBMF(ContinuousModel):
 
         self._fit()
         self.finish(show_logs=self.show_logs, save_model=self.save_model, show_result=self.show_result)
-
-
-    # def init_model(self):
-    #     '''Initialize factors and logging variables.
-    #     '''
-    #     super().init_model()
-
-    #     # initialize U, V
-    #     self.init_UV()
-
-    #     # normalize U, V
-    #     # self.normalize_UV(method="balance")
-    #     self.normalize_UV(method="normalize")
-
-    #     # replace zeros in U, V
-    #     self.U[self.U == 0] = np.finfo(float).eps
-    #     self.V[self.V == 0] = np.finfo(float).eps
 
 
     def _fit(self):
@@ -80,7 +64,7 @@ def proxelbmfnn(x, k, l):
 
 
 def integrality_gap_elastic(e, l1reg, l2reg): 
-     return torch.min((l1reg * e.abs() + l2reg * (e)**2), l1reg * (e - 1).abs() + l2reg * (e - 1)**2).sum()
+    return torch.min((l1reg * e.abs() + l2reg * (e)**2), l1reg * (e - 1).abs() + l2reg * (e - 1)**2).sum()
 
 
 @torch.no_grad()
@@ -97,8 +81,7 @@ def elbmf_step_ipalm(X, U, V, Uold, l1reg, l2reg, tau, beta):
 
     U -= (U @ VVt - XVt) * step_size
     U = proxelbmfnn(U, l1reg * step_size, l2reg * tau * step_size)
-    # debug
-    U[U == 0] = np.finfo(float).eps
+
     return U
 
 
@@ -138,10 +121,10 @@ def elbmf_ipalm(
             pbar.set_description(desc)
             
             if callback != None: 
-                 callback(t, U, V, fn)
+                callback(t, U, V, fn)
             if (abs(fn - fn0) < tolerance):
-                 print("[I] Converged")
-                 break
+                print("[I] Converged")
+                break
         return U, V
 
 
@@ -219,5 +202,5 @@ def elbmf(
             return U.round(), V.round()
     else:
         return U, V
-        
+    
 

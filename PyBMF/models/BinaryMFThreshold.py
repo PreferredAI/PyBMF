@@ -125,8 +125,8 @@ class BinaryMFThreshold(ContinuousModel):
             self.print_msg("    num of gradient evals        : {}".format(gc))
             self.print_msg("    function value update        : {:.3f} -> {:.3f}".format(old_fval, new_fval))
 
-            str_xk = ', '.join('{:.2f}'.format(x) for x in list(xk))
-            str_x_last = ', '.join('{:.2f}'.format(x) for x in list(x_last))
+            str_xk = ', '.join('{:.4f}'.format(x) for x in list(xk))
+            str_x_last = ', '.join('{:.4f}'.format(x) for x in list(x_last))
             self.print_msg("    threshold update             :")
             self.print_msg("      [{}]".format(str_xk))
             self.print_msg("    ->[{}]".format(str_x_last))
