@@ -1,9 +1,15 @@
+# files to ignore
+
 *.pyc
 *.pkl
 *.pickle
 *.bak
 *.html
 *.pdf
+
+.DS_Store
+
+# extra .rst files to ignore
 
 /docs/*.rst
 !/docs/index.rst
@@ -14,11 +20,15 @@
 !/docs/PyBMF.solvers.rst
 !/docs/PyBMF.utils.rst
 
+# paths to ignore
+
 .*/
 *.egg-info/
 /experiment/
 /docs/_build/
 /build/
+
+# models to include and ignore
 
 /PyBMF/models/*
 
@@ -75,6 +85,8 @@
 # bmf_ormachine_rakut/
 # bmf_primping_hess/
 # bmf_elbmf_fujiwara/
+
+# examples to include and ignore
 
 /examples/*
 
