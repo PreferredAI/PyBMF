@@ -22,7 +22,7 @@ from .decorator_utils import timeit, ignore_warnings
 
 from .experiment_utils import get_model_by_path, get_model_by_time
 
-from .download_utils import download
+from .download_utils import get_cache_path, cache, parse_list
 
 # __all__ = ['show_matrix', 
 #            'get_rng', 'safe_indexing', 
