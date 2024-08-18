@@ -13,11 +13,10 @@ class MovieLensGenreCastUserData(MovieLensData):
     size : str in {'100k', '1m'}
         MovieLens dataset size.
     '''
-    def __init__(self, path=None, size='1m'):
-        super().__init__(path=path, size=size)
+    def __init__(self, size='1m'):
+        super().__init__(size=size)
         self.is_single = False
         self.name = self.name + '_genre_cast_user'
-        self.path = path
 
 
     def read_data(self):
@@ -29,10 +28,10 @@ class MovieLensGenreCastUserData(MovieLensData):
     def load_data(self):
         '''Load data.
         '''
-        ml_user = MovieLensUserData(path=self.path, size=self.size)
+        ml_user = MovieLensUserData(size=self.size)
         ml_user.load()
 
-        ml_imdb = MovieLensGenreCastData(path=self.path, size=self.size)
+        ml_imdb = MovieLensGenreCastData(size=self.size)
         ml_imdb.load()
 
         self.Xs = [ml_imdb.Xs[0], ml_user.Xs[1], ml_imdb.Xs[1], ml_imdb.Xs[2]]

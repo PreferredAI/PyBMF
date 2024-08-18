@@ -17,8 +17,9 @@ import os
 import shutil
 import zipfile
 import tarfile
+import tempfile
 from urllib import request
-
+import ast
 from tqdm.auto import tqdm
 
 
@@ -75,12 +76,12 @@ def get_cache_path(relative_path, cache_dir=None):
     """Return the absolute path to the cached data file
     """
     if cache_dir is None and os.access(os.path.expanduser("~"), os.W_OK):
-        cache_dir = os.path.join(os.path.expanduser("~"), ".cornac")
+        cache_dir = os.path.join(os.path.expanduser("~"), ".pybmf")
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
 
     if not os.access(cache_dir, os.W_OK):
-        cache_dir = os.path.join("/tmp", ".cornac")
+        cache_dir = os.path.join(tempfile.gettempdir(), ".pybmf")
     cache_path = os.path.join(cache_dir, relative_path)
 
     if not os.path.exists(os.path.dirname(cache_path)):
@@ -89,7 +90,7 @@ def get_cache_path(relative_path, cache_dir=None):
     return cache_path, cache_dir
 
 
-def cache(url, unzip=False, relative_path=None, cache_dir=None):
+def cache(url, unzip=False, relative_unzip_path=None, relative_path=None, cache_dir=None):
     """Download the data and cache to file
 
     Parameters
@@ -112,19 +113,35 @@ def cache(url, unzip=False, relative_path=None, cache_dir=None):
         relative_path = url.split("/")[-1]
     cache_path, cache_dir = get_cache_path(relative_path, cache_dir)
     if os.path.exists(cache_path):
+        print("File exists at", cache_path)
         return cache_path
 
     print("Data from", url)
     print("will be cached into", cache_path)
 
     if unzip:
-        tmp_path = os.path.join(cache_dir, "file.tmp")
+        unzip_path, _ = get_cache_path(relative_unzip_path, cache_dir)
+        tmp_path = os.path.join(unzip_path, "file.tmp")
         _urlretrieve(url, tmp_path)
         print("Unzipping ...")
-        _extract_archive(tmp_path, cache_dir)
+        _extract_archive(tmp_path, unzip_path)
         os.remove(tmp_path)
     else:
         _urlretrieve(url, cache_path)
 
     print("File cached!")
     return cache_path
+
+
+def _parse_list(x):
+    try:
+        return ast.literal_eval(x)
+    except (SyntaxError, ValueError):
+        return x
+
+
+def parse_list(df, columns):
+    """Parse list from string.
+    """
+    for column in columns:
+        df[column] = df[column].apply(_parse_list)

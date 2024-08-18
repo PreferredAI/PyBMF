@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, lil_matrix, hstack
-from ..utils import binarize
+from ..utils import cache
 from .MovieLensData import MovieLensData
 
 
@@ -16,8 +16,8 @@ class MovieLensUserData(MovieLensData):
     size : str in {'100k', '1m'}
         MovieLens dataset size.
     '''
-    def __init__(self, path=None, size='1m'):
-        super().__init__(path=path, size=size)
+    def __init__(self, size='1m'):
+        super().__init__(size=size)
         self.is_single = False
         self.name = self.name + '_user'
 
@@ -30,16 +30,19 @@ class MovieLensUserData(MovieLensData):
 
         # profiles
         if self.size == '100k':
-            path = os.path.join(self.root, "ml-100k", "u.user")
+            path = cache("http://files.grouplens.org/datasets/movielens/ml-100k.zip", relative_path="data/movielens/ml-100k/u.user", unzip=True, relative_unzip_path="data/movielens/")
+            # path = os.path.join(self.root, "ml-100k", "u.user")
             sep, engine, names = '|', 'c', ['uid', 'age', 'gender', 'occupation', 'zip']
         elif self.size == '1m':
-            path = os.path.join(self.root, "ml-1m", "users.dat")
+            path = cache("http://files.grouplens.org/datasets/movielens/ml-1m.zip", relative_path="data/movielens/ml-1m/users.dat", unzip=True, relative_unzip_path="data/movielens/")
+            # path = os.path.join(self.root, "ml-1m", "users.dat")
             sep, engine, names = '::', 'python', ['uid', 'gender', 'age', 'occupation', 'zip']
 
         self.df_profiles = pd.read_table(path, delimiter=sep, engine=engine, header=None, names=names)
 
         # occupations
-        path = os.path.join(self.root, "ml-100k", "u.occupation")
+        path = cache("http://files.grouplens.org/datasets/movielens/ml-100k.zip", relative_path="data/movielens/ml-100k/u.occupation", unzip=True, relative_unzip_path="data/movielens/")
+        # path = os.path.join(self.root, "ml-100k", "u.occupation")
         self.df_occupations = pd.read_table(path, delimiter='|', header=None, names=['occupation'])
 
         # preprocessing

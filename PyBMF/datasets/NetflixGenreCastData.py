@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from scipy.sparse import csr_matrix
-from ..utils import binarize
+from ..utils import binarize, cache, parse_list
 from .NetflixData import NetflixData
 from itertools import chain
 from scipy.sparse import lil_matrix, csr_matrix
@@ -24,8 +24,8 @@ class NetflixGenreCastData(NetflixData):
     source : str in {'imdb', 'tmdb'}
         Source should be 'imdb' or 'tmdb'.
     '''
-    def __init__(self, path=None, size='small', source='imdb'):
-        super().__init__(path=path, size=size)
+    def __init__(self, size='small', source='imdb'):
+        super().__init__(size=size)
         self.is_single = False
         assert source in ['imdb', 'tmdb'], "Source should be 'imdb' or 'tmdb'."
         self.name = self.name + '_genre_cast_' + source
@@ -39,8 +39,9 @@ class NetflixGenreCastData(NetflixData):
         super().read_data()
 
         # genres and cast
-        path = os.path.join(self.root, "Netflix-Prize-IMDB-TMDB-Joint-Dataset", "netflix_all.pickle")
-        self.df_info = pd.read_pickle(path)
+        path = cache("https://github.com/felixnie/Netflix-Prize-IMDB-TMDB-Joint-Dataset/raw/main/netflix_all.csv", relative_path="data/netflix/netflix_all.csv", unzip=False)
+        self.df_info = pd.read_csv(path)
+        parse_list(df=self.df_info, columns=['imdb_genres', 'tmdb_genres', 'imdb_cast', 'tmdb_cast'])
 
 
     def load_data(self):
@@ -92,7 +93,7 @@ class NetflixGenreCastData(NetflixData):
             attr_dict[key] = i
 
         rows = list(chain.from_iterable(df[attribute]))
-        rows = [attr_dict[x] for x in rows]
+        rows = [attr_dict[str(x)] for x in rows]
 
         cols = []
         for i in df.index:

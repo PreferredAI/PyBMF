@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from scipy.sparse import csr_matrix
-from ..utils import binarize, reverse_index, safe_indexing
+from ..utils import binarize, reverse_index, safe_indexing, cache
 from .BaseData import BaseData
 
 
@@ -15,8 +15,8 @@ class MovieLensData(BaseData):
     size : str in {'100k', '1m'}
         MovieLens dataset size.
     '''
-    def __init__(self, path=None, size="1m"):
-        super().__init__(path=path)
+    def __init__(self, size="1m"):
+        super().__init__()
         self.is_single = True
         assert size in ['100k', '1m'], "Size not available."
         self.name = 'ml_' + size
@@ -28,10 +28,12 @@ class MovieLensData(BaseData):
         '''
         # ratings
         if self.size == '100k':
-            path = os.path.join(self.root, "ml-100k", "u.data")
+            path = cache("http://files.grouplens.org/datasets/movielens/ml-100k.zip", relative_path="data/movielens/ml-100k/u.data", unzip=True, relative_unzip_path="data/movielens/")
+            # path = os.path.join(self.root, "ml-100k", "u.data")
             sep, engine = '\t', 'c'
         elif self.size == '1m':
-            path = os.path.join(self.root, "ml-1m", "ratings.dat")
+            path = cache("http://files.grouplens.org/datasets/movielens/ml-1m.zip", relative_path="data/movielens/ml-1m/ratings.dat", unzip=True, relative_unzip_path="data/movielens/")
+            # path = os.path.join(self.root, "ml-1m", "ratings.dat")
             sep, engine = '::', 'python'
 
         self.df_ratings = pd.read_table(path, delimiter=sep, engine=engine, header=None, names=['uid', 'iid', 'rating', 'timestamp'])
@@ -40,10 +42,12 @@ class MovieLensData(BaseData):
 
         # titles
         if self.size == '100k':
-            path = os.path.join(self.root, "ml-100k", "u.item")
+            path = cache("http://files.grouplens.org/datasets/movielens/ml-100k.zip", relative_path="data/movielens/ml-100k/u.item", unzip=True, relative_unzip_path="data/movielens/")
+            # path = os.path.join(self.root, "ml-100k", "u.item")
             sep, engine = '|', 'c'
         elif self.size == '1m':
-            path = os.path.join(self.root, "ml-1m", "movies.dat")
+            path = cache("http://files.grouplens.org/datasets/movielens/ml-1m.zip", relative_path="data/movielens/ml-1m/movies.dat", unzip=True, relative_unzip_path="data/movielens/")
+            # path = os.path.join(self.root, "ml-1m", "movies.dat")
             sep, engine = '::', 'python'
 
         self.df_titles = pd.read_table(path, delimiter=sep, engine=engine, header=None, encoding="latin1", usecols=[0, 1], names=['iid', 'title'])

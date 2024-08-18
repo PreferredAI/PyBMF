@@ -1,6 +1,6 @@
 import pickle
 import os
-from ..utils import sample, split_factor_list, concat_Xs_into_X, concat_factor_info, get_factor_starts, show_matrix, get_settings
+from ..utils import sample, split_factor_list, concat_Xs_into_X, concat_factor_info, get_factor_starts, show_matrix, get_settings, get_cache_path
 import numpy as np
 
 
@@ -29,29 +29,15 @@ class BaseData:
         factor_info : list of tuples
             The list of factor info. For example, [``user_info``, ``movie_info``, ``genre_info``, ``cast_info``].
     '''
-    def __init__(self, path=None):
+    def __init__(self):
 
-        self.X, self.Xs, self.factors, self.factor_info = None, None, None, None
-        self.is_single, self.name = None, None
+        self.X = None
+        self.Xs = None
+        self.factors = None
+        self.factor_info = None
 
-        has_config = os.path.isfile('settings.ini')
-
-        if has_config:
-
-            import configparser
-            config = configparser.ConfigParser()
-            config_path = os.path.abspath('settings.ini')
-            print("[I] Found settings.ini at", config_path)
-            config.read(config_path)
-
-            self.root = config["PATHS"]["data"]
-            self.cache_path = config["PATHS"]["cache"]
-            self.pickle_path = path
-
-        else:
-
-            print("[E] No settings.ini found. Please create settings.ini.")
-
+        self.is_single = None
+        self.name = None
 
 
     def load(self, overwrite_cache=False):
@@ -65,9 +51,7 @@ class BaseData:
         overwrite_cache : bool, default: False
             If True, overwrite the cache.
         '''
-        self.pickle_path = os.path.join(self.cache_path, self.name + '.pickle') if self.pickle_path is None else self.pickle_path
-
-        if self.has_pickle and not overwrite_cache:
+        if self.pickle_exists and not overwrite_cache:
             self.read_pickle()
         else:
             self.read_data()
@@ -76,10 +60,21 @@ class BaseData:
     
 
     @property
-    def has_pickle(self):
+    def pickle_exists(self):
         '''If pickle exists.
         '''
         return os.path.exists(self.pickle_path)
+
+    
+    @property
+    def pickle_path(self):
+        '''The path of pickle file.
+        '''
+        if self.name is None:
+            raise ValueError("name is not set.")
+        else:
+            pickle_path, _ = get_cache_path(relative_path="pickles/" + self.name + ".pickle", cache_dir=None)
+            return pickle_path
     
 
     def read_data(self):
@@ -108,22 +103,12 @@ class BaseData:
             self.factor_info = data['factor_info']
 
 
-    def dump_pickle(self, name=None):
+    def dump_pickle(self):
         '''Dump pickle to cache directory.
-
-        Parameters
-        ----------
-        name : str
-            The name of pickle file.
         '''
-        # data: The data to be dumped.
-        # is_single: Whether the data is single-matrix or multi-matrix.
-        # path: The fill path of pickle file, either use ``pickle_path`` provided by the user or use ``cache_path`` + ``name``.
         data = {'X': self.X, 'factor_info': self.factor_info} if self.is_single else {'Xs': self.Xs, 'factors': self.factors, 'factor_info': self.factor_info}
 
-        path = self.pickle_path if name is None else os.path.join(self.cache_path, name + '.pickle')
-
-        with open(path, 'wb') as handle:
+        with open(self.pickle_path, 'wb') as handle:
             pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -143,6 +128,11 @@ class BaseData:
             Randomly down-sample to this length.
         seed : int
             Random seed for down-sampling.
+
+        Returns
+        -------
+        idx : np.ndarray
+            The sampled indices.
         '''
         if self.is_single:
             idx, self.factor_info, self.X = sample(X=self.X, factor_info=self.factor_info, axis=factor_id, idx=idx, n_samples=n_samples, seed=seed)

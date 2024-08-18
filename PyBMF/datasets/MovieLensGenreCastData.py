@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, lil_matrix, hstack
-from ..utils import binarize
+from ..utils import cache
 from .MovieLensData import MovieLensData
 from itertools import chain
 
@@ -17,8 +17,8 @@ class MovieLensGenreCastData(MovieLensData):
     size : str in {'100k', '1m'}
         MovieLens dataset size.
     '''
-    def __init__(self, path=None, size='1m'):
-        super().__init__(path=path, size=size)
+    def __init__(self, size='1m'):
+        super().__init__(size=size)
         self.is_single = False
         self.name = self.name + '_genre_cast'
 
@@ -30,8 +30,9 @@ class MovieLensGenreCastData(MovieLensData):
         super().read_data()
 
         # genres and cast
-        path = os.path.join(self.root, "MovieLens-IMDB-Dataset", "ml_" + self.size + "_imdb.pickle")
-        self.df_info = pd.read_pickle(path)
+        fname = "ml_" + self.size + "_imdb"
+        path = cache("https://github.com/felixnie/MovieLens-IMDB-Dataset/raw/main/{}.csv".format(fname), relative_path="data/movielens/{}.csv".format(fname), unzip=False)
+        self.df_info = pd.read_csv(path)
 
         # preprocessing: generate 'cast' column
         def merge_list(row, columns=['director', 'actor', 'actress']):
