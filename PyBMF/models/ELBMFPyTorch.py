@@ -167,6 +167,7 @@ def elbmf(
     U                       n*k factor matrix
     V                       k*m factor matrix 
     """
+    # debug: inspect parameters
     print(X.shape, type(X))
     print(n_components)
     print(U)
@@ -181,21 +182,22 @@ def elbmf(
     print(with_rounding)
     print(seed)
 
-
+    # debug: accept outside factors and seed as parameters
     if seed is not None:
         torch.manual_seed(seed)
     if U is None or V is None:
         U, V = torch.rand(X.shape[0], n_components, dtype=X.dtype), torch.rand(n_components, X.shape[1], dtype=X.dtype)
     else:
         # imported U, V
+        
         # U = np.array(U.toarray(), dtype=np.float64)
         U = torch.from_numpy(U).float()
 
         # V = np.array(V.toarray(), dtype=np.float64).T
         V = torch.from_numpy(V).float().T
 
-
     U, V = elbmf_ipalm(X, U, V, l1reg, l2reg, regularization_rate, maxiter, tolerance, beta, callback)
+
     if with_rounding:
         with torch.no_grad():
             U = proxelbmfnn(U, 0.5, l2reg * 1e12)
