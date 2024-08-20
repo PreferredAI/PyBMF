@@ -1,3 +1,6 @@
+# Copyright The ELBMF Authors. 
+# 
+# ============================================================================
 import sys
 from .ContinuousModel import ContinuousModel
 import numpy as np
@@ -9,8 +12,6 @@ try:
     import torch
 except ImportError:
     print('[E] Missing package: torch. Please install it first.')
-
-
 
 
 class ELBMF(ContinuousModel):
@@ -27,7 +28,7 @@ class ELBMF(ContinuousModel):
 
     def _fit(self):
         # modify X
-        X = np.array(self.X_train.toarray(), dtype=np.float64)
+        X = np.array(self.X_train, dtype=np.float64)
         X = torch.from_numpy(X).float()
 
         self.U, self.V = elbmf(
@@ -187,11 +188,11 @@ def elbmf(
         U, V = torch.rand(X.shape[0], n_components, dtype=X.dtype), torch.rand(n_components, X.shape[1], dtype=X.dtype)
     else:
         # imported U, V
-        U = np.array(U.toarray(), dtype=np.float64)
+        # U = np.array(U.toarray(), dtype=np.float64)
         U = torch.from_numpy(U).float()
 
-        V = np.array(V.toarray(), dtype=np.float64).T
-        V = torch.from_numpy(V).float()
+        # V = np.array(V.toarray(), dtype=np.float64).T
+        V = torch.from_numpy(V).float().T
 
 
     U, V = elbmf_ipalm(X, U, V, l1reg, l2reg, regularization_rate, maxiter, tolerance, beta, callback)
