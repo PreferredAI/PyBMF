@@ -6,8 +6,12 @@ class CustomData(BaseData):
 
     Parameters
     ----------
-    path : str
-        Path to the cached dataset.
+    X : spmatrix
+        The matrix.
+    name : str
+        The name of the dataset. Used for naming pickles.
+    factor_info : list, default: None
+        The list of factor info. Leave it to `None` to generate trivial factors info.
     '''
     def __init__(self, X, name, factor_info=None):
         super().__init__()
