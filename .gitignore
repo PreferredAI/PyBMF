@@ -6,6 +6,7 @@
 *.bak
 *.html
 *.pdf
+*.ini
 
 .DS_Store
 
@@ -158,7 +159,5 @@
 # !/examples/ex10_7_CMF_cmfrec_threshold.ipynb
 
 !/examples/README.md
-!/examples/settings_template.ini
-!/examples/settings.ini
 
 
