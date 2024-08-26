@@ -1,5 +1,5 @@
-# Copyright The ELBMF Authors. 
-# 
+# Copyright the ELBMF Authors.
+# source: https://github.com/sdall/elbmf-python
 # ============================================================================
 import sys
 from .ContinuousModel import ContinuousModel
@@ -15,7 +15,7 @@ except ImportError:
 
 
 class ELBMF(ContinuousModel):
-    def __init__(self, k, U=None, V=None, W='full', init_method='custom', reg_l1=0.01, reg_l2=0.02, reg_growth=1.02, max_iter=1000, min_diff=1e-8, beta=1e-4, seed=None):
+    def __init__(self, k, U=None, V=None, init_method='custom', reg_l1=0.01, reg_l2=0.02, reg_growth=1.02, max_iter=3000, min_diff=1e-8, beta=1e-4, seed=None):
         self.check_params(k=k, U=U, V=V, init_method=init_method, reg_l1=reg_l1, reg_l2=reg_l2, reg_growth=reg_growth, max_iter=max_iter, min_diff=min_diff, beta=beta, seed=seed)
 
 
@@ -27,11 +27,12 @@ class ELBMF(ContinuousModel):
 
 
     def _fit(self):
-        # modify X
+        # convert X to torch tensor
         X = np.array(self.X_train, dtype=np.float64)
         X = torch.from_numpy(X).float()
 
-        self.U, self.V = elbmf(
+        # call elbmf
+        U, V = self.elbmf(
             X                   = X,
             U                   = self.U,
             V                   = self.V, 
@@ -43,14 +44,148 @@ class ELBMF(ContinuousModel):
             tolerance           = self.min_diff,
             beta                = self.beta,
             callback            = None,
-            with_rounding       = True, 
+            with_rounding       = False, 
             seed                = self.seed
         )
 
-        self.U, self.V = csr_matrix(self.U), csr_matrix(self.V).T
-        self.X_pd = matmul(self.U, self.V.T, boolean=True, sparse=True)
-        self.evaluate(df_name='boolean')
+        # self.U, self.V = csr_matrix(U), csr_matrix(V).T
+        # self.X_pd = matmul(self.U, self.V.T, boolean=True, sparse=True)
+        # self.evaluate(df_name='boolean')
 
+
+    @torch.no_grad()
+    def elbmf(
+        self,
+        X,
+        n_components,
+        U                   = None, 
+        V                   = None,
+        l1reg               = 0.01,
+        l2reg               = 0.02,
+        regularization_rate = lambda t: 1.02 ** t,
+        maxiter             = 3000,
+        tolerance           = 1e-8,
+        beta                = 0.0001,
+        callback            = None,
+        with_rounding       = False,
+        seed                = None):
+        """
+        This function implements the algorithm described in the paper
+
+        Sebastian Dalleiger and Jilles Vreeken. “Efficiently Factorizing Boolean Matrices using Proximal Gradient Descent”. 
+        In: Thirty-Sixth Conference on Neural Information Processing Systems (NeurIPS). 2022
+
+        Arguments:
+        X                       a Boolean n*m matrix  
+        n_components            number of components
+        l1reg                   l1 coefficient
+        l2reg                   l2 coefficient
+        regularization_rate     monotonically increasing regularization-rate function
+        maxiter                 maximum number of iterations
+        tolerance               the threshold to the absolute difference between the current and previous losses determines the convergence
+        beta                    inertial coefficient of iPALM
+        callback                e.g. lambda t, U, V, fn: print(t, fn)
+        with_rounding           rounds U and V in case of early stopping
+
+        Returns:
+        U                       n*k factor matrix
+        V                       k*m factor matrix 
+        """
+        # debug: inspect parameters
+        print("\n================ inspect parameters ================")
+        print("X: ", X.shape, type(X))
+        print("n_components: ", n_components)
+        print("U: ", U.shape if U is not None else None, type(U))
+        print("V: ", V.shape if V is not None else None, type(V))
+        print("l1reg: ", l1reg)
+        print("l2reg: ", l2reg)
+        print("regularization_rate: ", regularization_rate)
+        print("maxiter: ", maxiter)
+        print("tolerance: ", tolerance)
+        print("beta: ", beta)
+        print("callback: ", callback)
+        print("with_rounding: ", with_rounding)
+        print("seed: ", seed)
+        print("======================================================\n")
+
+        # debug: accept parameters random seed
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        if U is None or V is None:
+            U, V = torch.rand(X.shape[0], n_components, dtype=X.dtype), torch.rand(n_components, X.shape[1], dtype=X.dtype)
+        else:
+            # debug: accept initial factors U and V
+
+            # U = np.array(U.toarray(), dtype=np.float64)
+            U = torch.from_numpy(U).float()
+            # V = np.array(V.toarray(), dtype=np.float64).T
+            V = torch.from_numpy(V).float().T
+
+        U, V = self.elbmf_ipalm(X, U, V, l1reg, l2reg, regularization_rate, maxiter, tolerance, beta, callback)
+
+        if with_rounding:
+            with torch.no_grad():
+                U = proxelbmfnn(U, 0.5, l2reg * 1e12)
+                V = proxelbmfnn(V, 0.5, l2reg * 1e12)
+                return U.round(), V.round()
+        else:
+            return U, V
+
+
+    @torch.no_grad()
+    def elbmf_ipalm(
+        self,
+        X,
+        U,
+        V,
+        l1reg,
+        l2reg,
+        regularization_rate,
+        maxiter,
+        tolerance,
+        beta,
+        callback
+        ):
+        if beta != 0:
+            Uold, Vold = U.clone(), V.T.clone()
+        else:
+            Uold, Vold = None, None
+
+        fn = torch.inf
+
+        pbar = tqdm(total=maxiter, desc="[I] error: -, U: -, V: -")
+        for t in range(maxiter):
+            
+            tau = regularization_rate(t)
+            
+            U = elbmf_step_ipalm(X, U, V, Uold, l1reg, l2reg, tau, beta)
+            V = elbmf_step_ipalm(X.T, V.T, U.T, Vold, l1reg, l2reg, tau, beta).T
+            
+            fn0, fn = fn, (X - (U @ V)).norm() ** 2
+
+            # debug: evaluate the real-valued loss
+            self.U, self.V = csr_matrix(U), csr_matrix(V).T
+            self.X_pd = matmul(self.U, self.V.T, boolean=False, sparse=False)
+            self.evaluate(df_name='updates', head_info={'iter': t, 'F': fn}, metrics=['RMSE', 'MAE'])
+
+            # debug: evaluate the binary error
+            self.U, self.V = binarize(self.U, 0.5), binarize(self.V, 0.5)
+            self.X_pd = matmul(self.U, self.V.T, boolean=True, sparse=True)
+            self.evaluate(df_name='boolean', head_info={'iter': t}, metrics=['Recall', 'Precision', 'Accuracy', 'F1'])
+
+            # debug: update pbar and display the range of U and V
+            pbar.update(1)
+            desc = f'[I] error: {fn:.4f}, U: [{U.min():.4f}, {U.max():.4f}], V: [{V.min():.4f}, {V.max():.4f}]'
+            pbar.set_description(desc)
+            
+            if callback != None: 
+                callback(t, U, V, fn)
+            if (abs(fn - fn0) < tolerance):
+                print("[I] Converged")
+                break
+        return U, V
+            
 
 def proxelbmf(x, k, l): 
     return torch.where(x <= 0.5, x - k * torch.sign(x), x - k* torch.sign(x - 1) + l) / (1 + l)
@@ -86,124 +221,7 @@ def elbmf_step_ipalm(X, U, V, Uold, l1reg, l2reg, tau, beta):
     return U
 
 
-@torch.no_grad()
-def elbmf_ipalm(
-        X,
-        U,
-        V,
-        l1reg,
-        l2reg,
-        regularization_rate,
-        maxiter,
-        tolerance,
-        beta,
-        callback
-    ):
-        if beta != 0:
-            Uold, Vold = U.clone(), V.T.clone()
-        else:
-            Uold, Vold = None, None
-
-        fn = torch.inf
-
-        pbar = tqdm(total=maxiter, desc="[I] error: -, U: -, V: -")
-        for t in range(maxiter):
-            
-            tau = regularization_rate(t)
-            
-            U = elbmf_step_ipalm(X, U, V, Uold, l1reg, l2reg, tau, beta)
-            V = elbmf_step_ipalm(X.T, V.T, U.T, Vold, l1reg, l2reg, tau, beta).T
-            
-            fn0, fn = fn, (X - (U @ V)).norm() ** 2
-
-            # update pbar
-            pbar.update(1)
-            desc = f'[I] error: {fn:.4f}, U: [{U.min():.4f}, {U.max():.4f}], V: [{V.min():.4f}, {V.max():.4f}]'
-            pbar.set_description(desc)
-            
-            if callback != None: 
-                callback(t, U, V, fn)
-            if (abs(fn - fn0) < tolerance):
-                print("[I] Converged")
-                break
-        return U, V
 
 
-@torch.no_grad()
-def elbmf(
-        X,
-        n_components,
-        U                   = None, 
-        V                   = None,
-        l1reg               = 0.01,
-        l2reg               = 0.02,
-        regularization_rate = lambda t: 1.02 ** t,
-        maxiter             = 3000,
-        tolerance           = 1e-8,
-        beta                = 0.0001,
-        callback            = None,
-        with_rounding       = True,
-        seed                = None
-    ):
-    """
-    This function implements the algorithm described in the paper
-
-    Sebastian Dalleiger and Jilles Vreeken. “Efficiently Factorizing Boolean Matrices using Proximal Gradient Descent”. 
-    In: Thirty-Sixth Conference on Neural Information Processing Systems (NeurIPS). 2022
-
-    Arguments:
-    X                       a Boolean n*m matrix  
-    n_components            number of components
-    l1reg                   l1 coefficient
-    l2reg                   l2 coefficient
-    regularization_rate     monotonically increasing regularization-rate function
-    maxiter                 maximum number of iterations
-    tolerance               the threshold to the absolute difference between the current and previous losses determines the convergence
-    beta                    inertial coefficient of iPALM
-    callback                e.g. lambda t, U, V, fn: print(t, fn)
-    with_rounding           rounds U and V in case of early stopping
-
-    Returns:
-    U                       n*k factor matrix
-    V                       k*m factor matrix 
-    """
-    # debug: inspect parameters
-    print(X.shape, type(X))
-    print(n_components)
-    print(U)
-    print(V)
-    print(l1reg)
-    print(l2reg)
-    print(regularization_rate)
-    print(maxiter)
-    print(tolerance)
-    print(beta)
-    print(callback)
-    print(with_rounding)
-    print(seed)
-
-    # debug: accept outside factors and seed as parameters
-    if seed is not None:
-        torch.manual_seed(seed)
-    if U is None or V is None:
-        U, V = torch.rand(X.shape[0], n_components, dtype=X.dtype), torch.rand(n_components, X.shape[1], dtype=X.dtype)
-    else:
-        # imported U, V
-        
-        # U = np.array(U.toarray(), dtype=np.float64)
-        U = torch.from_numpy(U).float()
-
-        # V = np.array(V.toarray(), dtype=np.float64).T
-        V = torch.from_numpy(V).float().T
-
-    U, V = elbmf_ipalm(X, U, V, l1reg, l2reg, regularization_rate, maxiter, tolerance, beta, callback)
-
-    if with_rounding:
-        with torch.no_grad():
-            U = proxelbmfnn(U, 0.5, l2reg * 1e12)
-            V = proxelbmfnn(V, 0.5, l2reg * 1e12)
-            return U.round(), V.round()
-    else:
-        return U, V
     
 
