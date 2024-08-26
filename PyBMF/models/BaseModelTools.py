@@ -5,7 +5,7 @@ from scipy.sparse import lil_matrix, hstack
 import pickle
 import time
 from IPython.display import display
-from ..utils import _make_name, ismat, get_config
+from ..utils import _make_name, ismat, get_cache_path
 
 class BaseModelTools():
     '''The helper class for ``BaseModel``.
@@ -249,8 +249,7 @@ class BaseModelTools():
         name = self.name
         data = self.__dict__
 
-        path = get_config(key="saved_models") if path is None else path
-        path = os.path.join(path, name + '.pickle')
+        path, _ = get_cache_path(relative_path='saved_models/' + name + '.pickle') if path is None else path
 
         self.pickle_path = path
 
