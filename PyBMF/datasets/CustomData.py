@@ -1,5 +1,7 @@
 from .BaseData import BaseData
 import numpy as np
+from scipy.sparse import spmatrix
+
 
 class CustomData(BaseData):
     '''Load custom dataset.
@@ -18,6 +20,8 @@ class CustomData(BaseData):
 
         self.is_single = True
         self.name = name
+
+        assert isinstance(X, spmatrix), "X must be a sparse matrix."
 
         m, n = X.shape
 
