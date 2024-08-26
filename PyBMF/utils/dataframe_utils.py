@@ -3,39 +3,66 @@ import pandas as pd
 import webbrowser
 import re
 import base64
+from .download_utils import get_cache_path
 
-def get_config(key):
-    '''Get config value from settings.ini.
 
-    Parameters
-    ----------
-    key : str
-        Key in settings.ini.
+# def get_config(key):
+#     '''Get config value from settings.ini.
 
-    Returns
-    -------
-    value : str
-        Value in settings.ini.
+#     Parameters
+#     ----------
+#     key : str
+#         Key in settings.ini.
+
+#     Returns
+#     -------
+#     value : str
+#         Value in settings.ini.
+#     '''
+#     has_config = os.path.isfile('settings.ini')
+
+#     if has_config:
+#         import configparser
+#         config = configparser.ConfigParser()
+#         config_path = os.path.abspath('settings.ini')
+#         print("[I] Found settings.ini at", config_path)
+#         config.read(config_path)
+#         path= config["PATHS"][key]
+#     else:
+#         print("[W] No settings.ini found.")
+#         path = None
+#     return path
+
+
+def get_chrome_path():
+    '''Get the command of launching a browser. Google Chrome, specifically.
     '''
-    has_config = os.path.isfile('settings.ini')
+    import platform
 
-    if has_config:
-        import configparser
-        config = configparser.ConfigParser()
-        config_path = os.path.abspath('settings.ini')
-        print("[I] Found settings.ini at", config_path)
-        config.read(config_path)
-        path= config["PATHS"][key]
+    command = None
+
+    if platform.system() == 'Windows':
+        if os.path.exists('C:/Program Files/Google/Chrome/Application/chrome.exe'):
+            command = r'C:/Program Files/Google/Chrome/Application/chrome.exe'
+    elif platform.system() == 'Darwin':
+        if os.path.exists('/Applications/Google Chrome.app'):
+            # command = r'open -a /Applications/Google\ Chrome.app'
+            command = r'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+    elif platform.system() == 'Linux':
+        if os.path.exists('/usr/bin/google-chrome'):
+            command = r'/usr/bin/google-chrome'
     else:
-        print("[W] No settings.ini found.")
-        path = None
-    return path
+        raise ValueError('Unknown OS type.')
+    
+    if command is None:
+        raise ValueError('Google Chrome not found. Specify your path manually.')
+    
+    return command
+
 
 
 def log2html(df, log_name, open_browser=True, log_path=None, browser_path=None):
     '''Display and save a dataframe in HTML, and open it in browser if needed.
-
-    Please create settings.ini or set ``file_path`` and ``browser_path`` manually before calling.
 
     Parameters
     ----------
@@ -50,9 +77,6 @@ def log2html(df, log_name, open_browser=True, log_path=None, browser_path=None):
     browser_path : str
         Path of the browser.
     '''
-    log_path = get_config(key="saved_logs") if log_path is None else log_path
-    browser_path = get_config(key="browser") + r' %s' if browser_path is None else browser_path
-
     html_head = '''<!DOCTYPE html>
 <html>
 <head>
@@ -93,8 +117,6 @@ def log2html(df, log_name, open_browser=True, log_path=None, browser_path=None):
 def log2latex(df, log_name, open_browser=True, log_path=None, browser_path=None):
     '''Display a dataframe in TeX on overleaf.com.
 
-    This tool automatically highlights the maximum values in each column.
-
     Parameters
     ----------
     df : pandas.DataFrame
@@ -108,9 +130,6 @@ def log2latex(df, log_name, open_browser=True, log_path=None, browser_path=None)
     browser_path : str
         Path of the browser.
     '''
-    log_path = get_config(key="saved_logs") if log_path is None else log_path
-    browser_path = get_config(key="browser") + r' %s' if browser_path is None else browser_path
-
     width = int(df.columns.size * 0.8)
     height = int(len(df) * 0.2) + 1.0
 
@@ -129,10 +148,12 @@ def log2latex(df, log_name, open_browser=True, log_path=None, browser_path=None)
     latex_tail = r'''
 \end{document}
 '''
-    # TODO: enable highlight_max
-    # latex = df.style.highlight_max(props='cellcolor:[HTML]{FFFF00}; color:{red};')
-    # latex = latex.to_latex(hrules=False, clines="skip-last;data", multicol_align='c')
+
     latex = df.to_latex()
+
+    # escape underscore to display properly in LaTeX
+    latex = latex.replace('_', r'\_')
+
     latex = latex_head + latex + latex_tail
 
     html_head = '''
@@ -203,12 +224,16 @@ def _make_html(file_path, file_name, html):
     full_path : str
         Full path of the html file.
     '''
-    full_path = os.path.join(os.path.abspath(file_path), file_name + ".html")
+    if file_path is not None:
+        full_path = os.path.join(os.path.abspath(file_path), file_name + ".html")
+    else:
+        full_path, _ = get_cache_path(relative_path='saved_logs/' + file_name + '.html')
 
     with open(full_path, "w") as f:
         f.write(html)
 
     print("[I] HTML saved as: " + os.path.abspath(full_path))
+
     return full_path
 
 
@@ -222,5 +247,13 @@ def _open_html(full_path, browser_path):
     browser_path : str
         Path of the browser.
     '''
+    if browser_path is not None:
+        browser_path = browser_path + r' %s'
+    else:
+        browser_path = get_chrome_path() + r' %s'
+    
+    url = 'file:///' + os.path.abspath(full_path)
+
     print("[I] Opening HTML in browser: " + browser_path)
-    webbrowser.get(using=browser_path).open('file:///' + os.path.abspath(full_path), new=2)
+
+    webbrowser.get(using=browser_path).open(url, new=2)
