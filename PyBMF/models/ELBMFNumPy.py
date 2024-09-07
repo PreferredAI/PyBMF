@@ -1,22 +1,32 @@
+# Copyright the ELBMF Authors.
+# https://github.com/renfujiwara/ELBMF
+# ============================================================================
 import numpy as np
 import sys
-from ..utils import to_dense, matmul, show_matrix
+from ..utils import to_dense, matmul, show_matrix, binarize
+from .ContinuousModel import ContinuousModel
+import numpy as np
+import sys
+from tqdm import tqdm
 
-class ELBMF:
-    def __init__ (  self,
-                    org_A,
-                    A,
-                    ncomponents,
-                    l1reg,
-                    l2reg,
-                    c, # = t -> c^t 
-                    maxiter,
-                    tolerance,
-                    random_seed          = 19,
-                    beta                 = 0.0, # inertial disabled by default
-                    batchsize            = None,
-                    with_rounding        = True,
-                    callback             = None):
+
+class ELBMF(ContinuousModel):
+    def __init__(
+            self,
+            org_A,
+            A,
+            ncomponents,
+            l1reg,
+            l2reg,
+            c, # = t -> c^t 
+            maxiter,
+            tolerance,
+            random_seed          = 19,
+            beta                 = 0.0, # inertial disabled by default
+            batchsize            = None,
+            with_rounding        = True,
+            callback             = None
+        ):
         self.org_A = org_A.copy()
         self.A = A.copy()
         self.n, self.m = np.shape(A)
@@ -39,11 +49,33 @@ class ELBMF:
         V_init = _rounding(self.V)
         print('init_loss')
         _print_loss(org_A, U_init, V_init)
+
+        # debug: create PyBMF variables
+        self.X_train = self.A.copy()
+        # self.X_val = self.A.copy()
+        # self.X_test = self.A.copy()
+        self.X_val = None
+        self.X_test = None
+
+        self.task = 'reconstruction'
+        self.logs = {}
+
+        # debug: initial evaluation of the real-valued loss
+        F = np.linalg.norm(self.A - (self.U @ self.V)) ** 2
+        ell = np.linalg.norm(A - _product(self.U, self.V), ord=2)
+        self.X_pd = matmul(self.U, self.V, boolean=False, sparse=False)
+        self.evaluate(df_name='updates', head_info={'iter': 0, 'F': F, 'ell': ell}, metrics=['RMSE', 'MAE'])
+
+        # debug: initial evaluation of the binary error
+        self.X_pd = matmul(U_init, V_init, boolean=True, sparse=True)
+        self.evaluate(df_name='boolean', head_info={'iter': 0}, metrics=['Recall', 'Precision', 'Accuracy', 'F1'])
+
     
     def init_factorization(self, seed):
         np.random.seed(seed)
         return np.random.rand(self.n,self.k), np.random.rand(self.k,self.m)
     
+
     def factorize(self):
         if(self.batchsize >= len(self.A)):
             if(self.beta == 0):
@@ -57,7 +89,8 @@ class ELBMF:
         self.V = _rounding(self.V)
         print('result_loss')
         self.print_loss()
-        
+
+
     def print_loss(self):
         _print_loss(self.org_A, self.U, self.V)
             
@@ -126,13 +159,25 @@ def _factorize_palm(elbmf):
     tol = elbmf.tolerance
     ell0 = sys.float_info.max
     ell = 0
-    for iter in range(elbmf.maxiter):
+    for iter in tqdm(range(elbmf.maxiter)):
         l2reg = l2reg_init * pow(c, iter)
         U = _reducemf_impl(A, U, V, l1reg, l2reg)
         V = _reducemf_impl(A.T, V.T, U.T, l1reg, l2reg).T
         ell = np.linalg.norm(A - _product(U,V), ord=2)
         if(abs(ell - ell0) < tol): break
         ell0 = ell
+
+        # debug: initial evaluation of the real-valued loss
+        F = np.linalg.norm(elbmf.A - (U @ V)) ** 2
+        elbmf.X_pd = matmul(U, V, boolean=False, sparse=False)
+        elbmf.evaluate(df_name='updates', head_info={'iter': iter, 'F': F, 'ell': ell}, metrics=['RMSE', 'MAE'])
+
+        # debug: initial evaluation of the binary error
+        U_init = _rounding(U)
+        V_init = _rounding(V)
+        elbmf.X_pd = matmul(U_init, V_init, boolean=True, sparse=True)
+        elbmf.evaluate(df_name='boolean', head_info={'iter': iter}, metrics=['Recall', 'Precision', 'Accuracy', 'F1'])
+        
     return U, V
 
 def _factorize_ipalm(elbmf, beta):
@@ -147,7 +192,7 @@ def _factorize_ipalm(elbmf, beta):
     ell = 0
     U_    = U.copy()
     Vt_   = V.T.copy()
-    for iter in range(elbmf.maxiter):
+    for iter in tqdm(range(elbmf.maxiter)):
         l2reg = l2reg_init * pow(c, iter)
         U, U_ = _reducemf_impl_b(A, U, V, l1reg, l2reg, U_, beta)
         Vt, Vt_ = _reducemf_impl_b(A.T, V.T, U.T, l1reg, l2reg, Vt_, beta)
@@ -155,6 +200,18 @@ def _factorize_ipalm(elbmf, beta):
         ell = np.linalg.norm(A - _product(U,V), ord=2)
         if(abs(ell - ell0) < tol): break
         ell0 = ell
+
+        # debug: initial evaluation of the real-valued loss
+        F = np.linalg.norm(elbmf.A - (U @ V)) ** 2
+        elbmf.X_pd = matmul(U, V, boolean=False, sparse=False)
+        elbmf.evaluate(df_name='updates', head_info={'iter': iter, 'F': F, 'ell': ell}, metrics=['RMSE', 'MAE'])
+
+        # debug: initial evaluation of the binary error
+        U_init = _rounding(U)
+        V_init = _rounding(V)
+        elbmf.X_pd = matmul(U_init, V_init, boolean=True, sparse=True)
+        elbmf.evaluate(df_name='boolean', head_info={'iter': iter}, metrics=['Recall', 'Precision', 'Accuracy', 'F1'])
+
     return U, V
 
 def _batched_factorize_ipalm(elbmf):

@@ -27,6 +27,7 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
     using_matrix = X_pd is not None
     using_factors = U is not None and V is not None
     assert using_matrix or using_factors, "[E] User should provide either `U`, `V` or `X_pd`."
+    assert task in ['prediction', 'reconstruction'], "[E] Task should be either 'prediction' or 'reconstruction'."
 
     if task == 'prediction':
         U_idx, V_idx, gt_data = to_triplet(X_gt)
@@ -48,10 +49,6 @@ def eval(metrics, task, X_gt, X_pd=None, U=None, V=None):
             pd_data = matmul(U=U, V=V.T, sparse=True, boolean=True)
         else:
             pd_data = to_sparse(X_pd, type='csr')
-
-        # # debug
-        # gt_data = to_dense(X_gt)
-        # pd_data = to_dense(X_pd)
     
     results = get_metrics(gt=gt_data, pd=pd_data, metrics=metrics)
     return results

@@ -5,7 +5,7 @@ from scipy.sparse import lil_matrix, hstack
 import pickle
 import time
 from IPython.display import display
-from ..utils import _make_name, ismat, get_cache_path
+from ..utils import _make_name, ismat, get_cache_path, to_sparse
 
 class BaseModelTools():
     '''The helper class for ``BaseModel``.
@@ -232,7 +232,7 @@ class BaseModelTools():
 
         >>> self.X_pd = get_prediction(U=self.U, V=self.V, boolean=True)
         '''
-        settings = [(self.X_train, [0, 0], 'gt'), (self.X_pd, [0, 1], 'pd')]
+        settings = [(to_sparse(self.X_train), [0, 0], 'gt'), (self.X_pd, [0, 1], 'pd')]
         self.show_matrix(settings, colorbar=True, discrete=True, clim=[0, 1])
 
 

@@ -1,4 +1,4 @@
-# Copyright the ELBMF Authors.
+# Copyright the elbmf-python Authors.
 # source: https://github.com/sdall/elbmf-python
 # ============================================================================
 import sys
@@ -48,9 +48,8 @@ class ELBMF(ContinuousModel):
             seed                = self.seed
         )
 
-        # self.U, self.V = csr_matrix(U), csr_matrix(V).T
-        # self.X_pd = matmul(self.U, self.V.T, boolean=True, sparse=True)
-        # self.evaluate(df_name='boolean')
+        # the final result is the non-thresholded values
+        self.U, self.V = csr_matrix(U), csr_matrix(V).T
 
 
     @torch.no_grad()
@@ -92,7 +91,7 @@ class ELBMF(ContinuousModel):
         V                       k*m factor matrix 
         """
         # debug: inspect parameters
-        print("\n================ inspect parameters ================")
+        print("\n============= parameters of elbmf() ===============")
         print("X: ", X.shape, type(X))
         print("n_components: ", n_components)
         print("U: ", U.shape if U is not None else None, type(U))
@@ -106,7 +105,7 @@ class ELBMF(ContinuousModel):
         print("callback: ", callback)
         print("with_rounding: ", with_rounding)
         print("seed: ", seed)
-        print("======================================================\n")
+        print("=====================================================\n")
 
         # debug: accept parameters random seed
         if seed is not None:
@@ -167,7 +166,7 @@ class ELBMF(ContinuousModel):
             # debug: evaluate the real-valued loss
             self.U, self.V = csr_matrix(U), csr_matrix(V).T
             self.X_pd = matmul(self.U, self.V.T, boolean=False, sparse=False)
-            self.evaluate(df_name='updates', head_info={'iter': t, 'F': fn}, metrics=['RMSE', 'MAE'])
+            self.evaluate(df_name='updates', head_info={'iter': t, 'F': fn.item()}, metrics=['RMSE', 'MAE'])
 
             # debug: evaluate the binary error
             self.U, self.V = binarize(self.U, 0.5), binarize(self.V, 0.5)
