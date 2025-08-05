@@ -177,7 +177,7 @@ def cost_savings(T_0, I_0, T_1, I_1, X_pd):
     I = list(set(I_0 + I_1))
     denominator = len(T) * len(I) - X_pd[T, :][:, I].sum()
     if denominator == 0:
-        savings = np.Inf
+        savings = np.inf
         return savings
     else:
         numerator = len(T_0) + len(T_1) + len(I_0) + len(I_1) - len(T) - len(I)

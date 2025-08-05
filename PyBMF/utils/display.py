@@ -6,6 +6,7 @@ from matplotlib import cm, colormaps, MatplotlibDeprecationWarning
 from .sparse_utils import to_triplet, to_dense
 import platform
 import warnings
+import os
 
 
 def show_matrix(settings, 
@@ -14,7 +15,7 @@ def show_matrix(settings,
                 keep_nan=True, 
                 colorbar=False, clim=None, discrete=False, center=True, 
                 cmap='rainbow', cmin='gray', cmax='black', cnan='white', 
-                save_fig=True):
+                save_fig=False):
     '''Show the matrix and factors.
 
     Parameters
@@ -210,7 +211,9 @@ def show_matrix(settings,
     plt.draw()
 
     if save_fig:
-        fig.savefig("../experiment/display.pdf", dpi=100)
+        if not os.path.exists('experiment'):
+            os.makedirs('experiment')
+        fig.savefig("experiment/display.pdf", dpi=100)
 
 
 def get_size_inches(scaling, ppi, hds, pixels, width_cells, height_cells):
